@@ -10,7 +10,7 @@ extern "C" {
 
 #define MAJOR_VER	"0"
 #define MINOR_VER	"1"
-#define CAHR_VER	"e"
+#define CAHR_VER	"f"
 
 typedef struct CIRCULAR_BUFF
 {
