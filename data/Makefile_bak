@@ -1,0 +1,20 @@
+CROSS_COMPILE ?= mips-linux-gnu-
+
+CC = $(CROSS_COMPILE)gcc
+CXX = $(CROSS_COMPILE)g++
+LD = $(CROSS_COMPILE)ld
+AR = $(CROSS_COMPILE)ar cr
+STRIP = $(CROSS_COMPILE)strip
+CFLAGS = -Wall
+CXXFLAGS = -Wall -std=c++11 -muclibc -lm -lrt -ldl
+OPENCV_INCLUDE = -I../../../../opencv/include -I../../../include
+OPENCV_LIBS = -L../../../../opencv/lib -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_imgcodecs -lopencv_features2d -lopencv_calib3d -lopencv_flann
+
+all: image_comparison
+
+
+image_comparison: image_comparison.cpp
+	$(CXX) $(CXXFLAGS) -o $@ $< $(OPENCV_INCLUDE) $(OPENCV_LIBS)
+
+clean:
+	rm -f image_comparison
