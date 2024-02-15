@@ -1,0 +1,732 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <imp/imp_log.h>
+#include <imp/imp_common.h>
+#include <imp/imp_system.h>
+#include <imp/imp_framesource.h>
+#include <imp/imp_encoder.h>
+#include <imp/imp_osd.h>
+#include <imp/imp_utils.h>
+
+#include "global_value.h"
+#include "video-common.h"
+#include "move.h"
+
+#define TAG "video"
+
+extern struct chn_conf chn[];
+
+int mosdgrp = 0;
+int bosdgrp = 0;
+IMPRgnHandle *prHander;
+
+static int osd_show(void)
+{
+	int ret, i;
+
+	if (move_flag) {
+		IMPOSDRgnAttr rect_rAttr;
+		rect_rAttr.type = OSD_REG_RECT;
+		rect_rAttr.rect.p0.x = move_det_xs;
+		rect_rAttr.rect.p0.y = move_det_ys;
+		rect_rAttr.rect.p1.x = move_det_xe - 1;
+		rect_rAttr.rect.p1.y = move_det_ye - 1;
+		rect_rAttr.fmt = PIX_FMT_MONOWHITE;
+		rect_rAttr.data.lineRectData.color = OSD_RED;
+		rect_rAttr.data.lineRectData.linewidth = 3;
+		IMP_OSD_SetRgnAttr(prHander[TEST_RECT_INDEX], &rect_rAttr);
+		ret = IMP_OSD_ShowRgn(prHander[TEST_RECT_INDEX], mosdgrp, 1);
+		if (ret != 0) {
+			IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
+			return -1;
+		}
+
+		ret = IMP_OSD_ShowRgn(prHander[TEST_COVER_INDEX], mosdgrp, 0);
+		if (ret != 0) {
+			IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Test Cover error\n");
+			return -1;
+		}
+	}
+
+	IMPOSDRgnAttr cover_rAttr;
+	for (i=0; i<GRID_COVER_INDEX; i++) {
+		if (grid_cover_flag[i] == true){
+			IMP_OSD_GetRgnAttr(prHander[2+RECT_INDEX+MOSAIC_INDEX+i], &cover_rAttr);
+			printf("grid[%d] x:%d y:%d \n", i, cover_rAttr.mosaicAttr.x, cover_rAttr.mosaicAttr.y);
+			ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+MOSAIC_INDEX+i], mosdgrp, 1);
+			if (ret != 0) {
+				IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
+				return -1;
+			}
+			printf("grid %d On!\n", i);
+		}
+	}
+
+	return 0;
+}
+
+int osd_grid_show(int selnum)
+{
+	int ret;
+
+	if(selnum < 0 || selnum >= GRID_COVER_INDEX)
+		printf("Invalid Grid Index : %d\n", selnum);
+
+	IMPOSDRgnAttr cover_rAttr;
+	if (grid_cover_flag[selnum] == true){
+		IMP_OSD_GetRgnAttr(prHander[2+RECT_INDEX+MOSAIC_INDEX+selnum], &cover_rAttr);
+		printf("grid[%d] x:%d y:%d \n", selnum, cover_rAttr.mosaicAttr.x , cover_rAttr.mosaicAttr.y);
+		ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+MOSAIC_INDEX+selnum], mosdgrp, 1);
+		if (ret != 0) {
+			IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
+			return -1;
+		}
+		printf("grid %d On!\n", selnum);
+	}
+	else {
+		IMP_OSD_GetRgnAttr(prHander[2+RECT_INDEX+MOSAIC_INDEX+selnum], &cover_rAttr);
+		printf("grid[%d] x:%d y:%d \n", selnum, cover_rAttr.mosaicAttr.x , cover_rAttr.mosaicAttr.y);
+		ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+MOSAIC_INDEX+selnum], mosdgrp, 0);
+		if (ret != 0) {
+			IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
+			return -1;
+		}
+		printf("grid %d Off!\n", selnum);
+	}
+
+	return 0;
+}
+
+IMPCell osdcell;
+
+int video_init(void) {
+	int ret = -1;
+
+	osdcell.deviceID = DEV_ID_OSD;
+	osdcell.groupID = mosdgrp;
+	osdcell.outputID = 0;
+
+	/* Step.1 System init */
+	ret = sample_system_init();
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "IMP_System_Init() failed\n");
+		return -1;
+	}
+
+	/* Step.2 FrameSource init */
+	ret = sample_framesource_init(CH0_INDEX);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "FrameSource CH0_INDEX init failed\n");
+		return -1;
+	}
+	// ret = sample_framesource_init(CH1_INDEX);
+	// if (ret < 0) {
+	// 	IMP_LOG_ERR(TAG, "FrameSource CH1_INDEX init failed\n");
+	// 	return -1;
+	// }
+	ret = sample_framesource_init(CH2_INDEX);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "FrameSource CH2_INDEX init failed\n");
+		return -1;
+	}
+
+	ret = sample_framesource_init(CH3_INDEX);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "FrameSource CH3_INDEX init failed\n");
+		return -1;
+	}
+	// ret = sample_framesource_init(CH4_INDEX);
+	// if (ret < 0) {
+	// 	IMP_LOG_ERR(TAG, "FrameSource CH4_INDEX init failed\n");
+	// 	return -1;
+	// }
+	ret = sample_framesource_init(CH5_INDEX);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "FrameSource CH5_INDEX init failed\n");
+		return -1;
+	}
+
+	/* Step.3 Encoder init */
+	ret = IMP_Encoder_CreateGroup(chn[CH0_INDEX].index);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "IMP_Encoder_CreateGroup(%d) error !\n", chn[CH0_INDEX].index);
+		return -1;
+	}
+	ret = sample_encoder_init(CH0_INDEX);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "Encoder init failed\n");
+		return -1;
+	}
+
+	// ret = IMP_Encoder_CreateGroup(chn[CH1_INDEX].index);
+	// if (ret < 0) {
+	// 	IMP_LOG_ERR(TAG, "IMP_Encoder_CreateGroup(%d) error !\n", chn[CH1_INDEX].index);
+	// 	return -1;
+	// }
+	// ret = sample_encoder_init(CH1_INDEX);
+	// if (ret < 0) {
+	// 	IMP_LOG_ERR(TAG, "Encoder init failed\n");
+	// 	return -1;
+	// }
+
+	ret = IMP_Encoder_CreateGroup(chn[CH2_INDEX].index);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "IMP_Encoder_CreateGroup(%d) error !\n", chn[CH1_INDEX].index);
+		return -1;
+	}
+	ret = sample_jpeg_init(CH2_INDEX);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "sample_jpeg_init init failed\n");
+		return -1;
+	}
+
+	ret = IMP_Encoder_CreateGroup(chn[CH3_INDEX].index);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "IMP_Encoder_CreateGroup(%d) error !\n", chn[CH3_INDEX].index);
+		return -1;
+	}
+	ret = sample_encoder_init(CH3_INDEX);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "Encoder init failed\n");
+		return -1;
+	}
+
+	// ret = IMP_Encoder_CreateGroup(chn[CH4_INDEX].index);
+	// if (ret < 0) {
+	// 	IMP_LOG_ERR(TAG, "IMP_Encoder_CreateGroup(%d) error !\n", chn[CH4_INDEX].index);
+	// 	return -1;
+	// }
+	// ret = sample_encoder_init(CH4_INDEX);
+	// if (ret < 0) {
+	// 	IMP_LOG_ERR(TAG, "Encoder init failed\n");
+	// 	return -1;
+	// }
+
+	ret = IMP_Encoder_CreateGroup(chn[CH5_INDEX].index);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "IMP_Encoder_CreateGroup(%d) error !\n", chn[CH5_INDEX].index);
+		return -1;
+	}
+	ret = sample_jpeg_init(CH5_INDEX);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "sample_jpeg_init init failed\n");
+		return -1;
+	}
+
+
+	// ret = sample_jpeg_init(CH2_INDEX);
+	// if (ret < 0) {
+	// 	IMP_LOG_ERR(TAG, "Jpg Snap init failed\n");
+	// 	return -1;
+	// }
+
+	// ret = sample_jpeg_init(CH5_INDEX);
+	// if (ret < 0) {
+	// 	IMP_LOG_ERR(TAG, "Jpg Snap init failed\n");
+	// 	return -1;
+	// }
+
+	/* Step.4 OSD init */
+	if (IMP_OSD_CreateGroup(mosdgrp) < 0) {
+		IMP_LOG_ERR(TAG, "IMP_OSD_CreateGroup(%d) error !\n", mosdgrp);
+		return -1;
+	}
+
+	// prHander = sample_osd_init(mosdgrp);
+	// if (prHander <= 0) {
+	// 	IMP_LOG_ERR(TAG, "OSD init failed\n");
+	// 	return -1;
+	// }
+	prHander = osd_init(mosdgrp);
+	if (prHander <= 0) {
+		IMP_LOG_ERR(TAG, "OSD init failed\n");
+		return -1;
+	}
+
+
+	/* Step.5 Bind */
+	
+	ret = IMP_System_Bind(&chn[CH0_INDEX].framesource_chn, &osdcell);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "Bind FrameSource channel0 and OSD failed\n");
+		return -1;
+	}
+
+	ret = IMP_System_Bind(&osdcell, &chn[CH0_INDEX].imp_encoder);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "Bind OSD and Encoder failed\n");
+		return -1;
+	}
+	// ret = IMP_System_Bind(&chn[CH0_INDEX].framesource_chn, &chn[CH0_INDEX].imp_encoder);
+	// if (ret < 0) {
+		// IMP_LOG_ERR(TAG, "Bind FrameSource channel%d and Encoder failed\n",CH0_INDEX);
+		// return -1;
+	// }
+
+
+
+	// ret = IMP_System_Bind(&chn[CH1_INDEX].framesource_chn, &chn[CH1_INDEX].imp_encoder);
+	// if (ret < 0) {
+	// 	IMP_LOG_ERR(TAG, "Bind FrameSource channel%d and Encoder failed\n",CH1_INDEX);
+	// 	return -1;
+	// }
+	ret = IMP_System_Bind(&chn[CH2_INDEX].framesource_chn, &chn[CH2_INDEX].imp_encoder);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "Bind FrameSource channel%d and Encoder failed\n",CH1_INDEX);
+		return -1;
+	}
+
+	ret = IMP_System_Bind(&chn[CH3_INDEX].framesource_chn, &chn[CH3_INDEX].imp_encoder);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "Bind FrameSource channel%d and Encoder failed\n",CH3_INDEX);
+		return -1;
+	}
+	// ret = IMP_System_Bind(&chn[CH4_INDEX].framesource_chn, &chn[CH4_INDEX].imp_encoder);
+	// if (ret < 0) {
+	// 	IMP_LOG_ERR(TAG, "Bind FrameSource channel%d and Encoder failed\n",CH4_INDEX);
+	// 	return -1;
+	// }
+	ret = IMP_System_Bind(&chn[CH5_INDEX].framesource_chn, &chn[CH5_INDEX].imp_encoder);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "Bind FrameSource channel%d and Encoder failed\n",CH4_INDEX);
+		return -1;
+	}
+
+	move_init(chn[CH0_INDEX].framesource_chn);
+
+	/* Step.6 Stream On */
+	ret = sample_framesource_streamon(CH0_INDEX);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "ImpStreamOn CH0_INDEX failed\n");
+		return -1;
+	}
+	// ret = sample_framesource_streamon(CH1_INDEX);
+	// if (ret < 0) {
+	// 	IMP_LOG_ERR(TAG, "ImpStreamOn CH1_INDEX failed\n");
+	// 	return -1;
+	// }
+	ret = sample_framesource_streamon(CH2_INDEX);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "ImpStreamOn CH2_INDEX failed\n");
+		return -1;
+	}
+	ret = sample_framesource_streamon(CH3_INDEX);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "ImpStreamOn CH3_INDEX failed\n");
+		return -1;
+	}
+	// ret = sample_framesource_streamon(CH4_INDEX);
+	// if (ret < 0) {
+	// 	IMP_LOG_ERR(TAG, "ImpStreamOn CH4_INDEX failed\n");
+	// 	return -1;
+	// }
+	ret = sample_framesource_streamon(CH5_INDEX);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "ImpStreamOn CH5_INDEX failed\n");
+		return -1;
+	}
+
+	// IMPOSDRgnAttr cover_rAttr;
+	// for (int i = 0; i < GRID_COVER_INDEX; i++) {
+	// 	IMP_OSD_GetRgnAttr(prHander[2+RECT_INDEX+MOSAIC_INDEX+i], &cover_rAttr);
+	// 	printf("grid[%d] x:%d y:%d \n", i, cover_rAttr.mosaicAttr.x, cover_rAttr.mosaicAttr.y);
+	// }
+
+	IMPISPHVFLIP hvf;
+	hvf = IMPISP_FLIP_HV_MODE;
+	IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN, &hvf);			// Main Cam Flip
+	// IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN+1, &hvf);	// Box Cam Flip
+
+	///////////////////////// Box Cam Crop ////////////////////////////
+	// IMPISPAutoZoom autozoom;
+	// memset(&autozoom, 0, sizeof(IMPISPAutoZoom));
+	// autozoom.zoom_chx_en[0] = 1;
+	// autozoom.zoom_left[0] = 640/2;
+	// autozoom.zoom_top[0] = 360;
+	// autozoom.zoom_width[0] = (int)(1920-(autozoom.zoom_left[0]));
+	// autozoom.zoom_height[0] = (int)(1080-autozoom.zoom_top[0]);
+
+	// ret = IMP_ISP_Tuning_SetAutoZoom(IMPVI_MAIN+1, &autozoom);
+	///////////////////////////////////////////////////////////////////
+
+	// if (Night_Mode) {
+	// 	IMP_ISP_StartNightMode(IMPVI_MAIN);	// Noight Mode ?
+	// 	IMP_ISP_StartNightMode(IMPVI_MAIN+1);	// Noight Mode ?
+	// }
+
+	return 0;
+}
+
+int video_deinit(void)
+{
+	int ret = -1;
+	/* Exit sequence as follow */
+	/* Step.a Stream Off */
+	ret = sample_framesource_streamoff(CH0_INDEX);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "FrameSource StreamOff CH0_INDEX failed\n");
+		return -1;
+	}
+	// ret = sample_framesource_streamoff(CH1_INDEX);
+	// if (ret < 0) {
+	// 	IMP_LOG_ERR(TAG, "FrameSource StreamOff CH1_INDEX failed\n");
+	// 	return -1;
+	// }
+	ret = sample_framesource_streamoff(CH2_INDEX);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "FrameSource StreamOff CH2_INDEX failed\n");
+		return -1;
+	}
+	ret = sample_framesource_streamoff(CH3_INDEX);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "FrameSource StreamOff CH3_INDEX failed\n");
+		return -1;
+	}
+	// ret = sample_framesource_streamoff(CH4_INDEX);
+	// if (ret < 0) {
+	// 	IMP_LOG_ERR(TAG, "FrameSource StreamOff CH4_INDEX failed\n");
+	// 	return -1;
+	// }
+	ret = sample_framesource_streamoff(CH5_INDEX);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "FrameSource StreamOff CH5_INDEX failed\n");
+		return -1;
+	}
+
+	/* Step.b UnBind */
+	ret = IMP_System_UnBind(&osdcell, &chn[CH0_INDEX].imp_encoder);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "Bind OSD and Encoder failed\n");
+		return -1;
+	}
+
+	ret = IMP_System_UnBind(&chn[CH0_INDEX].framesource_chn, &osdcell);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "UnBind FrameSource and OSD failed\n");
+		return -1;
+	}
+	// ret = IMP_System_UnBind(&chn[CH0_INDEX].framesource_chn, &chn[CH0_INDEX].imp_encoder);
+	// if (ret < 0) {
+		// IMP_LOG_ERR(TAG, "UnBind FrameSource channel%d and Encoder failed\n",CH0_INDEX);
+		// return -1;
+	// }
+
+
+	// ret = IMP_System_UnBind(&chn[CH1_INDEX].framesource_chn, &chn[CH1_INDEX].imp_encoder);
+	// if (ret < 0) {
+	// 	IMP_LOG_ERR(TAG, "UnBind FrameSource channel%d and Encoder failed\n",CH1_INDEX);
+	// 	return -1;
+	// }
+	ret = IMP_System_UnBind(&chn[CH2_INDEX].framesource_chn, &chn[CH1_INDEX].imp_encoder);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "UnBind FrameSource channel%d and Encoder failed\n",CH2_INDEX);
+		return -1;
+	}
+	
+	ret = IMP_System_UnBind(&chn[CH3_INDEX].framesource_chn, &chn[CH3_INDEX].imp_encoder);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "UnBind FrameSource channel%d and Encoder failed\n",CH3_INDEX);
+		return -1;
+	}
+	// ret = IMP_System_UnBind(&chn[CH4_INDEX].framesource_chn, &chn[CH4_INDEX].imp_encoder);
+	// if (ret < 0) {
+	// 	IMP_LOG_ERR(TAG, "UnBind FrameSource channel%d and Encoder failed\n",CH4_INDEX);
+	// 	return -1;
+	// }
+	ret = IMP_System_UnBind(&chn[CH5_INDEX].framesource_chn, &chn[CH1_INDEX].imp_encoder);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "UnBind FrameSource channel%d and Encoder failed\n",CH5_INDEX);
+		return -1;
+	}
+	
+
+	/* Step.c OSD exit */
+	// ret = sample_osd_exit(prHander,mosdgrp);
+	// if (ret < 0) {
+	// 	IMP_LOG_ERR(TAG, "OSD exit failed\n");
+	// 	return -1;
+	// }
+	ret = osd_exit(prHander,mosdgrp);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "OSD exit failed\n");
+		return -1;
+	}
+
+
+	move_deinit(chn[CH0_INDEX].framesource_chn);
+
+	/* Step.c Encoder exit */
+	ret = sample_encoder_exit(CH0_INDEX);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "Encoder exit CH0_INDEX failed\n");
+		return -1;
+	}
+	// ret = sample_encoder_exit(CH1_INDEX);
+	// if (ret < 0) {
+	// 	IMP_LOG_ERR(TAG, "Encoder exit CH1_INDEX failed\n");
+	// 	return -1;
+	// }
+	ret = sample_jpeg_exit(CH2_INDEX);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "sample_jpeg_exit channel%d and Encoder failed\n",CH2_INDEX);
+		return -1;
+	}
+
+	ret = sample_encoder_exit(CH3_INDEX);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "Encoder exit CH3_INDEX failed\n");
+		return -1;
+	}
+	// ret = sample_encoder_exit(CH4_INDEX);
+	// if (ret < 0) {
+	// 	IMP_LOG_ERR(TAG, "Encoder exit CH4_INDEX failed\n");
+	// 	return -1;
+	// }
+	ret = sample_jpeg_exit(CH5_INDEX);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "sample_jpeg_exit channel%d and Encoder failed\n",CH5_INDEX);
+		return -1;
+	}
+
+	/* Step.d FrameSource exit */
+	ret = sample_framesource_exit(CH0_INDEX);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "FrameSource exit CH0_INDEX failed\n");
+		return -1;
+	}
+	// ret = sample_framesource_exit(CH1_INDEX);
+	// if (ret < 0) {
+	// 	IMP_LOG_ERR(TAG, "FrameSource exit CH1_INDEX failed\n");
+	// 	return -1;
+	// }
+	ret = sample_framesource_exit(CH2_INDEX);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "FrameSource exit CH2_INDEX failed\n");
+		return -1;
+	}
+	ret = sample_framesource_exit(CH3_INDEX);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "FrameSource exit CH3_INDEX failed\n");
+		return -1;
+	}
+	// ret = sample_framesource_exit(CH4_INDEX);
+	// if (ret < 0) {
+	// 	IMP_LOG_ERR(TAG, "FrameSource exit CH4_INDEX failed\n");
+	// 	return -1;
+	// }
+	ret = sample_framesource_exit(CH5_INDEX);
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "FrameSource exit CH5_INDEX failed\n");
+		return -1;
+	}
+
+	/* Step.e System exit */
+	ret = sample_system_exit();
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "sample_system_exit() failed\n");
+		return -1;
+	}
+
+	return 0;
+}
+
+void *get_video_stream_user_thread(void *args)
+{
+	sample_get_video_stream_user();
+
+	return ((void*) 0);
+}
+
+void *get_video_clip_user_thread(void *args)
+{
+	sample_get_video_clip_user();
+
+	return ((void*) 0);
+}
+
+void *get_snap_stream_user_thread(void *args)
+{
+	sample_get_snap_stream_user();
+
+	return ((void*) 0);
+}
+
+void *move_detecte_thread(void *args)
+{
+	move();
+
+	return ((void*) 0);
+}
+
+void *OSD_thread(void *args)
+{
+	int ret;
+
+	int x_cal=0, y_cal=0, w_cal=0, h_cal=0;
+	int f_cnt=0;
+	
+	// int mosaic_x = 300, mosaic_y = 300;
+	// int state = 0;
+
+	// IMPOSDRgnAttr rect_rAttr;
+	// IMPOSDRgnAttr cover_rAttr;
+	IMPOSDRgnAttr mosaic_rAttr;
+	int mosaic_index = 0;
+	uint64_t mosaic_time[10] = {0};
+	uint64_t mtime = 0;
+
+	ret = osd_show();
+	if (ret < 0) {
+		IMP_LOG_ERR(TAG, "OSD show error\n");
+		return NULL;
+	}
+	
+	do {
+		if (main_motion_detect > 0) {
+			ret = IMP_OSD_ShowRgn(prHander[TEST_COVER_INDEX], mosdgrp, 1);
+			if (ret != 0) {
+				IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
+				return NULL;
+			}
+		}
+		else {
+			ret = IMP_OSD_ShowRgn(prHander[TEST_COVER_INDEX], mosdgrp, 0);
+			if (ret != 0) {
+				IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
+				return NULL;
+			}
+		}
+
+		// for(int i=0;i<10;i++){
+		// 	if(fdpd_data[i].flag == true && fdpd_data[i].classid == 0){
+		// 		IMP_OSD_GetRgnAttr(prHander[2+i], &rect_rAttr);
+		// 		rect_rAttr.rect.p0.x = fdpd_data[i].ul_x;
+		// 		rect_rAttr.rect.p0.y = fdpd_data[i].ul_y;
+		// 		rect_rAttr.rect.p1.x = fdpd_data[i].br_x - 1;
+		// 		rect_rAttr.rect.p1.y = fdpd_data[i].br_y - 1;
+		// 		rect_rAttr.fmt = PIX_FMT_MONOWHITE;
+		// 		rect_rAttr.data.lineRectData.color = OSD_GREEN;
+		// 		rect_rAttr.data.lineRectData.linewidth = 3;
+		// 		ret = IMP_OSD_SetRgnAttr(prHander[2+i], &rect_rAttr);
+		// 		if (ret != 0) {
+		// 			IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Rect error\n");
+		// 			return NULL;
+		// 		}
+		// 		ret = IMP_OSD_ShowRgn(prHander[2+i], mosdgrp, 1);
+		// 		if (ret != 0) {
+		// 			IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Rect error\n");
+		// 			return NULL;
+		// 		}
+		// 		// printf("mosaic[%d] class%d, x0:%d, y0:%d, x1:%d, y1:%d\n", 2+i
+		// 			// , fdpd_data[i].classid, rect_rAttr.rect.p0.x, rect_rAttr.rect.p0.y, rect_rAttr.rect.p1.x, rect_rAttr.rect.p1.y);
+		// 	}
+		// 	else{
+		// 		ret = IMP_OSD_ShowRgn(prHander[2+i], mosdgrp, 0);
+		// 		if (ret != 0) {
+		// 			IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Rect error\n");
+		// 			return NULL;
+		// 		}
+		// 	}
+		// }
+		f_cnt = 0;
+		mosaic_index = 0;
+		for(int j=0; j<10; j++) {
+			// if (fdpd_data[j].flag == true && fdpd_data[j].classid == 0) {
+			if (mosaic_data.flag[j]) {
+				// IMP_OSD_GetRgnAttr(prHander[2+RECT_INDEX+j], &mosaic_rAttr);
+				x_cal = mosaic_data.x[j] - 40;
+				x_cal = (x_cal/10)*10;
+				y_cal = mosaic_data.y[j] - 40;
+				y_cal = (y_cal/10)*10;
+				if (x_cal < 0) x_cal = 0;
+				if (y_cal < 0) y_cal = 0;
+				w_cal = mosaic_data.ex[j] - mosaic_data.x[j];
+				h_cal = mosaic_data.ey[j] - mosaic_data.y[j];
+				if (w_cal < 50 || h_cal < 50) {
+					continue;
+				}
+				else {
+					w_cal = w_cal - (w_cal%40) + 40 + 80;
+					h_cal = h_cal - (h_cal%40) + 40 + 80;
+				}
+				if(x_cal + w_cal >= 1920) x_cal = 1920 - w_cal - 1;
+				if(y_cal + h_cal >= 1080) y_cal = 1080 - h_cal - 1;
+
+				mosaic_rAttr.type = OSD_REG_MOSAIC;
+				mosaic_rAttr.mosaicAttr.x = x_cal;
+				mosaic_rAttr.mosaicAttr.y = y_cal;
+				mosaic_rAttr.mosaicAttr.mosaic_width = w_cal;
+				mosaic_rAttr.mosaicAttr.mosaic_height = h_cal;
+				mosaic_rAttr.mosaicAttr.frame_width = FIRST_SENSOR_WIDTH;
+				mosaic_rAttr.mosaicAttr.frame_height = FIRST_SENSOR_HEIGHT;
+				mosaic_rAttr.mosaicAttr.mosaic_min_size = 40;
+
+				ret = IMP_OSD_SetRgnAttr(prHander[2+RECT_INDEX+mosaic_index], &mosaic_rAttr);
+				if (ret != 0) {
+					IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Mosaic error\n");
+					return NULL;
+				}
+				ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+mosaic_index], mosdgrp, 1);
+				if (ret != 0) {
+					IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Mosaic error\n");
+					return NULL;
+				}
+				if (person_cnt > f_cnt){
+					mosaic_index = (mosaic_index+1)%10;
+				}
+				if (mosaic_time[mosaic_index] == 0)
+					printf("FaceMosaic on:%d %lld\n", mosaic_index, sample_gettimeus());
+				mosaic_time[mosaic_index] = sample_gettimeus();
+			}
+
+			if (mosaic_time[j] != 0) {
+				mtime = sample_gettimeus()-mosaic_time[j];
+				if (mtime > 5000000) {
+					printf("FaceMosaic off:%d cal:%lld\n", j, mtime);
+					// mosaic_rAttr.type = OSD_REG_MOSAIC;
+					// mosaic_rAttr.mosaicAttr.x = 0;
+					// mosaic_rAttr.mosaicAttr.y = 0;
+					// mosaic_rAttr.mosaicAttr.mosaic_width = 0;
+					// mosaic_rAttr.mosaicAttr.mosaic_height = 0;
+					// mosaic_rAttr.mosaicAttr.frame_width = FIRST_SENSOR_WIDTH;
+					// mosaic_rAttr.mosaicAttr.frame_height = FIRST_SENSOR_HEIGHT;
+					// mosaic_rAttr.mosaicAttr.mosaic_min_size = 40;
+
+					// ret = IMP_OSD_SetRgnAttr(prHander[2+RECT_INDEX+j], &mosaic_rAttr);
+					// if (ret != 0) {
+					// 	IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Mosaic error\n");
+					// 	return NULL;
+					// }
+					ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+j], mosdgrp, 0);
+					if (ret != 0) {
+						IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Mosaic error\n");
+						return NULL;
+					}
+					mosaic_time[j] = 0;
+				}
+			}
+
+		}
+
+		// for (int k=0; k<10; k++) {
+		// 	// printf("[%d] time : %d\n", k, mosaic_time[k]);
+		// 	if (mosaic_time[k] != 0) {
+		// 		if ((sample_gettimeus()-mosaic_time[k]) > 5000000) {
+		// 			printf("FaceMosaic off:%d\n", k);
+		// 			ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+k], mosdgrp, 0);
+		// 			if (ret != 0) {
+		// 				IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Mosaic error\n");
+		// 				return NULL;
+		// 			}
+		// 			mosaic_time[k] = 0;
+		// 		}
+		// 	}
+		// }
+
+		usleep(100*1000);
+	} while(!bExit);
+
+	return ((void*) 0);
+}
+

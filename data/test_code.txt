@@ -1,0 +1,65 @@
+#include <opencv2/opencv.hpp>
+#include <iostream>
+
+using namespace cv;
+using namespace std;
+
+double calculateImageSimilarity(const Mat& img1, const Mat& img2) {
+    Mat gray1, gray2;
+    cvtColor(img1, gray1, COLOR_BGR2GRAY);
+    cvtColor(img2, gray2, COLOR_BGR2GRAY);
+
+    Mat diff;
+    absdiff(gray1, gray2, diff);
+
+    threshold(diff, diff, 30, 255, THRESH_BINARY);
+
+    int nonZeroCount = countNonZero(diff);
+    double similarity = ((gray1.total() - nonZeroCount) / static_cast<double>(gray1.total())) * 100.0;
+
+    return similarity;
+}
+
+vector<Mat> splitImage(const Mat& image) {
+    int segmentWidth = image.cols / 4;
+    int segmentHeight = image.rows / 4;
+
+    vector<Mat> segments;
+
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            Rect roi(j * segmentWidth, i * segmentHeight, segmentWidth, segmentHeight);
+            Mat segment = image(roi);
+            segments.push_back(segment);
+        }
+    }
+
+    return segments;
+}
+
+int main() {
+    // Replace with the actual file paths of your images
+    string imagePath1 = "path/to/first/image.jpg";
+    string imagePath2 = "path/to/second/image.jpg";
+
+    Mat img1 = imread(imagePath1);
+    Mat img2 = imread(imagePath2);
+
+    if (img1.empty() || img2.empty()) {
+        cerr << "Error loading images." << endl;
+        return -1;
+    }
+
+    vector<Mat> segments1 = splitImage(img1);
+    vector<Mat> segments2 = splitImage(img2);
+
+    for (int i = 0; i < 16; ++i) {
+        double similarity = calculateImageSimilarity(segments1[i], segments2[i]);
+
+        if (similarity <= 70.0) {
+            cout << "Segment " << i + 1 << ": Similarity " << similarity << "%" << endl;
+        }
+    }
+
+    return 0;
+}
