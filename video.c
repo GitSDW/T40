@@ -335,7 +335,7 @@ int video_init(void) {
 
 	IMPISPHVFLIP hvf;
 	hvf = IMPISP_FLIP_HV_MODE;
-	IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN, &hvf);			// Main Cam Flip
+	// IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN, &hvf);			// Main Cam Flip
 	// IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN+1, &hvf);	// Box Cam Flip
 
 	///////////////////////// Box Cam Crop ////////////////////////////

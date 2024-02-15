@@ -1090,36 +1090,36 @@ int clip_total(void) {
 		else {
 			total_time = sample_gettimeus() - start_time;
 
-			// if((total_time <= THUMBNAIL_TIME) && (fr_state == 0)) {
-			// 	fr_state++;
-			// }
-			// else if(fr_state == 3) {
-			// 	fr_state++;
-			// 	printf("Face Data Send!!\n");
-			// 	ret = facecrop_make(facial_data);
-			// 	if (ret < 0) {
-			// 		printf("Facial Fail. Retry.\n");
-			// 		memset(file_sep, 0, 100);
-			// 		sprintf(file_sep, "rm /vtmp/face*");
-			// 		printf("%s\n", file_sep);
-			// 		system(file_sep);
-			// 		fr_state = 0;
-			// 	}
-			// }
-			// else if (total_time > THUMBNAIL_TIME) {
-			// 	fr_state = 5;	// fr_state 5 / Time out
-			// }
+			if((total_time <= THUMBNAIL_TIME) && (fr_state == 0)) {
+				fr_state++;
+			}
+			else if(fr_state == 3) {
+				fr_state++;
+				printf("Face Data Send!!\n");
+				ret = facecrop_make(facial_data);
+				if (ret < 0) {
+					printf("Facial Fail. Retry.\n");
+					memset(file_sep, 0, 100);
+					sprintf(file_sep, "rm /vtmp/face*");
+					printf("%s\n", file_sep);
+					system(file_sep);
+					fr_state = 0;
+				}
+			}
+			else if (total_time > THUMBNAIL_TIME) {
+				fr_state = 5;	// fr_state 5 / Time out
+			}
 
-			// if ((total_time > THUMBNAIL_TIME) && (thumbnail_state == 0) &&
-			// 	(fr_state == 4 || fr_state == 5)) {	// thumbnail
-			// 	printf("Thumbnail Make Start!!\n");
-			// 	thumbnail_snap = true;
-			// 	thumbnail_state = 1;
-			// }
-			// if (thumbnail_state == 2) {
-   			// 	thumbnail_make(thum_face_data);
-   			// 	thumbnail_state = 3;
-			// }
+			if ((total_time > THUMBNAIL_TIME) && (thumbnail_state == 0) &&
+				(fr_state == 4 || fr_state == 5)) {	// thumbnail
+				printf("Thumbnail Make Start!!\n");
+				thumbnail_snap = true;
+				thumbnail_state = 1;
+			}
+			if (thumbnail_state == 2) {
+   				thumbnail_make(thum_face_data);
+   				thumbnail_state = 3;
+			}
 
 			if ((total_time > MAX_REC_TIME) && (rec_state != 2)) {	// 60sec REC End
 				// rec_stop = true;
