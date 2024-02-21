@@ -29,6 +29,7 @@
 
 #include "global_value.h"
 #include "spi.h"
+#include "gpio.h"
 
 char *device = "/dev/spidev1.0";
 static  uint32_t mode = SPI_MODE_0;
@@ -672,7 +673,21 @@ int spi_send_file(uint8_t minor, char *file)
     //     first_send = true;
     // }
     spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
-    usleep(500*1000);
+    
+    for (int i=0; i<6; i++) {
+        usleep(500*1000);
+        ret = gpio_get_val(PORTB+18);
+        if (ret == 1) {
+            printf("Ready Busy Check!!\n");
+            break;
+        }
+        else {
+            if (i == 5) {
+                printf("Ready Busy Not Checked!! File Send Stop!!(Wait 3SEC)\n");
+                return -1;
+            }
+        }
+    }
     do {
         ret = read(filed, read_buff, FILE_READ_LENGTH);
         if(ret != 0) {

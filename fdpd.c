@@ -70,7 +70,7 @@ int sample_ivs_facepersondet_start(int grp_num, int chn_num, IMPIVSInterface **i
     param.skip_num = 0;      //skip num
     param.max_faceperson_box = 10;
     param.sense = 0;//3;
-    param.switch_track = true;
+    param.switch_track = false;
     param.enable_move = false;
     param.open_move_filter = false;
     param.model_path = "/tmp/mnt/sdcard/faceperson_det.bin";
@@ -78,7 +78,7 @@ int sample_ivs_facepersondet_start(int grp_num, int chn_num, IMPIVSInterface **i
     param.permcnt = 1;
     param.mod = 0;
     param.switch_stop_det = false;
-    param.fast_update_params = false;
+    param.fast_update_params = true;
 
     param.perms[0].pcnt=6;
     param.perms[1].pcnt=5;
@@ -382,8 +382,6 @@ void *fdpd_thread(void *args)
         return NULL;
     }
 
-
-
     /*Step.7 Get result*/
     int j = 1;
     while(!bStrem){
@@ -400,91 +398,38 @@ void *fdpd_thread(void *args)
         }
 
         facepersondet_param_output_t* r = (facepersondet_param_output_t*)result;
-        // if(j%20 == 0){
-        //     int ret;
-        //     facepersondet_param_input_t param;
-        //     ret = IMP_IVS_GetParam(3, &param);
-        //     if (ret < 0){
-        //         IMP_LOG_ERR(TAG, "IMP_IVS_GetParam(%d) failed\n", 3);
-        //         return NULL;
-        //     }
-        //     param.fast_update_params = true;
-        //     param.switch_stop_det = !param.switch_stop_det;
-        //     ret = IMP_IVS_SetParam(3, &param);
-        //     if (ret < 0){
-        //         IMP_LOG_ERR(TAG, "IMP_IVS_SetParam(%d) failed\n", 3);
-        //         return NULL;
-        //     }
-        // }
         if(r->count > 0) {
-            
-            // for(i = 0; i < 10; i++) {
-            //     if(i < r->count) {
-            //         // int track_id = r->faceperson[i].track_id;
-            //         int class_id = r->faceperson[i].class_id;
-            //         IVSRect* show_rect = &r->faceperson[i].show_box;
-
-            //         // int x0,y0,x1,y1;
-            //         fdpd_data[i].flag = true;
-            //         fdpd_data[i].classid = class_id;
-            //         fdpd_data[i].ul_x = (int)show_rect->ul.x;
-            //         fdpd_data[i].ul_y = (int)show_rect->ul.y;
-            //         fdpd_data[i].br_x = (int)show_rect->br.x;
-            //         fdpd_data[i].br_y = (int)show_rect->br.y;
-            //         // printf("faceperson location[%d]: class[%d] [%d, %d, %d, %d] \n", i, fdpd_data[i].classid,
-            //             // fdpd_data[i].ul_x, fdpd_data[i].ul_y, fdpd_data[i].br_x, fdpd_data[i].br_y);
-            //         // printf("/%d,%d,%d,%d,%d", class_id, fdpd_data[i].ul_x, fdpd_data[i].ul_y, fdpd_data[i].br_x, fdpd_data[i].br_x);
-            //         str_p += sprintf(fp_data+str_p, "/%d,%d,%d,%d,%d", class_id, fdpd_data[i].ul_x, fdpd_data[i].ul_y, fdpd_data[i].br_x, fdpd_data[i].br_x);
-            //     }
-            //     else{
-            //         fdpd_data[i].flag = false;
-            //     }
-            // }
-            // printf("\n");
-            // str_p += sprintf(fp_data+str_p, "\n");
-            // printf("%s", fp_data);
-            // if (write(fd, (void *)fp_data, str_p) != str_p)
-            //     printf("write Len Err!");
             nodet_cnt = 0;
             memset(fp_data, 0, 1024);
             now_time = (sample_gettimeus() - start_time)/1000; // msec
-            // printf("%06lld/%d", now_time, r->count);
-            
-
             face_num = 0;
             person_num = 0;
+            fdpd_ck = true;
+            // printf("fdpd Check \n", fdpd_ck);
             for (i = 0; i < 10; i++) {
                 if(i < r->count) {
-                    int class_id = r->faceperson[i].class_id;
+                    int class_id = r->faceperson[i].class_id;   // 0 : face 1: person(body)
                     int track_id = r->faceperson[i].track_id;
                     float confidence = r->faceperson[i].confidence;
                     IVSRect* show_rect = &r->faceperson[i].show_box;
+
+                    fdpd_data[i].flag = true;
+                    fdpd_data[i].classid = class_id;
+                    fdpd_data[i].trackid = track_id;
+                    fdpd_data[i].confidence = confidence;
+                    fdpd_data[i].ul_x = (int)show_rect->ul.x;
+                    fdpd_data[i].ul_y = (int)show_rect->ul.y;
+                    fdpd_data[i].br_x = (int)show_rect->br.x;
+                    fdpd_data[i].br_y = (int)show_rect->br.y;
+
+                    // printf("fdpd cnt: %d/%d class : %d track %d confidence : %f \n", i, r->count, class_id, track_id, confidence);
                 
-                    
-                    if(class_id == 0 && confidence >= 0) {
-                        // printf("[%d]class%dshow track:%d confidence:%f x:%d y:%d ex:%d ey:%d \n", i, class_id, track_id, confidence,
-                            // show_rect->ul.x, show_rect->ul.y, show_rect->br.x, show_rect->br.y);
-                    
-                        fdpd_data[i].flag = true;
-                        fdpd_data[i].classid = class_id;
-                        fdpd_data[i].trackid = track_id;
-                        fdpd_data[i].confidence = confidence;
-                        fdpd_data[i].ul_x = (int)show_rect->ul.x;
-                        fdpd_data[i].ul_y = (int)show_rect->ul.y;
-                        fdpd_data[i].br_x = (int)show_rect->br.x;
-                        fdpd_data[i].br_y = (int)show_rect->br.y;
-                        sprintf(face[face_num], "/%d,%d,%d,%d", 
-                            fdpd_data[i].ul_x, fdpd_data[i].ul_y, fdpd_data[i].br_x, fdpd_data[i].br_y);
+                    if(class_id == 0 && confidence > 0) {
                         face_num++;
-
-                        mosaic_data.flag[i] = true;
-                        mosaic_data.x[i] = (int)show_rect->ul.x;
-                        mosaic_data.y[i] = (int)show_rect->ul.y;
-                        mosaic_data.ex[i] = (int)show_rect->br.x;
-                        mosaic_data.ey[i] = (int)show_rect->br.y;
-                        // mosaic_cnt[i] = 0;
-
-                        if ((fr_state == 1 && track_id > 0 && confidence > 0.85) &&
+                        // printf("fdpd cnt: %d/%d class : %d track %d confidence : %f x : %d y : %d\n"
+                            // , i, r->count, class_id, track_id, confidence, fdpd_data[i].ul_x, fdpd_data[i].ul_y);
+                        // if ((fr_state == 1 && track_id > 0 && confidence > 0.85) &&
+                        if ((fr_state == 1 && confidence > 0.85) &&
                             (((fdpd_data[i].ul_x+fdpd_data[i].br_x)/2) > 100) &&
                             (((fdpd_data[i].ul_x+fdpd_data[i].br_x)/2) < 1920 - 100) &&
                             (((fdpd_data[i].ul_y+fdpd_data[i].br_y)/2) > 100) &&
@@ -500,23 +445,17 @@ void *fdpd_thread(void *args)
                             facial_data.br_x = fdpd_data[i].br_x;
                             facial_data.br_y = fdpd_data[i].br_y;
                             face_snap = true;
-                            printf("x:%d, y:%d, confidence:%f\n", facial_data.ul_x, facial_data.ul_y, facial_data.confidence);
+                            // printf("x:%d, y:%d, confidence:%f\n", facial_data.ul_x, facial_data.ul_y, facial_data.confidence);
                         }
                     }
-                    else if(r->faceperson[i].class_id == 1) {
-                        fdpd_data[i].flag = true;
-                        fdpd_data[i].classid = class_id;
-                        fdpd_data[i].ul_x = (int)show_rect->ul.x;
-                        fdpd_data[i].ul_y = (int)show_rect->ul.y;
-                        fdpd_data[i].br_x = (int)show_rect->br.x;
-                        fdpd_data[i].br_y = (int)show_rect->br.y;
-                        person_num++;
+                    else { 
+                        if(r->faceperson[i].class_id == 1) {
+                            person_num++;
+                        }
                     }
                 }
                 else{
                     fdpd_data[i].flag = false;
-                    mosaic_data.flag[i] = false;
-                    // mosaic_cnt[i]++;
                 }
             }
             face_cnt = face_num;
@@ -531,9 +470,6 @@ void *fdpd_thread(void *args)
                 // printf("%s", fp_data);
                 if (write(fd, (void *)fp_data, str_p) != str_p)
                    printf("write Len Err!");
-            }
-            else {
-                mosaic_data.flag[i] = false;
             }
         }
         else {

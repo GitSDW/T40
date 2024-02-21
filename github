@@ -1,0 +1,17 @@
+github
+
+1. Linux Generation SSH Key
+2. Setup SSH Key to Linux & Github
+3. Github T40 Contents Make
+4. git init
+5. git remote <T40 Git SSH>
+6. git checkout
+7. git add .
+8. git commit or git commit -m "Message"
+   (Not -m opt, VI Editer open and Input Log Message)
+9. git push origin main
+10. if same of checkout name and git head name but not push data
+    git show-ref
+    and check code
+    if not same
+    git push origin +main

@@ -45,6 +45,13 @@ int adc_init(void)
 		return -1;
 	}
 
+	ret = ioctl(fd, ADC_ENABLE);
+	if(ret){
+		printf("Failed to enable adc!\n");
+		close(fd);
+		return -1;	
+	}
+
 	return 0;
 }
 
@@ -76,11 +83,11 @@ void *adc_get_voltage_thread(void *argc)
     // while(1)
     {
 		// enable adc
-		ret = ioctl(fd, ADC_ENABLE);
-		if(ret){
-			printf("Failed to enable adc!\n");
-			break;
-		}
+		// ret = ioctl(fd, ADC_ENABLE);
+		// if(ret){
+		// 	printf("Failed to enable adc!\n");
+		// 	break;
+		// }
 
 		// get value
 		ret = read(fd, &value, sizeof(int));
@@ -93,18 +100,18 @@ void *adc_get_voltage_thread(void *argc)
 		printf("### adc value is : %ldmV ###\n", value / 10);
 
 		// disable adc
-		ret = ioctl(fd, ADC_DISABLE);
-		if(ret){
-			printf("Failed to disable adc!\n");
-			break;
-		}
+		// ret = ioctl(fd, ADC_DISABLE);
+		// if(ret){
+		// 	printf("Failed to disable adc!\n");
+		// 	break;
+		// }
 		cnt++;
 
         sleep(0.01);
     }
 
     /* close fd */
-    close(fd);
+    // close(fd);
 
 	return NULL;
 }

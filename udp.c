@@ -223,6 +223,7 @@ void *udp_send_pthread(void *arg) {
 		//////////////////////////////////////////////////////////////////////////
 
 		/////////// Vedio Box IN -> UDP Out /////////////////////////////////////////
+	#if 0
 		if (VB_Frame_Buff.cnt > 0) {
 			framesize = VB_Frame_Buff.len[VB_Frame_Buff.Rindex];
 			for(int i=0; framesize > 0; i++){
@@ -237,6 +238,22 @@ void *udp_send_pthread(void *arg) {
 			VB_Frame_Buff.Rindex = (VB_Frame_Buff.Rindex+1)%10;
 			VB_Frame_Buff.cnt--;
 		}
+	#else
+		if (VB_Frame_Buff.cnt > 0) {
+			framesize = VB_Frame_Buff.len[VB_Frame_Buff.Rindex];
+			for(int i=0; framesize > 0; i++){
+				pthread_mutex_lock(&buffMutex_vm);
+				datasize = (framesize > V_SEND_SIZE) ? V_SEND_SIZE : framesize;
+				udp_vb_send(VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize);
+				framesize -= datasize;
+				// printf("cnt:%d, total:%d, dsize:%d\n", i, framesize, datasize);
+				pthread_mutex_unlock(&buffMutex_vm);
+				usleep(1*1000);
+			}
+			VB_Frame_Buff.Rindex = (VB_Frame_Buff.Rindex+1)%10;
+			VB_Frame_Buff.cnt--;
+		}
+	#endif
 		//////////////////////////////////////////////////////////////////////////
 
 		/////////// Audio IN -> UDP Out /////////////////////////////////////////

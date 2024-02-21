@@ -127,6 +127,7 @@ int global_value_init(void) {
 
 	Mosaic_En = true;
 	fdpd_En = false;
+	fdpd_ck = false;
 
 	for(i=0;i<10;i++){
 		fdpd_data[i].flag = false;
@@ -162,6 +163,8 @@ int start_up_mode(void){
 		printf("Fail Export GPIO : %d\n", PORTB+19);
 		return -1;
 	}
+
+
 
 
 	ret = gpio_set_dir(PORTB+17, GPIO_INPUT, GPIO_LOW);
@@ -207,6 +210,24 @@ int start_up_mode(void){
 		return -1;
 	}
 
+	ret = gpio_export(PORTD+6);
+	if(ret < 0){
+		printf("Fail Export GPIO : %d\n", PORTB+19);
+		return -1;
+	}
+
+	ret = gpio_set_dir(PORTD+6, GPIO_OUTPUT, GPIO_LOW);
+	if(ret < 0){
+		printf("Fail get dir GPIO : %d\n", PORTB+17);
+		return -1;
+	}
+
+	ret = gpio_set_val(PORTD+6, 1);
+	if(ret < 0){
+		printf("Fail set Value GPIO : %d\n", PORTD+6);
+		return -1;
+	}
+
 	if (gpio_917_0 == 1 && gpio_917_1 == 0)
 		return 1;
 	else if (gpio_917_0 == 0 && gpio_917_1 == 1)
@@ -238,6 +259,7 @@ int main(int argc, char **argv) {
     bool adc_flag = false;
     bool led_flag = false;
     char file_sep[100] = {0};
+    int gval = 0;
 
     memory_init();
 	global_value_init();
@@ -298,6 +320,7 @@ int main(int argc, char **argv) {
 		printf("cmd 18 Fake SPI Test!\n");
 		printf("cmd 19 Face Clip Test!!\n");
 		printf("cmd 20 PCM Save Start/End\n");
+		printf("cmd 21 Box LED ON/OFF\n");
 		printf("cmd 99 : exit\n");
 
 		cmd = scanf_cmd();
@@ -706,12 +729,12 @@ int main(int argc, char **argv) {
 		}
 		else if (cmd == 11) {
 			printf("cmd 11 thumbnail Test!\n");
-			mosaic_data.flag[0] = true;
-			mosaic_data.x[0] = 100;
-			mosaic_data.y[0] = 200;
-			mosaic_data.ex[0] = 500;
-			mosaic_data.ey[0] = 600;
-			thumbnail_make(mosaic_data);
+			thum_face_data.flag[0] = true;
+			thum_face_data.x[0] = 100;
+			thum_face_data.y[0] = 200;
+			thum_face_data.ex[0] = 500;
+			thum_face_data.ey[0] = 600;
+			thumbnail_make(thum_face_data);
 		}
 		else if (cmd == 12) {
 			int mode;
@@ -742,12 +765,13 @@ int main(int argc, char **argv) {
 				system("echo 1 > /sys/class/gpio/gpio54/value");
 				// /* get value thread */
 				adc_init();
-				ret = pthread_create(&adc_thread_id, NULL, adc_get_voltage_thread, NULL);
-				if (ret != 0) {
-					printf("error: pthread_create error!!!!!!");
-					return -1;
-				}
+				
 				adc_flag = true;
+			}
+			ret = pthread_create(&adc_thread_id, NULL, adc_get_voltage_thread, NULL);
+			if (ret != 0) {
+				printf("error: pthread_create error!!!!!!");
+				return -1;
 			}
     	}
     	else if (cmd == 14) {
@@ -887,6 +911,17 @@ int main(int argc, char **argv) {
 					printf("pcm Test Copy end!\n");
 				}
 			}
+		}
+		else if (cmd == 21) {
+			
+			printf("cmd 21 Box LED ON/OFF\n");
+			ret = gpio_set_val(PORTD+6, gval);
+			if(ret < 0){
+				printf("Fail set Value GPIO : %d\n", PORTD+6);
+				return -1;
+			}
+			if (gval == 0) gval = 1;
+			else gval = 0;
 		}
 		else if (cmd == 99) {
 			printf("Exiting Program! Plz Wait!\n");

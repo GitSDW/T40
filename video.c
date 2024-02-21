@@ -335,19 +335,28 @@ int video_init(void) {
 
 	IMPISPHVFLIP hvf;
 	hvf = IMPISP_FLIP_HV_MODE;
-	// IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN, &hvf);			// Main Cam Flip
+	// IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN, &hvf);		// Main Cam Flip
 	// IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN+1, &hvf);	// Box Cam Flip
 
 	///////////////////////// Box Cam Crop ////////////////////////////
-	// IMPISPAutoZoom autozoom;
-	// memset(&autozoom, 0, sizeof(IMPISPAutoZoom));
-	// autozoom.zoom_chx_en[0] = 1;
-	// autozoom.zoom_left[0] = 640/2;
-	// autozoom.zoom_top[0] = 360;
-	// autozoom.zoom_width[0] = (int)(1920-(autozoom.zoom_left[0]));
-	// autozoom.zoom_height[0] = (int)(1080-autozoom.zoom_top[0]);
+	IMPISPAutoZoom autozoom;
+	memset(&autozoom, 0, sizeof(IMPISPAutoZoom));
+	autozoom.zoom_chx_en[0] = 1;
+	autozoom.zoom_left[0] = 640/2;
+	autozoom.zoom_top[0] = 360;
+	autozoom.zoom_width[0] = (int)(1920-(autozoom.zoom_left[0]*2));
+	autozoom.zoom_height[0] = (int)(1080-autozoom.zoom_top[0]);
 
-	// ret = IMP_ISP_Tuning_SetAutoZoom(IMPVI_MAIN+1, &autozoom);
+	ret = IMP_ISP_Tuning_SetAutoZoom(IMPVI_MAIN+1, &autozoom);
+	///////////////////////////////////////////////////////////////////
+
+	///////////////////////// Flicker ISP /////////////////////////////
+	IMPISPAntiflickerAttr flickerAttr;
+	memset(&flickerAttr, 0, sizeof(IMPISPAntiflickerAttr));
+	flickerAttr.freq = 60;
+	flickerAttr.mode = IMPISP_ANTIFLICKER_AUTO_MODE;
+	IMP_ISP_Tuning_SetAntiFlickerAttr(IMPVI_MAIN, &flickerAttr);
+	IMP_ISP_Tuning_SetAntiFlickerAttr(IMPVI_MAIN+1, &flickerAttr);
 	///////////////////////////////////////////////////////////////////
 
 	// if (Night_Mode) {
@@ -533,6 +542,7 @@ int video_deinit(void)
 
 void *get_video_stream_user_thread(void *args)
 {
+	start_time = sample_gettimeus();
 	sample_get_video_stream_user();
 
 	return ((void*) 0);
@@ -564,7 +574,7 @@ void *OSD_thread(void *args)
 	int ret;
 
 	int x_cal=0, y_cal=0, w_cal=0, h_cal=0;
-	int f_cnt=0;
+	// int f_cnt=0;
 	
 	// int mosaic_x = 300, mosaic_y = 300;
 	// int state = 0;
@@ -572,9 +582,11 @@ void *OSD_thread(void *args)
 	// IMPOSDRgnAttr rect_rAttr;
 	// IMPOSDRgnAttr cover_rAttr;
 	IMPOSDRgnAttr mosaic_rAttr;
-	int mosaic_index = 0;
+	// int mosaic_index = 0;
 	uint64_t mosaic_time[10] = {0};
 	uint64_t mtime = 0;
+	// uint64_t test_time = 0;
+	// IMPOSDGrpRgnAttr gAPMosaic;
 
 	ret = osd_show();
 	if (ret < 0) {
@@ -598,133 +610,85 @@ void *OSD_thread(void *args)
 			}
 		}
 
-		// for(int i=0;i<10;i++){
-		// 	if(fdpd_data[i].flag == true && fdpd_data[i].classid == 0){
-		// 		IMP_OSD_GetRgnAttr(prHander[2+i], &rect_rAttr);
-		// 		rect_rAttr.rect.p0.x = fdpd_data[i].ul_x;
-		// 		rect_rAttr.rect.p0.y = fdpd_data[i].ul_y;
-		// 		rect_rAttr.rect.p1.x = fdpd_data[i].br_x - 1;
-		// 		rect_rAttr.rect.p1.y = fdpd_data[i].br_y - 1;
-		// 		rect_rAttr.fmt = PIX_FMT_MONOWHITE;
-		// 		rect_rAttr.data.lineRectData.color = OSD_GREEN;
-		// 		rect_rAttr.data.lineRectData.linewidth = 3;
-		// 		ret = IMP_OSD_SetRgnAttr(prHander[2+i], &rect_rAttr);
-		// 		if (ret != 0) {
-		// 			IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Rect error\n");
-		// 			return NULL;
-		// 		}
-		// 		ret = IMP_OSD_ShowRgn(prHander[2+i], mosdgrp, 1);
-		// 		if (ret != 0) {
-		// 			IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Rect error\n");
-		// 			return NULL;
-		// 		}
-		// 		// printf("mosaic[%d] class%d, x0:%d, y0:%d, x1:%d, y1:%d\n", 2+i
-		// 			// , fdpd_data[i].classid, rect_rAttr.rect.p0.x, rect_rAttr.rect.p0.y, rect_rAttr.rect.p1.x, rect_rAttr.rect.p1.y);
-		// 	}
-		// 	else{
-		// 		ret = IMP_OSD_ShowRgn(prHander[2+i], mosdgrp, 0);
-		// 		if (ret != 0) {
-		// 			IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Rect error\n");
-		// 			return NULL;
-		// 		}
-		// 	}
-		// }
-		f_cnt = 0;
-		mosaic_index = 0;
-		for(int j=0; j<10; j++) {
-			// if (fdpd_data[j].flag == true && fdpd_data[j].classid == 0) {
-			if (mosaic_data.flag[j]) {
-				// IMP_OSD_GetRgnAttr(prHander[2+RECT_INDEX+j], &mosaic_rAttr);
-				x_cal = mosaic_data.x[j] - 40;
-				x_cal = (x_cal/10)*10;
-				y_cal = mosaic_data.y[j] - 40;
-				y_cal = (y_cal/10)*10;
-				if (x_cal < 0) x_cal = 0;
-				if (y_cal < 0) y_cal = 0;
-				w_cal = mosaic_data.ex[j] - mosaic_data.x[j];
-				h_cal = mosaic_data.ey[j] - mosaic_data.y[j];
-				if (w_cal < 50 || h_cal < 50) {
-					continue;
-				}
-				else {
-					w_cal = w_cal - (w_cal%40) + 40 + 80;
-					h_cal = h_cal - (h_cal%40) + 40 + 80;
-				}
-				if(x_cal + w_cal >= 1920) x_cal = 1920 - w_cal - 1;
-				if(y_cal + h_cal >= 1080) y_cal = 1080 - h_cal - 1;
+		if (fdpd_ck) {
+			fdpd_ck = false;
+			for (int j=0; j<10; j++) {
+				// if (fdpd_data[j].flag && fdpd_data[j].classid == 0 && fdpd_data[j].trackid >= 0) {
+				if (fdpd_data[j].flag && fdpd_data[j].classid == 0) {					
+					// x_cal = fdpd_data[j].ul_x - 40;
+					// x_cal = (x_cal/10)*10;
+					if (fdpd_data[j].ul_x > 40)
+						x_cal = fdpd_data[j].ul_x - 40;
+					else
+						x_cal = fdpd_data[j].ul_x;
+					x_cal = x_cal - (x_cal%10);
 
-				mosaic_rAttr.type = OSD_REG_MOSAIC;
-				mosaic_rAttr.mosaicAttr.x = x_cal;
-				mosaic_rAttr.mosaicAttr.y = y_cal;
-				mosaic_rAttr.mosaicAttr.mosaic_width = w_cal;
-				mosaic_rAttr.mosaicAttr.mosaic_height = h_cal;
-				mosaic_rAttr.mosaicAttr.frame_width = FIRST_SENSOR_WIDTH;
-				mosaic_rAttr.mosaicAttr.frame_height = FIRST_SENSOR_HEIGHT;
-				mosaic_rAttr.mosaicAttr.mosaic_min_size = 40;
+					// y_cal = fdpd_data[j].ul_y - 40;
+					// y_cal = (y_cal/10)*10;
+					if (fdpd_data[j].ul_y > 40)
+						y_cal = fdpd_data[j].ul_y - 40;
+					else
+						y_cal = fdpd_data[j].ul_y;
+					y_cal = y_cal - (y_cal%10);
 
-				ret = IMP_OSD_SetRgnAttr(prHander[2+RECT_INDEX+mosaic_index], &mosaic_rAttr);
-				if (ret != 0) {
-					IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Mosaic error\n");
-					return NULL;
-				}
-				ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+mosaic_index], mosdgrp, 1);
-				if (ret != 0) {
-					IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Mosaic error\n");
-					return NULL;
-				}
-				if (person_cnt > f_cnt){
-					mosaic_index = (mosaic_index+1)%10;
-				}
-				if (mosaic_time[mosaic_index] == 0)
-					printf("FaceMosaic on:%d %lld\n", mosaic_index, sample_gettimeus());
-				mosaic_time[mosaic_index] = sample_gettimeus();
-			}
+					w_cal = fdpd_data[j].br_x - fdpd_data[j].ul_x;
+					h_cal = fdpd_data[j].br_y - fdpd_data[j].ul_y;
+					if (w_cal < 40 || h_cal < 40) {
+						continue;
+					}
+					else {
+						w_cal = w_cal - (w_cal%40) + 80;
+						h_cal = h_cal - (h_cal%40) + 80;
+					}
+					if(x_cal + w_cal >= 1920) x_cal = 1920 - w_cal - 1;
+					if(y_cal + h_cal >= 1080) y_cal = 1080 - h_cal - 1;
 
-			if (mosaic_time[j] != 0) {
-				mtime = sample_gettimeus()-mosaic_time[j];
-				if (mtime > 5000000) {
-					printf("FaceMosaic off:%d cal:%lld\n", j, mtime);
-					// mosaic_rAttr.type = OSD_REG_MOSAIC;
-					// mosaic_rAttr.mosaicAttr.x = 0;
-					// mosaic_rAttr.mosaicAttr.y = 0;
-					// mosaic_rAttr.mosaicAttr.mosaic_width = 0;
-					// mosaic_rAttr.mosaicAttr.mosaic_height = 0;
-					// mosaic_rAttr.mosaicAttr.frame_width = FIRST_SENSOR_WIDTH;
-					// mosaic_rAttr.mosaicAttr.frame_height = FIRST_SENSOR_HEIGHT;
-					// mosaic_rAttr.mosaicAttr.mosaic_min_size = 40;
+					mosaic_rAttr.type = OSD_REG_MOSAIC;
+					mosaic_rAttr.mosaicAttr.x = x_cal;
+					mosaic_rAttr.mosaicAttr.y = y_cal;
+					mosaic_rAttr.mosaicAttr.mosaic_width = w_cal;
+					mosaic_rAttr.mosaicAttr.mosaic_height = h_cal;
+					mosaic_rAttr.mosaicAttr.frame_width = FIRST_SENSOR_WIDTH;
+					mosaic_rAttr.mosaicAttr.frame_height = FIRST_SENSOR_HEIGHT;
+					mosaic_rAttr.mosaicAttr.mosaic_min_size = 40;
 
-					// ret = IMP_OSD_SetRgnAttr(prHander[2+RECT_INDEX+j], &mosaic_rAttr);
-					// if (ret != 0) {
-					// 	IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Mosaic error\n");
-					// 	return NULL;
-					// }
-					ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+j], mosdgrp, 0);
+					// printf("mosaic[%d] x:%d y:%d w:%d h:%d\n", j, x_cal, y_cal, w_cal, h_cal);
+
+					ret = IMP_OSD_SetRgnAttr(prHander[2+RECT_INDEX+j], &mosaic_rAttr);
 					if (ret != 0) {
 						IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Mosaic error\n");
 						return NULL;
 					}
-					mosaic_time[j] = 0;
+					if (mosaic_time[j] == 0) {
+						ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+j], mosdgrp, 1);
+						if (ret != 0) {
+							IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Mosaic error\n");
+							return NULL;
+						}
+					}
+
+					fdpd_data[j].flag = false;
+					mosaic_time[j] = sample_gettimeus();
+					// printf("Face Mosaic[%d] En tiem : %lld\n", j, mosaic_time[j]);
 				}
 			}
-
 		}
 
-		// for (int k=0; k<10; k++) {
-		// 	// printf("[%d] time : %d\n", k, mosaic_time[k]);
-		// 	if (mosaic_time[k] != 0) {
-		// 		if ((sample_gettimeus()-mosaic_time[k]) > 5000000) {
-		// 			printf("FaceMosaic off:%d\n", k);
-		// 			ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+k], mosdgrp, 0);
-		// 			if (ret != 0) {
-		// 				IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Mosaic error\n");
-		// 				return NULL;
-		// 			}
-		// 			mosaic_time[k] = 0;
-		// 		}
-		// 	}
-		// }
-
-		usleep(100*1000);
+		for (int k=0; k<10; k++) {
+			if (mosaic_time[k] != 0) {
+				mtime = sample_gettimeus()-mosaic_time[k];
+				if (mtime > 7000000) {
+					ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+k], mosdgrp, 0);
+					if (ret != 0) {
+						IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Mosaic error\n");
+						return NULL;
+					}
+					printf("Face Mosaic[%d] De tiem : %lld\n", k, mosaic_time[k]);
+					mosaic_time[k] = 0;
+				}
+			}
+		}
+		// usleep(5*1000);
 	} while(!bExit);
 
 	return ((void*) 0);

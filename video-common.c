@@ -2378,8 +2378,8 @@ static void *get_video_stream_user(void *args)
 		
 		// if ((chnNum == 1 || chnNum == 4) && rec_state >= 1) {
 		if ((chnNum == 0 || chnNum == 3) && rec_state >= 1 && (!main_rec_end || !box_rec_end)) {
-			if (start_time == 0)
-				start_time = sample_gettimeus();
+			// if (start_time == 0)
+			// 	start_time = sample_gettimeus();
 			if ((sample_gettimeus()-start_time < MAX_REC_TIME) && rec_state != 2) {
     			ret = save_stream2(stream_fd, &stream, chnNum);
     			if (ret < 0) {
@@ -2574,11 +2574,13 @@ static void *sample_get_jpeg_snap(void *args)
 
 			if (thumbnail_snap) {
 				for (i=0;i<10;i++){
-					thum_face_data.flag[i] = mosaic_data.flag[i];
-					thum_face_data.x[i] = mosaic_data.x[i];
-					thum_face_data.y[i] = mosaic_data.y[i];
-					thum_face_data.ex[i] = mosaic_data.ex[i];
-					thum_face_data.ey[i] = mosaic_data.ey[i];
+					if (fdpd_data[i].flag && fdpd_data[i].classid == 0 && fdpd_data[i].trackid >= 0)
+						thum_face_data.flag[i] = fdpd_data[i].flag;
+					thum_face_data.flag[i] = false;
+					thum_face_data.x[i] = fdpd_data[i].ul_x;
+					thum_face_data.y[i] = fdpd_data[i].ul_y;
+					thum_face_data.ex[i] = fdpd_data[i].br_x;
+					thum_face_data.ey[i] = fdpd_data[i].br_y;
 				}
 			}
 

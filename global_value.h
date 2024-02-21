@@ -10,7 +10,7 @@ extern "C" {
 
 #define MAJOR_VER	"0"
 #define MINOR_VER	"1"	
-#define CAHR_VER	"g"
+#define CAHR_VER	"i"
 
 typedef struct CIRCULAR_BUFF
 {
@@ -56,7 +56,8 @@ Buff2_t VB_Frame_Buff;
 bool move_flag;
 int move_det_xs, move_det_ys, move_det_xe, move_det_ye;
 
-#define V_SEND_SIZE 1004 // 1014 -> 1004
+// #define V_SEND_SIZE 1004 // 1014 -> 1004
+#define V_SEND_SIZE 992
 #define V_SEND_RESERV 5
 #define V_BUFF_SIZE 256*1024
 #define MAX_REC_TIME 60000000	// 60 * 1000 * 1000 usec
@@ -125,7 +126,7 @@ typedef struct THUM_SNAP
 	int ey[10];
 } Thum_Data_t;
 
-Thum_Data_t mosaic_data;
+// Thum_Data_t mosaic_data;
 Thum_Data_t thum_face_data;
 
 #define START_CHECK_TIME 5000000
@@ -151,7 +152,7 @@ bool bStrem;
 // pcm test
 int save_pcm;
 bool pcm_in, pcm_out;
-bool Mosaic_En, fdpd_En;
+bool Mosaic_En, fdpd_En, fdpd_ck;
 
 extern int bExit;
 
