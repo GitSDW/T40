@@ -321,6 +321,7 @@ int main(int argc, char **argv) {
 		printf("cmd 19 Face Clip Test!!\n");
 		printf("cmd 20 PCM Save Start/End\n");
 		printf("cmd 21 Box LED ON/OFF\n");
+		printf("cmd 22 Box Camera Crop Test\n");
 		printf("cmd 99 : exit\n");
 
 		cmd = scanf_cmd();
@@ -913,7 +914,6 @@ int main(int argc, char **argv) {
 			}
 		}
 		else if (cmd == 21) {
-			
 			printf("cmd 21 Box LED ON/OFF\n");
 			ret = gpio_set_val(PORTD+6, gval);
 			if(ret < 0){
@@ -922,6 +922,20 @@ int main(int argc, char **argv) {
 			}
 			if (gval == 0) gval = 1;
 			else gval = 0;
+		}
+		else if (cmd == 22) {
+			int x, y, w, h;
+			printf("cmd 22 Box Camera Crop Test\n");
+			printf("Set X:");
+			x = scanf_index();
+			printf("Set Y:");
+			y = scanf_index();
+			printf("Set Width:");
+			w = scanf_index();
+			printf("Set Height:");
+			h = scanf_index();
+
+			isd_crop(x, y, w, h);
 		}
 		else if (cmd == 99) {
 			printf("Exiting Program! Plz Wait!\n");
@@ -1085,11 +1099,11 @@ int clip_total(void) {
 		return -1;
 	}
 				
-	ret = pthread_create(&tid_clip, NULL, get_video_clip_user_thread, NULL);
-	if(ret != 0) {
-		IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create get_video_clip_user_thread failed\n", __func__);
-		return -1;
-	}
+	// ret = pthread_create(&tid_clip, NULL, get_video_clip_user_thread, NULL);
+	// if(ret != 0) {
+	// 	IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create get_video_clip_user_thread failed\n", __func__);
+	// 	return -1;
+	// }
 
 	ret = pthread_create(&tid_move, NULL, move_detecte_thread, NULL);
 	if(ret != 0) {
@@ -1235,15 +1249,26 @@ int clip_total(void) {
 				// spi_send_file(REC_FACE, file_path);
 
 				for (int i=0; i<file_cnt; i++) {
-					memset(file_path, 0, 64);
-					sprintf(file_path, "/vtmp/main%d.mp4", i);
-					spi_send_file(REC_CLIP_F, file_path);
-					usleep(7000*1000);
-					memset(file_path, 0, 64);
-					sprintf(file_path, "/vtmp/box%d.mp4", i);
-					// sprintf(file_path, "/vtmp/box%d.mkv", i);
-					spi_send_file(REC_CLIP_B, file_path);
-					usleep(7000*1000);
+					if (Ready_Busy_Check()){
+						printf("File %d-1 Start!\n", i+1);
+						memset(file_path, 0, 64);
+						sprintf(file_path, "/vtmp/main%d.mp4", i);
+						spi_send_file(REC_CLIP_F, file_path);
+						}
+					else {
+						printf("Fail to Send %d-1\n", i+1);
+					}
+					
+					if (Ready_Busy_Check()){
+						printf("File %d-2 Start!\n", i+1);
+						memset(file_path, 0, 64);
+						sprintf(file_path, "/vtmp/box%d.mp4", i);
+						// sprintf(file_path, "/vtmp/box%d.mkv", i);
+						spi_send_file(REC_CLIP_B, file_path);
+						}
+					else {
+						printf("Fail to Send %d-2\n", i+1);
+					}
 				}
 
 				// printf("cmd 19 Face Clip Test!!\n");
@@ -1459,6 +1484,8 @@ int stream_total(void) {
 		printf("cmd 5  Grid Test!\n");
 		printf("cmd 6  snap shot!\n");
 		printf("cmd 7  Rec Start!(60sec)\n");
+		printf("cmd 8 PCM Save Start/End\n");
+		printf("cmd 9 Box Camera Crop Test\n");
 		printf("cmd 99 : exit\n");
 
 		cmd = scanf_cmd();
@@ -1597,6 +1624,20 @@ int stream_total(void) {
 				printf("PCM Save End!\n");
 				save_pcm = 2;
 			}
+		}
+		else if (cmd == 9) {
+			int x, y, w, h;
+			printf("cmd 9 Box Camera Crop Test\n");
+			printf("Set X:");
+			x = scanf_index();
+			printf("Set Y:");
+			y = scanf_index();
+			printf("Set Width:");
+			w = scanf_index();
+			printf("Set Height:");
+			h = scanf_index();
+
+			isd_crop(x, y, w, h);
 		}
 		else if (cmd == 99) {
 			printf("Exiting Program! Plz Wait!\n");

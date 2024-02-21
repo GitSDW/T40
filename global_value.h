@@ -10,7 +10,7 @@ extern "C" {
 
 #define MAJOR_VER	"0"
 #define MINOR_VER	"1"	
-#define CAHR_VER	"i"
+#define CAHR_VER	"j"
 
 typedef struct CIRCULAR_BUFF
 {
@@ -130,6 +130,7 @@ typedef struct THUM_SNAP
 Thum_Data_t thum_face_data;
 
 #define START_CHECK_TIME 5000000
+#define READY_BUSY_TIME 3
 
 int64_t start_time;
 

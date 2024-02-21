@@ -445,7 +445,7 @@ void *fdpd_thread(void *args)
                             facial_data.br_x = fdpd_data[i].br_x;
                             facial_data.br_y = fdpd_data[i].br_y;
                             face_snap = true;
-                            // printf("x:%d, y:%d, confidence:%f\n", facial_data.ul_x, facial_data.ul_y, facial_data.confidence);
+                            printf("x:%d, y:%d, confidence:%f\n", facial_data.ul_x, facial_data.ul_y, facial_data.confidence);
                         }
                     }
                     else { 

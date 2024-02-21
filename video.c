@@ -98,6 +98,25 @@ int osd_grid_show(int selnum)
 	return 0;
 }
 
+int isd_crop(int x, int y, int w, int h) {
+	IMPISPAutoZoom autozoom;
+	int ret = -1;
+
+	memset(&autozoom, 0, sizeof(IMPISPAutoZoom));
+	autozoom.zoom_chx_en[0] = 1;
+	autozoom.zoom_left[0] = x;
+	autozoom.zoom_top[0] = y;
+	autozoom.zoom_width[0] = w;
+	autozoom.zoom_height[0] = h;
+
+	ret = IMP_ISP_Tuning_SetAutoZoom(IMPVI_MAIN+1, &autozoom);
+	if (ret != 0) {
+		IMP_LOG_ERR(TAG, "IMP_ISP_Tuning_SetAutoZoom() error\n");
+		return -1;
+	}
+	return 0;
+}
+
 IMPCell osdcell;
 
 int video_init(void) {
@@ -335,7 +354,7 @@ int video_init(void) {
 
 	IMPISPHVFLIP hvf;
 	hvf = IMPISP_FLIP_HV_MODE;
-	// IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN, &hvf);		// Main Cam Flip
+	IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN, &hvf);		// Main Cam Flip
 	// IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN+1, &hvf);	// Box Cam Flip
 
 	///////////////////////// Box Cam Crop ////////////////////////////

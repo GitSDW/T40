@@ -636,6 +636,26 @@ int spi_send_clip(int dly, int num)
     return ret;
 }
 
+int Ready_Busy_Check(void) {
+    int ret = -1;
+
+    for (int i=0; i<(READY_BUSY_TIME*10); i++) {
+        usleep(100*1000);
+        ret = gpio_get_val(PORTB+18);
+        if (ret == 1) {
+            printf("Ready Busy Check!!\n");
+            return ret;
+        }
+        else {
+            if (i == (READY_BUSY_TIME*10)-1) {
+                printf("Ready Busy Not Checked!!(Wait %dSEC)\n", READY_BUSY_TIME);
+                return ret;
+            }
+        }
+    }
+    return -1;
+}
+
 int spi_send_file(uint8_t minor, char *file)
 {
     int filed = 0, ret = -1;
@@ -674,20 +694,11 @@ int spi_send_file(uint8_t minor, char *file)
     // }
     spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
     
-    for (int i=0; i<6; i++) {
-        usleep(500*1000);
-        ret = gpio_get_val(PORTB+18);
-        if (ret == 1) {
-            printf("Ready Busy Check!!\n");
-            break;
-        }
-        else {
-            if (i == 5) {
-                printf("Ready Busy Not Checked!! File Send Stop!!(Wait 3SEC)\n");
-                return -1;
-            }
-        }
-    }
+    if (Ready_Busy_Check())
+        printf("File Send Start!\n");
+    else
+        printf("Stop File Send!\n");
+
     do {
         ret = read(filed, read_buff, FILE_READ_LENGTH);
         if(ret != 0) {

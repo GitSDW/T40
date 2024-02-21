@@ -69,6 +69,7 @@ void *spi_test_send_stream (void *arg);
 int spi_device_off(uint8_t minor);
 void test_spi_rw(void);
 void test_spi_onekbytes(int dly);
+int Ready_Busy_Check(void);
 
 #ifdef __cplusplus
 }

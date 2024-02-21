@@ -2544,6 +2544,8 @@ static void *sample_get_jpeg_snap(void *args)
 			return (void*)-1;
 		}
 
+		// printf("snap Shot Thread %d!!\n", chnNum);
+
 		if ((main_snap && chnNum == 2)||(box_snap && chnNum == 5) ||
 			(thumbnail_snap && chnNum == 2) || (face_snap && chnNum == 2)) {
 			memset(snap_path, 0, 64);
@@ -2552,6 +2554,7 @@ static void *sample_get_jpeg_snap(void *args)
 			}
 			else if(box_snap) {
 				sprintf(snap_path, "%s/box.jpg",SNAP_FILE_PATH_PREFIX);
+				printf("Box JPG Start!\n");
 			}
 			else if(thumbnail_snap) {
 				sprintf(snap_path, "%s/thumbnail.jpg",SNAP_FILE_PATH_PREFIX);
