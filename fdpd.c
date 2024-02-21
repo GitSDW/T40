@@ -70,7 +70,7 @@ int sample_ivs_facepersondet_start(int grp_num, int chn_num, IMPIVSInterface **i
     param.skip_num = 0;      //skip num
     param.max_faceperson_box = 10;
     param.sense = 0;//3;
-    param.switch_track = false;
+    param.switch_track = true;
     param.enable_move = false;
     param.open_move_filter = false;
     param.model_path = "/tmp/mnt/sdcard/faceperson_det.bin";

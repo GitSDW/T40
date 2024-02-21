@@ -322,6 +322,7 @@ int main(int argc, char **argv) {
 		printf("cmd 20 PCM Save Start/End\n");
 		printf("cmd 21 Box LED ON/OFF\n");
 		printf("cmd 22 Box Camera Crop Test\n");
+		printf("cmd 23 Distortion Test\n");
 		printf("cmd 99 : exit\n");
 
 		cmd = scanf_cmd();
@@ -924,7 +925,7 @@ int main(int argc, char **argv) {
 			else gval = 0;
 		}
 		else if (cmd == 22) {
-			int x, y, w, h;
+			int x, y, w, h, c;
 			printf("cmd 22 Box Camera Crop Test\n");
 			printf("Set X:");
 			x = scanf_index();
@@ -934,8 +935,28 @@ int main(int argc, char **argv) {
 			w = scanf_index();
 			printf("Set Height:");
 			h = scanf_index();
+			printf("Cam select[0:main/1:box]:");
+			c = scanf_index();
 
-			isd_crop(x, y, w, h);
+			isd_crop(x, y, w, h, c);
+		}
+		else if (cmd == 23) {
+			int x, y, w, h, str, c;
+			printf("cmd 23 Distortion Test\n");
+			printf("Set Center X:");
+			x = scanf_index();
+			printf("Set Center Y:");
+			y = scanf_index();
+			printf("Set Width:");
+			w = scanf_index();
+			printf("Set Height:");
+			h = scanf_index();
+			printf("Set strength:");
+			str = scanf_index();
+			printf("Cam select[0:main/1:box]:");
+			c = scanf_index();
+
+			isd_distortion(x, y, w, h, str, c);
 		}
 		else if (cmd == 99) {
 			printf("Exiting Program! Plz Wait!\n");
@@ -1486,6 +1507,7 @@ int stream_total(void) {
 		printf("cmd 7  Rec Start!(60sec)\n");
 		printf("cmd 8 PCM Save Start/End\n");
 		printf("cmd 9 Box Camera Crop Test\n");
+		printf("cmd 10 Distortion Test\n");
 		printf("cmd 99 : exit\n");
 
 		cmd = scanf_cmd();
@@ -1626,7 +1648,7 @@ int stream_total(void) {
 			}
 		}
 		else if (cmd == 9) {
-			int x, y, w, h;
+			int x, y, w, h, c;
 			printf("cmd 9 Box Camera Crop Test\n");
 			printf("Set X:");
 			x = scanf_index();
@@ -1636,8 +1658,28 @@ int stream_total(void) {
 			w = scanf_index();
 			printf("Set Height:");
 			h = scanf_index();
+			printf("Cam select[0:main/1:box]:");
+			c = scanf_index();
 
-			isd_crop(x, y, w, h);
+			isd_crop(x, y, w, h, c);
+		}
+		else if (cmd == 10) {
+			int x, y, w, h, str, c;
+			printf("cmd 10 Distortion Test\n");
+			printf("Set Center X:");
+			x = scanf_index();
+			printf("Set Center Y:");
+			y = scanf_index();
+			printf("Set Width:");
+			w = scanf_index();
+			printf("Set Height:");
+			h = scanf_index();
+			printf("Set strength:");
+			str = scanf_index();
+			printf("Cam select[0:main/1:box]:");
+			c = scanf_index();
+
+			isd_distortion(x, y, w, h, str, c);
 		}
 		else if (cmd == 99) {
 			printf("Exiting Program! Plz Wait!\n");

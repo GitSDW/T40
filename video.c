@@ -98,9 +98,30 @@ int osd_grid_show(int selnum)
 	return 0;
 }
 
-int isd_crop(int x, int y, int w, int h) {
+int isd_crop(int x, int y, int w, int h, int cam) {
 	IMPISPAutoZoom autozoom;
 	int ret = -1;
+
+	if (x < 0 || x > 1920) {
+		printf("x range invaild!\n");
+		return -1;
+	}
+	if (y < 0 || y > 1080) {
+		printf("y range invaild!\n");
+		return -1;
+	}
+	if (x+w < 0 || x+w > 1920) {
+		printf("w range invaild!\n");
+		return -1;
+	}
+	if (y+h < 0 || y+h > 1080) {
+		printf("h range invaild!\n");
+		return -1;
+	}
+	if (cam < 0 || cam > 1) {
+		printf("Cam selecte error!\n");
+		return -1;
+	}
 
 	memset(&autozoom, 0, sizeof(IMPISPAutoZoom));
 	autozoom.zoom_chx_en[0] = 1;
@@ -109,9 +130,52 @@ int isd_crop(int x, int y, int w, int h) {
 	autozoom.zoom_width[0] = w;
 	autozoom.zoom_height[0] = h;
 
-	ret = IMP_ISP_Tuning_SetAutoZoom(IMPVI_MAIN+1, &autozoom);
+	ret = IMP_ISP_Tuning_SetAutoZoom(IMPVI_MAIN+cam, &autozoom);
 	if (ret != 0) {
 		IMP_LOG_ERR(TAG, "IMP_ISP_Tuning_SetAutoZoom() error\n");
+		return -1;
+	}
+	return 0;
+}
+
+int isd_distortion(int cx, int cy, int w, int h, int streng, int cam) {
+	IMPISPHLDCAttr hldc;
+	int ret = -1;
+
+	if (cx < 0 || cx > 1920) {
+		printf("x range invaild!\n");
+		return -1;
+	}
+	if (cy < 0 || cy > 1080) {
+		printf("y range invaild!\n");
+		return -1;
+	}
+	if (cx-(w/2) < 0 || cx+(w/2) > 1920) {
+		printf("w range invaild! %d %d\n", cx-(w/2), cx+(w/2));
+		return -1;
+	}
+	if (cy-(h/2) < 0 || cy+(h/2) > 1080) {
+		printf("h range invaild!\n");
+		return -1;
+	}
+	if (streng < 0 || streng > 255) {
+		printf("strength range invaild [0~255]!\n");
+		return -1;
+	}
+	if (cam < 0 || cam > 1) {
+		printf("Cam selecte error!\n");
+		return -1;
+	}
+	
+	hldc.strength = streng;     			/**< Distortion correction intensity [range: 0 to 255, default: 128]*/
+    hldc.width = w;          		/**< Image width */
+    hldc.height = h;         		/**< Image height */
+    hldc.center_w = cx;       /**< Image distortion horizontal optical center range:[width/2-120, width/2+120] */
+    hldc.center_h = cy;      /**< Image distortion vertical optical center range:[height/2-120, height/2+120] */
+
+	ret = IMP_ISP_Tuning_SetHLDCAttr(IMPVI_MAIN+cam, &hldc);
+	if (ret != 0) {
+		IMP_LOG_ERR(TAG, "IMP_ISP_Tuning_SetHLDCAttr() error\n");
 		return -1;
 	}
 	return 0;
@@ -346,6 +410,12 @@ int video_init(void) {
 		return -1;
 	}
 
+	ret = IMP_ISP_EnableTuning();
+    if(ret < 0){
+        IMP_LOG_ERR(TAG, "IMP_ISP_EnableTuning failed\n");
+        return -1;
+    }
+
 	// IMPOSDRgnAttr cover_rAttr;
 	// for (int i = 0; i < GRID_COVER_INDEX; i++) {
 	// 	IMP_OSD_GetRgnAttr(prHander[2+RECT_INDEX+MOSAIC_INDEX+i], &cover_rAttr);
@@ -354,19 +424,19 @@ int video_init(void) {
 
 	IMPISPHVFLIP hvf;
 	hvf = IMPISP_FLIP_HV_MODE;
-	IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN, &hvf);		// Main Cam Flip
+	// IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN, &hvf);		// Main Cam Flip
 	// IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN+1, &hvf);	// Box Cam Flip
 
 	///////////////////////// Box Cam Crop ////////////////////////////
-	IMPISPAutoZoom autozoom;
-	memset(&autozoom, 0, sizeof(IMPISPAutoZoom));
-	autozoom.zoom_chx_en[0] = 1;
-	autozoom.zoom_left[0] = 640/2;
-	autozoom.zoom_top[0] = 360;
-	autozoom.zoom_width[0] = (int)(1920-(autozoom.zoom_left[0]*2));
-	autozoom.zoom_height[0] = (int)(1080-autozoom.zoom_top[0]);
+	// IMPISPAutoZoom autozoom;
+	// memset(&autozoom, 0, sizeof(IMPISPAutoZoom));
+	// autozoom.zoom_chx_en[0] = 1;
+	// autozoom.zoom_left[0] = 640/2;
+	// autozoom.zoom_top[0] = 360;
+	// autozoom.zoom_width[0] = (int)(1920-(autozoom.zoom_left[0]*2));
+	// autozoom.zoom_height[0] = (int)(1080-autozoom.zoom_top[0]);
 
-	ret = IMP_ISP_Tuning_SetAutoZoom(IMPVI_MAIN+1, &autozoom);
+	// ret = IMP_ISP_Tuning_SetAutoZoom(IMPVI_MAIN+1, &autozoom);
 	///////////////////////////////////////////////////////////////////
 
 	///////////////////////// Flicker ISP /////////////////////////////
@@ -376,6 +446,17 @@ int video_init(void) {
 	flickerAttr.mode = IMPISP_ANTIFLICKER_AUTO_MODE;
 	IMP_ISP_Tuning_SetAntiFlickerAttr(IMPVI_MAIN, &flickerAttr);
 	IMP_ISP_Tuning_SetAntiFlickerAttr(IMPVI_MAIN+1, &flickerAttr);
+	///////////////////////////////////////////////////////////////////
+
+	///////////////////////////// LDC ISP /////////////////////////////
+	// IMPISPHLDCAttr hldc;
+	// hldc.strength = 150;     			/**< Distortion correction intensity [range: 0 to 255, default: 128]*/
+    // hldc.width = 1920;          		/**< Image width */
+    // hldc.height = 1080;         		/**< Image height */
+    // hldc.center_w = hldc.width/2;       /**< Image distortion horizontal optical center range:[width/2-120, width/2+120] */
+    // hldc.center_h = hldc.height/2;      /**< Image distortion vertical optical center range:[height/2-120, height/2+120] */
+
+	// IMP_ISP_Tuning_SetHLDCAttr(IMPVI_MAIN, &hldc);
 	///////////////////////////////////////////////////////////////////
 
 	// if (Night_Mode) {
@@ -593,6 +674,7 @@ void *OSD_thread(void *args)
 	int ret;
 
 	int x_cal=0, y_cal=0, w_cal=0, h_cal=0;
+	int index = 0;
 	// int f_cnt=0;
 	
 	// int mosaic_x = 300, mosaic_y = 300;
@@ -632,8 +714,9 @@ void *OSD_thread(void *args)
 		if (fdpd_ck) {
 			fdpd_ck = false;
 			for (int j=0; j<10; j++) {
-				// if (fdpd_data[j].flag && fdpd_data[j].classid == 0 && fdpd_data[j].trackid >= 0) {
-				if (fdpd_data[j].flag && fdpd_data[j].classid == 0) {					
+				if (fdpd_data[j].flag && fdpd_data[j].classid == 0 && fdpd_data[j].trackid >= 0) {
+				// if (fdpd_data[j].flag && fdpd_data[j].classid == 0) {
+					index = fdpd_data[j].trackid;
 					// x_cal = fdpd_data[j].ul_x - 40;
 					// x_cal = (x_cal/10)*10;
 					if (fdpd_data[j].ul_x > 40)
@@ -673,21 +756,21 @@ void *OSD_thread(void *args)
 
 					// printf("mosaic[%d] x:%d y:%d w:%d h:%d\n", j, x_cal, y_cal, w_cal, h_cal);
 
-					ret = IMP_OSD_SetRgnAttr(prHander[2+RECT_INDEX+j], &mosaic_rAttr);
+					ret = IMP_OSD_SetRgnAttr(prHander[2+RECT_INDEX+index], &mosaic_rAttr);
 					if (ret != 0) {
 						IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Mosaic error\n");
 						return NULL;
 					}
-					if (mosaic_time[j] == 0) {
-						ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+j], mosdgrp, 1);
+					if (mosaic_time[index] == 0) {
+						ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+index], mosdgrp, 1);
 						if (ret != 0) {
 							IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Mosaic error\n");
 							return NULL;
 						}
 					}
 
-					fdpd_data[j].flag = false;
-					mosaic_time[j] = sample_gettimeus();
+					fdpd_data[index].flag = false;
+					mosaic_time[index] = sample_gettimeus();
 					// printf("Face Mosaic[%d] En tiem : %lld\n", j, mosaic_time[j]);
 				}
 			}
@@ -696,7 +779,7 @@ void *OSD_thread(void *args)
 		for (int k=0; k<10; k++) {
 			if (mosaic_time[k] != 0) {
 				mtime = sample_gettimeus()-mosaic_time[k];
-				if (mtime > 7000000) {
+				if (mtime > 10000000) {
 					ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+k], mosdgrp, 0);
 					if (ret != 0) {
 						IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Mosaic error\n");

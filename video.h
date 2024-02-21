@@ -16,7 +16,8 @@ void *OSD_thread(void *args);
 void udp_main_video_rolling_dcnt(void);
 void udp_box_video_rolling_dcnt(void);
 int osd_grid_show(int selnum);
-int isd_crop(int x, int y, int w, int h);
+int isd_crop(int x, int y, int w, int h, int cam);
+int isd_distortion(int cx, int cy, int w, int h, int streng, int cam);
 
 #if __cplusplus
 }
