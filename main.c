@@ -1191,7 +1191,7 @@ int clip_total(void) {
 			}
 
 			if ((total_time > THUMBNAIL_TIME) && (thumbnail_state == THUMB_WAIT) &&
-				(fr_state == FR_WAIT || fr_state == FR_END)) {	// thumbnail
+				(fr_state == FR_WAIT || fr_state == FR_END || fr_state == FR_START)) {	// thumbnail
 				printf("Thumbnail Make Start!!\n");
 				thumbnail_snap = true;
 				thumbnail_state = THUMB_START;
