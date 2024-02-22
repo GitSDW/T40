@@ -141,6 +141,7 @@ int package_sistic(char *imgpath1, char *imgpath2) {
         cerr << "Not enough comparison points!" << endl;
 
         imwrite("/vtmp/corimg1.jpg", image1);
+        ///////////////// Log Point /////////////////
     }
 
     // 결과 이미지를 디스크에 저장
@@ -371,24 +372,29 @@ int thumbnail_make(Thum_Data_t cont) {
     // 이미지 로드
     Mat image = imread(inputImagePath);
 
-    // 모자이크 처리
     Mat mosaic = image.clone();
-    for (int i=0; i<10; i++) {
-        if (cont.flag[i]) {
-            x = cont.x[i];
-            y = cont.y[i];
-            w = (((cont.ex[i] - cont.x[i])/150)+1)*150;
-            h = (((cont.ey[i] - cont.y[i])/150)+1)*150;
-            if (x > 0 && y > 0 && w > 0 && h > 0) {
-                Rect roi(x, y, w, h);
-                Mat region = mosaic(roi);
-                resize(region, region, Size(5, 5), 0, 0, INTER_NEAREST);
-                resize(region, region, Size(w, h), 0, 0, INTER_NEAREST);
+    // 모자이크 처리
+    try {
+        for (int i=0; i<10; i++) {
+            if (cont.flag[i]) {
+                x = cont.x[i];
+                y = cont.y[i];
+                w = (((cont.ex[i] - cont.x[i])/150)+1)*150;
+                h = (((cont.ey[i] - cont.y[i])/150)+1)*150;
+                if (x > 0 && y > 0 && w > 0 && h > 0) {
+                    Rect roi(x, y, w, h);
+                    Mat region = mosaic(roi);
+                    resize(region, region, Size(5, 5), 0, 0, INTER_NEAREST);
+                    resize(region, region, Size(w, h), 0, 0, INTER_NEAREST);
 
-                // 모자이크된 영역을 원본 이미지에 복사
-                region.copyTo(mosaic(roi));
+                    // 모자이크된 영역을 원본 이미지에 복사
+                    region.copyTo(mosaic(roi));
+                }
             }
         }
+    } catch (Exception& e) {
+        cerr << "Thumbnail Mosaic Fail!" << endl;
+        ///////////////// Log Point /////////////////
     }
 
     resizeImage(mosaic, 640, 360);

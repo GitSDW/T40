@@ -10,7 +10,7 @@ extern "C" {
 
 #define MAJOR_VER	"0"
 #define MINOR_VER	"1"	
-#define CAHR_VER	"k"
+#define CAHR_VER	"l"
 
 typedef struct CIRCULAR_BUFF
 {
@@ -156,6 +156,24 @@ bool pcm_in, pcm_out;
 bool Mosaic_En, fdpd_En, fdpd_ck;
 
 extern int bExit;
+
+enum FR_STATE {
+  FR_WAIT = 0,  // 0
+  FR_START,   	// 1
+  FR_POINTSET, 	// 2
+  FR_SNAPSHOT,  // 3
+  FR_SUCCESS,	// 4
+  FR_END,		// 5
+};
+
+enum THUMB_STATE {
+  THUMB_WAIT = 0,	// 0
+  THUMB_START,   	// 1
+  THUMB_SNAPSHOT,  	// 2
+  // THUMB_SUCCESS,	// 3
+  THUMB_END,		// 3
+};
+
 
 #if __cplusplus
 }

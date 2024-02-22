@@ -150,14 +150,14 @@ int isd_distortion(int cx, int cy, int w, int h, int streng, int cam) {
 		printf("y range invaild!\n");
 		return -1;
 	}
-	if (cx-(w/2) < 0 || cx+(w/2) > 1920) {
-		printf("w range invaild! %d %d\n", cx-(w/2), cx+(w/2));
-		return -1;
-	}
-	if (cy-(h/2) < 0 || cy+(h/2) > 1080) {
-		printf("h range invaild!\n");
-		return -1;
-	}
+	// if (cx-(w/2) < 0 || cx+(w/2) > 1920) {
+	// 	printf("w range invaild! %d %d\n", cx-(w/2), cx+(w/2));
+	// 	return -1;
+	// }
+	// if (cy-(h/2) < 0 || cy+(h/2) > 1080) {
+	// 	printf("h range invaild!\n");
+	// 	return -1;
+	// }
 	if (streng < 0 || streng > 255) {
 		printf("strength range invaild [0~255]!\n");
 		return -1;

@@ -1085,6 +1085,7 @@ int main(int argc, char **argv) {
 int clip_total(void) {
 	int ret = 0;
 	int file_cnt = 0;
+	int fpdp_cnt = 0;
 	bool start_flag = false;
 	
 	int64_t end_time = 0, total_time = 0;
@@ -1160,35 +1161,44 @@ int clip_total(void) {
 		else {
 			total_time = sample_gettimeus() - start_time;
 
-			if((total_time <= THUMBNAIL_TIME) && (fr_state == 0)) {
+			if((total_time <= THUMBNAIL_TIME) && (fr_state == FR_WAIT) &&
+				(thumbnail_state == 0 || thumbnail_state == 3)) {
 				fr_state++;
 			}
-			else if(fr_state == 3) {
+			else if(fr_state == FR_SNAPSHOT) {
 				fr_state++;
 				printf("Face Data Send!!\n");
 				ret = facecrop_make(facial_data);
-				if (ret < 0) {
+				if (ret < 0 && fpdp_cnt < 5) {
 					printf("Facial Fail. Retry.\n");
 					memset(file_sep, 0, 100);
 					sprintf(file_sep, "rm /vtmp/face*");
 					printf("%s\n", file_sep);
 					system(file_sep);
-					fr_state = 0;
+					fr_state = FR_WAIT;
+					fpdp_cnt++;
+				}
+				else if (fpdp_cnt >= 5){
+					fr_state = FR_END; // facecrop_make fail x 5
 				}
 			}
-			else if (total_time > THUMBNAIL_TIME) {
-				fr_state = 5;	// fr_state 5 / Time out
+			else if(fr_state == FR_SUCCESS) {
+				// Make File Send
+				fr_state = FR_END;
+			}
+			else if (total_time > MAX_REC_TIME - 5000000) {
+				fr_state = FR_END;	// fr_state 5 / Time out
 			}
 
-			if ((total_time > THUMBNAIL_TIME) && (thumbnail_state == 0) &&
-				(fr_state == 4 || fr_state == 5)) {	// thumbnail
+			if ((total_time > THUMBNAIL_TIME) && (thumbnail_state == THUMB_WAIT) &&
+				(fr_state == FR_WAIT || fr_state == FR_END)) {	// thumbnail
 				printf("Thumbnail Make Start!!\n");
 				thumbnail_snap = true;
-				thumbnail_state = 1;
+				thumbnail_state = THUMB_START;
 			}
-			if (thumbnail_state == 2) {
+			if (thumbnail_state == THUMB_SNAPSHOT) {
    				thumbnail_make(thum_face_data);
-   				thumbnail_state = 3;
+   				thumbnail_state = THUMB_END;
 			}
 
 			if ((total_time > MAX_REC_TIME) && (rec_state != 2)) {	// 60sec REC End
