@@ -18,7 +18,7 @@
 
 #include "adc.h"
 
-int fd;
+int adc_fd;
 int vol_n;
 
 int adc_init(void)
@@ -28,27 +28,27 @@ int adc_init(void)
 
 	sprintf(path, "%s", ADC_PATH);
 
-	fd = open(path, O_RDONLY);
-	if(fd < 0) {
+	adc_fd = open(path, O_RDONLY);
+	if(adc_fd < 0) {
 		printf("sample_adc:open error !\n");
 		ret = -1;
-		close(fd);
+		close(adc_fd);
 		return -1;
 	}
 
 	/* set reference voltage */
 	vol_n = STD_VAL_VOLTAGE;
-	ret = ioctl(fd, ADC_SET_VREF, &vol_n);
+	ret = ioctl(adc_fd, ADC_SET_VREF, &vol_n);
 	if(ret){
 		printf("Failed to set reference voltage!\n");
-		close(fd);
+		close(adc_fd);
 		return -1;
 	}
 
-	ret = ioctl(fd, ADC_ENABLE);
+	ret = ioctl(adc_fd, ADC_ENABLE);
 	if(ret){
 		printf("Failed to enable adc!\n");
-		close(fd);
+		close(adc_fd);
 		return -1;	
 	}
 
@@ -69,9 +69,9 @@ int adc_init(void)
 int adc_deinit(void){
 	// int ret = 0;
 	/* disable adc */
-	// ret = ioctl(fd, ADC_DISABLE);
-	ioctl(fd, ADC_DISABLE);
-	close(fd);
+	// ret = ioctl(adc_fd, ADC_DISABLE);
+	ioctl(adc_fd, ADC_DISABLE);
+	close(adc_fd);
     return 0;
 }
 
@@ -83,14 +83,14 @@ void *adc_get_voltage_thread(void *argc)
     // while(1)
     {
 		// enable adc
-		// ret = ioctl(fd, ADC_ENABLE);
+		// ret = ioctl(adc_fd, ADC_ENABLE);
 		// if(ret){
 		// 	printf("Failed to enable adc!\n");
 		// 	break;
 		// }
 
 		// get value
-		ret = read(fd, &value, sizeof(int));
+		ret = read(adc_fd, &value, sizeof(int));
 		if(!ret){
 			printf("Failed to read adc value!\n");
 			break;
@@ -100,7 +100,7 @@ void *adc_get_voltage_thread(void *argc)
 		printf("### adc value is : %ldmV ###\n", value / 10);
 
 		// disable adc
-		// ret = ioctl(fd, ADC_DISABLE);
+		// ret = ioctl(adc_fd, ADC_DISABLE);
 		// if(ret){
 		// 	printf("Failed to disable adc!\n");
 		// 	break;
@@ -110,8 +110,8 @@ void *adc_get_voltage_thread(void *argc)
         sleep(0.01);
     }
 
-    /* close fd */
-    // close(fd);
+    /* close adc_fd */
+    // close(adc_fd);
 
 	return NULL;
 }

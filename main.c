@@ -1094,7 +1094,7 @@ int clip_total(void) {
 
 	// pthread_t tid_ao, tid_ai, tid_aio_aec;
     // pthread_t tid_udp_in, tid_udp_out, tid_spi;
-    pthread_t tid_stream, tid_clip, tid_snap, tid_move, tim_osd, tid_fdpd;
+    pthread_t tid_stream, tid_snap, tid_move, tim_osd, tid_fdpd;
 
     // Init_Audio_Out();
 	// Init_Audio_In();
@@ -1397,7 +1397,7 @@ int clip_total(void) {
 
 	pthread_join(tim_osd, NULL);
 	pthread_join(tid_stream, NULL);
-	pthread_join(tid_clip, NULL);
+	// pthread_join(tid_clip, NULL);
 	pthread_join(tid_move, NULL);
 	pthread_join(tid_fdpd, NULL);
 	pthread_join(tid_snap, NULL);
@@ -1416,9 +1416,13 @@ int stream_total(void) {
 
 	bool up_streming_flag = false;
     bool dn_streming_flag = false;
+    bool adc_flag = false;
+    bool led_flag = false;
+    char file_sep[100] = {0};
+    int gval = 0;
 
 	pthread_t tid_ao, tid_ai;
-    pthread_t tid_stream, tid_clip, tid_snap, tid_move, tim_osd, tid_fdpd;
+    pthread_t tid_stream, tid_clip, tid_snap, tid_move, tim_osd, tid_fdpd, adc_thread_id;
 
 #ifdef STREAMING_SPI
     pthread_t tid_spi;
@@ -1518,6 +1522,9 @@ int stream_total(void) {
 		printf("cmd 8 PCM Save Start/End\n");
 		printf("cmd 9 Box Camera Crop Test\n");
 		printf("cmd 10 Distortion Test\n");
+		printf("cmd 11 LED Test!\n");
+		printf("cmd 12 adc test\n");
+		printf("cmd 13 Box LED ON/OFF\n");
 		printf("cmd 99 : exit\n");
 
 		cmd = scanf_cmd();
@@ -1690,6 +1697,52 @@ int stream_total(void) {
 			c = scanf_index();
 
 			isd_distortion(x, y, w, h, str, c);
+		}
+		else if (cmd == 11) {
+			int led_duty = 0;
+			printf("cmd 11 LED Test!\n");
+			if (!led_flag) {
+				system("echo 6 > /sys/class/pwm/pwmchip0/export");
+				
+				led_flag = true;
+			}
+			printf("Duty?");
+			led_duty = scanf_index();
+			system("echo 1000000 > /sys/class/pwm/pwmchip0/pwm6/period");
+			memset(file_sep, 0, 100);
+			sprintf(file_sep, "echo %d > /sys/class/pwm/pwmchip0/pwm6/duty_cycle", 10000*(led_duty));
+			printf(file_sep);
+			printf("\n");
+			system(file_sep);
+			system("echo 0 > /sys/class/pwm/pwmchip0/pwm6/enable");
+			system("echo 1 > /sys/class/pwm/pwmchip0/pwm6/enable");
+		}
+		else if (cmd == 12) {
+			if (adc_flag == false) {
+				printf("cmd 12 adc test\n");
+				system("echo 54 > /sys/class/gpio/export");
+				system("echo out > /sys/class/gpio/gpio54/direction");
+				system("echo 1 > /sys/class/gpio/gpio54/value");
+				// /* get value thread */
+				adc_init();
+				
+				adc_flag = true;
+			}
+			ret = pthread_create(&adc_thread_id, NULL, adc_get_voltage_thread, NULL);
+			if (ret != 0) {
+				printf("error: pthread_create error!!!!!!");
+				return -1;
+			}
+    	}
+		else if (cmd == 13) {
+			printf("cmd 13 Box LED ON/OFF\n");
+			ret = gpio_set_val(PORTD+6, gval);
+			if(ret < 0){
+				printf("Fail set Value GPIO : %d\n", PORTD+6);
+				return -1;
+			}
+			if (gval == 0) gval = 1;
+			else gval = 0;
 		}
 		else if (cmd == 99) {
 			printf("Exiting Program! Plz Wait!\n");

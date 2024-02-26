@@ -424,7 +424,7 @@ int video_init(void) {
 
 	IMPISPHVFLIP hvf;
 	hvf = IMPISP_FLIP_HV_MODE;
-	// IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN, &hvf);		// Main Cam Flip
+	IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN, &hvf);		// Main Cam Flip
 	// IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN+1, &hvf);	// Box Cam Flip
 
 	///////////////////////// Box Cam Crop ////////////////////////////
@@ -442,7 +442,7 @@ int video_init(void) {
 	///////////////////////// Flicker ISP /////////////////////////////
 	IMPISPAntiflickerAttr flickerAttr;
 	memset(&flickerAttr, 0, sizeof(IMPISPAntiflickerAttr));
-	flickerAttr.freq = 60;
+	flickerAttr.freq = 80;
 	flickerAttr.mode = IMPISP_ANTIFLICKER_AUTO_MODE;
 	IMP_ISP_Tuning_SetAntiFlickerAttr(IMPVI_MAIN, &flickerAttr);
 	IMP_ISP_Tuning_SetAntiFlickerAttr(IMPVI_MAIN+1, &flickerAttr);
@@ -716,7 +716,7 @@ void *OSD_thread(void *args)
 			for (int j=0; j<10; j++) {
 				if (fdpd_data[j].flag && fdpd_data[j].classid == 0 && fdpd_data[j].trackid >= 0) {
 				// if (fdpd_data[j].flag && fdpd_data[j].classid == 0) {
-					index = fdpd_data[j].trackid;
+					index = fdpd_data[j].trackid % 10;
 					// x_cal = fdpd_data[j].ul_x - 40;
 					// x_cal = (x_cal/10)*10;
 					if (fdpd_data[j].ul_x > 40)
@@ -769,7 +769,7 @@ void *OSD_thread(void *args)
 						}
 					}
 
-					fdpd_data[index].flag = false;
+					fdpd_data[j].flag = false;
 					mosaic_time[index] = sample_gettimeus();
 					// printf("Face Mosaic[%d] En tiem : %lld\n", j, mosaic_time[j]);
 				}
