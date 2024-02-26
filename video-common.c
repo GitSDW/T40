@@ -800,12 +800,12 @@ int sample_framesource_init(int ch)
                 return -1;
     }
 
-    printf("CH %d Crop EN:%d, x:%d y:%d w:%d h:%d\n",   ch,
-                                                        imp_chn_attr_check.crop.enable,
-                                                        imp_chn_attr_check.crop.left,
-                                                        imp_chn_attr_check.crop.top,
-                                                        imp_chn_attr_check.crop.width,
-                                                        imp_chn_attr_check.crop.height);
+    // printf("CH %d Crop EN:%d, x:%d y:%d w:%d h:%d\n",   ch,
+                                                        // imp_chn_attr_check.crop.enable,
+                                                        // imp_chn_attr_check.crop.left,
+                                                        // imp_chn_attr_check.crop.top,
+                                                        // imp_chn_attr_check.crop.width,
+                                                        // imp_chn_attr_check.crop.height);
 
 	return 0;
 }

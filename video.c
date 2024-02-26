@@ -181,6 +181,35 @@ int isd_distortion(int cx, int cy, int w, int h, int streng, int cam) {
 	return 0;
 }
 
+int isp_filcker (int freq, int mode) {
+	IMPISPAntiflickerAttr flickerAttr;
+
+	memset(&flickerAttr, 0, sizeof(IMPISPAntiflickerAttr));
+	flickerAttr.freq = freq;
+	flickerAttr.mode = mode;
+	IMP_ISP_Tuning_SetAntiFlickerAttr(IMPVI_MAIN, &flickerAttr);
+	IMP_ISP_Tuning_SetAntiFlickerAttr(IMPVI_MAIN+1, &flickerAttr);
+}
+
+// int isp_wdr (int state, int cam) {
+// 	int ret = -1;
+// 	IMPISPTuningOpsMode mode;
+
+// 	if (state = 0) {
+// 		mode = IMPISP_TUNING_OPS_MODE_DISABLE;
+// 	}
+// 	else {
+// 		mode = IMPISP_TUNING_OPS_MODE_ENABLE;
+// 	}
+
+// 	ret = IMP_ISP_WDR_ENABLE(IMPVI_MAIN+cam, &mode);
+// 	if (ret != 0) {
+// 		IMP_LOG_ERR(TAG, "IMP_ISP_WDR_ENABLE() error\n");
+// 		return -1;
+// 	}
+// 	return 0;
+// }
+
 IMPCell osdcell;
 
 int video_init(void) {
@@ -424,7 +453,7 @@ int video_init(void) {
 
 	IMPISPHVFLIP hvf;
 	hvf = IMPISP_FLIP_HV_MODE;
-	IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN, &hvf);		// Main Cam Flip
+	// IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN, &hvf);		// Main Cam Flip
 	// IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN+1, &hvf);	// Box Cam Flip
 
 	///////////////////////// Box Cam Crop ////////////////////////////
@@ -442,8 +471,8 @@ int video_init(void) {
 	///////////////////////// Flicker ISP /////////////////////////////
 	IMPISPAntiflickerAttr flickerAttr;
 	memset(&flickerAttr, 0, sizeof(IMPISPAntiflickerAttr));
-	flickerAttr.freq = 80;
-	flickerAttr.mode = IMPISP_ANTIFLICKER_AUTO_MODE;
+	flickerAttr.freq = 70;
+	flickerAttr.mode = IMPISP_ANTIFLICKER_NORMAL_MODE;
 	IMP_ISP_Tuning_SetAntiFlickerAttr(IMPVI_MAIN, &flickerAttr);
 	IMP_ISP_Tuning_SetAntiFlickerAttr(IMPVI_MAIN+1, &flickerAttr);
 	///////////////////////////////////////////////////////////////////

@@ -18,6 +18,8 @@ void udp_box_video_rolling_dcnt(void);
 int osd_grid_show(int selnum);
 int isd_crop(int x, int y, int w, int h, int cam);
 int isd_distortion(int cx, int cy, int w, int h, int streng, int cam);
+int isp_filcker (int freq, int mode);
+// int isp_wdr (int state, int cam);
 
 #if __cplusplus
 }

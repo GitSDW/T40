@@ -958,6 +958,17 @@ int main(int argc, char **argv) {
 
 			isd_distortion(x, y, w, h, str, c);
 		}
+		else if (cmd == 24) {
+			int freq, mode;
+			printf("cmd 24 Flicker Test\n");
+			printf("Set Flicker Freq:");
+			freq = scanf_index();
+			printf("0:disable 1:normal 2:auto 3:value dep\n");
+			printf("Set Flicker Mode:");
+			mode = scanf_index();
+
+			isp_filcker (freq, mode);
+		}
 		else if (cmd == 99) {
 			printf("Exiting Program! Plz Wait!\n");
 			bExit = 1;

@@ -260,8 +260,11 @@ void *uart_thread(int argc, char *argv[])
     int set_stopbits = 1;
     char set_parity = 'N';
     path = (char *)default_path;
+    uint8_t *uart2_buf;
 
-    printf("For example: ./sample_uart /dev/ttyS2 115200 8 1 N\n"); 
+    uart2_buf = malloc(1024);
+
+    printf("/dev/ttyS2 115200 8 1 N\n"); 
 
     /*
      * 串口初始化函数
@@ -277,11 +280,11 @@ void *uart_thread(int argc, char *argv[])
      * test code
      */
     do {
-        res = read(fd, buf, 1024);
-        if (res >0 ) {
+        res = read(fd, uart2_buf, 1024);
+        if (res > 0) {
             printf("UART RX: ");
             for (int i=0; i<res; i++) {
-                printf("0x%02x ", buf[i]);
+                printf("0x%02x ", uart2_buf[i]);
                 if (i%16 == 15)
                     printf("\n");
             }
