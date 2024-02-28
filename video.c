@@ -478,14 +478,14 @@ int video_init(void) {
 	///////////////////////////////////////////////////////////////////
 
 	///////////////////////////// LDC ISP /////////////////////////////
-	// IMPISPHLDCAttr hldc;
-	// hldc.strength = 150;     			/**< Distortion correction intensity [range: 0 to 255, default: 128]*/
-    // hldc.width = 1920;          		/**< Image width */
-    // hldc.height = 1080;         		/**< Image height */
-    // hldc.center_w = hldc.width/2;       /**< Image distortion horizontal optical center range:[width/2-120, width/2+120] */
-    // hldc.center_h = hldc.height/2;      /**< Image distortion vertical optical center range:[height/2-120, height/2+120] */
+	IMPISPHLDCAttr hldc;
+	hldc.strength = 185;     			/**< Distortion correction intensity [range: 0 to 255, default: 128]*/
+    hldc.width = 1920;          		/**< Image width */
+    hldc.height = 1080;         		/**< Image height */
+    hldc.center_w = hldc.width/2;       /**< Image distortion horizontal optical center range:[width/2-120, width/2+120] */
+    hldc.center_h = hldc.height/2;      /**< Image distortion vertical optical center range:[height/2-120, height/2+120] */
 
-	// IMP_ISP_Tuning_SetHLDCAttr(IMPVI_MAIN, &hldc);
+	IMP_ISP_Tuning_SetHLDCAttr(IMPVI_MAIN, &hldc);
 	///////////////////////////////////////////////////////////////////
 
 	// if (Night_Mode) {
@@ -704,6 +704,7 @@ void *OSD_thread(void *args)
 
 	int x_cal=0, y_cal=0, w_cal=0, h_cal=0;
 	int index = 0;
+	bool rect_flag = false;
 	// int f_cnt=0;
 	
 	// int mosaic_x = 300, mosaic_y = 300;
@@ -740,7 +741,7 @@ void *OSD_thread(void *args)
 			}
 		}
 
-		if (fdpd_ck) {
+		if (fdpd_ck && Mosaic_En) {
 			fdpd_ck = false;
 			for (int j=0; j<10; j++) {
 				if (fdpd_data[j].flag && fdpd_data[j].classid == 0 && fdpd_data[j].trackid >= 0) {
@@ -819,6 +820,49 @@ void *OSD_thread(void *args)
 				}
 			}
 		}
+
+		if (!Mosaic_En) {
+			if (!rect_flag) rect_flag = true;
+			for (int j=0; j<10; j++) {
+				if (fdpd_data[j].flag && fdpd_data[j].classid == 0 && fdpd_data[j].trackid >= 0) {
+					IMPOSDRgnAttr rect_rAttr;
+					rect_rAttr.type = OSD_REG_RECT;
+					rect_rAttr.rect.p0.x = fdpd_data[j].ul_x;
+					rect_rAttr.rect.p0.y = fdpd_data[j].ul_y;
+					rect_rAttr.rect.p1.x = fdpd_data[j].br_x - 1;
+					rect_rAttr.rect.p1.y = fdpd_data[j].br_y - 1;
+					rect_rAttr.fmt = PIX_FMT_MONOWHITE;
+					rect_rAttr.data.lineRectData.color = OSD_GREEN;
+					rect_rAttr.data.lineRectData.linewidth = 1;
+					IMP_OSD_SetRgnAttr(prHander[2+j], &rect_rAttr);
+					ret = IMP_OSD_ShowRgn(prHander[2+j], mosdgrp, 1);
+					if (ret != 0) {
+						IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
+						return NULL;
+					}
+
+					
+				}
+				else {
+					ret = IMP_OSD_ShowRgn(prHander[2+j], mosdgrp, 0);
+					if (ret != 0) {
+						IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Test Cover error\n");
+						return NULL;
+					}
+				}
+			}
+		}
+
+		if (rect_flag && Mosaic_En) {
+			rect_flag = false;
+			for (int j=0; j<10; j++) {
+				ret = IMP_OSD_ShowRgn(prHander[2+j], mosdgrp, 0);
+				if (ret != 0) {
+					IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Test Cover error\n");
+					return NULL;
+				}
+			}
+		} 
 		// usleep(5*1000);
 	} while(!bExit);
 

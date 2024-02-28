@@ -435,8 +435,12 @@ int facecrop_make(Fdpd_Data_t cont) {
 
     resizeImage(croppedImage, 500, 500);
 
+    vector<int> compression_params;
+    compression_params.push_back(IMWRITE_JPEG_QUALITY);
+    compression_params.push_back(100);
+
     // 크롭된 이미지 저장
-    imwrite(outputImagePath, croppedImage);
+    imwrite(outputImagePath, croppedImage, compression_params);
 
     return 0;
 }

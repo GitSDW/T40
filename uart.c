@@ -30,102 +30,139 @@ int fd;
 * uart init
 * */
 
-int uart_init(int baudrate,int databits,int stopbits,char parity)
-{
-    int i = 0;
-    /*
-     * 获取串口设备描述符
-     * Get serial device descriptor
-     * */    
-    printf("This is tty/usart demo.\n");
-    fd = open(path, O_RDWR);
+// int uart_init(int baudrate,int databits,int stopbits,char parity)
+// {
+//     int i = 0;
+//     /*
+//      * 获取串口设备描述符
+//      * Get serial device descriptor
+//      * */    
+//     printf("This is tty/usart demo.\n");
+//     fd = open(path, O_RDWR);
+//     if (fd < 0) {
+//         printf("Fail to Open %s device\n", path);
+//         return -1;
+//     }
+//     struct termios opt;
+//     /*
+//      * 清空串口接收缓冲区
+//      * Clear the serial port receive buffer
+//      * */
+//     tcflush(fd, TCIOFLUSH);
+//     tcgetattr(fd, &opt);
+//     /**
+//      * 设置串口波特率
+//      * Set the serial port baud rate
+//      * */
+//     for(i = 0; i < sizeof(baud_rate)/sizeof(int) ;i++){
+//         if(baud_rate_num[i] == baudrate){
+//             cfsetospeed(&opt, baud_rate[i]);
+//             cfsetispeed(&opt, baud_rate[i]);
+//         }
+//     }
+//     /*
+//      * 设置数据位数,先清除CSIZE数据位的内容
+//      * Set the number of data bits, first clear the content of the CSIZE data bit
+//      * */    
+//     opt.c_cflag &= ~CSIZE;
+//     switch (databits)
+//     {
+//     case 5:
+//         opt.c_cflag |= CS5;
+//         break;
+//     case 6:
+//         opt.c_cflag |= CS6;
+//         break;
+//     case 7:
+//         opt.c_cflag |= CS7;
+//         break;
+//     case 8:
+//         opt.c_cflag |= CS8;
+//         break;
+//     }
+//     /* 
+//      * 设置停止位
+//      * Set stop bit
+//      **/
+//     switch (stopbits)
+//     {
+//     case 1:
+//         opt.c_cflag &= ~CSTOPB;//1位 1 bit
+//         break;
+//     case 2:
+//         opt.c_cflag |= CSTOPB;//2位 2 bit
+//         break;
+//     }
+//     /*
+//      * 设置校验位
+//      * Set check digit
+//      * */
+//     switch (parity)
+//     {
+//     case 'n':
+//     case 'N':
+//         opt.c_cflag &= ~PARENB; // 不使用奇偶校验 
+//         opt.c_iflag &= ~INPCK;  // 禁止输入奇偶检测
+//         break;
+//     case 'o':
+//     case 'O':
+//         opt.c_cflag |= PARENB;  // 启用奇偶效验 
+//         opt.c_iflag |= INPCK;   // 启用输入奇偶检测 
+//         opt.c_cflag |= PARODD ; // 设置为奇效验 
+//         break;
+//     case 'e':
+//     case 'E':
+//         opt.c_cflag |= PARENB;  // 启用奇偶效验
+//         opt.c_iflag |= INPCK;   // 启用输入奇偶检测
+//         opt.c_cflag &= ~PARODD; // 设置为偶效验
+//         break;
+//     }
+
+//     /*
+//      *更新配置
+//      *Update configuration
+//      **/    
+//     tcsetattr(fd, TCSANOW, &opt);
+
+//     printf("Device %s is set to %d bps,databits %d,stopbits %d,parity %c\n",path,baudrate,databits,stopbits,parity);
+//     return 0;
+// }
+
+int uart_init(void) {
+    struct termios tty;
+
+    // 시리얼 포트 열기
+    fd = open("/dev/ttyS2", O_RDWR);
     if (fd < 0) {
-        printf("Fail to Open %s device\n", path);
+        perror("Unable to open serial port");
         return -1;
     }
-    struct termios opt;
-    /*
-     * 清空串口接收缓冲区
-     * Clear the serial port receive buffer
-     * */
-    tcflush(fd, TCIOFLUSH);
-    tcgetattr(fd, &opt);
-    /**
-     * 设置串口波特率
-     * Set the serial port baud rate
-     * */
-    for(i = 0; i < sizeof(baud_rate)/sizeof(int) ;i++){
-        if(baud_rate_num[i] == baudrate){
-            cfsetospeed(&opt, baud_rate[i]);
-            cfsetispeed(&opt, baud_rate[i]);
-        }
-    }
-    /*
-     * 设置数据位数,先清除CSIZE数据位的内容
-     * Set the number of data bits, first clear the content of the CSIZE data bit
-     * */    
-    opt.c_cflag &= ~CSIZE;
-    switch (databits)
-    {
-    case 5:
-        opt.c_cflag |= CS5;
-        break;
-    case 6:
-        opt.c_cflag |= CS6;
-        break;
-    case 7:
-        opt.c_cflag |= CS7;
-        break;
-    case 8:
-        opt.c_cflag |= CS8;
-        break;
-    }
-    /* 
-     * 设置停止位
-     * Set stop bit
-     **/
-    switch (stopbits)
-    {
-    case 1:
-        opt.c_cflag &= ~CSTOPB;//1位 1 bit
-        break;
-    case 2:
-        opt.c_cflag |= CSTOPB;//2位 2 bit
-        break;
-    }
-    /*
-     * 设置校验位
-     * Set check digit
-     * */
-    switch (parity)
-    {
-    case 'n':
-    case 'N':
-        opt.c_cflag &= ~PARENB; // 不使用奇偶校验 
-        opt.c_iflag &= ~INPCK;  // 禁止输入奇偶检测
-        break;
-    case 'o':
-    case 'O':
-        opt.c_cflag |= PARENB;  // 启用奇偶效验 
-        opt.c_iflag |= INPCK;   // 启用输入奇偶检测 
-        opt.c_cflag |= PARODD ; // 设置为奇效验 
-        break;
-    case 'e':
-    case 'E':
-        opt.c_cflag |= PARENB;  // 启用奇偶效验
-        opt.c_iflag |= INPCK;   // 启用输入奇偶检测
-        opt.c_cflag &= ~PARODD; // 设置为偶效验
-        break;
+
+    // 현재 시리얼 포트 설정 가져오기
+    if(tcgetattr(fd, &tty) != 0) {
+        perror("tcgetattr");
+        return -1;
     }
 
-    /*
-     *更新配置
-     *Update configuration
-     **/    
-    tcsetattr(fd, TCSANOW, &opt);
+    // 시리얼 통신 속도 설정 (2560000 bps)
+    cfsetospeed(&tty, B2500000);
+    cfsetispeed(&tty, B2500000);
 
-    printf("Device %s is set to %d bps,databits %d,stopbits %d,parity %c\n",path,baudrate,databits,stopbits,parity);
-    return 0;
+    // 통신 속성 설정
+    tty.c_cflag &= ~PARENB;  // 패리티 비활성화
+    tty.c_cflag &= ~CSTOPB;  // 1 스탑 비트 설정
+    tty.c_cflag &= ~CSIZE;   // 데이터 비트 크기 비트를 지웁니다.
+    tty.c_cflag |= CS8;      // 8 비트 데이터 비트 크기
+    tty.c_cflag &= ~CRTSCTS; // RTS/CTS 흐름 제어를 비활성화합니다.
+    tty.c_cflag |= CREAD | CLOCAL; // 읽기를 활성화하고 로컬 라인을 유지합니다.
+
+    // 설정 적용
+    if (tcsetattr(fd, TCSANOW, &tty) != 0) {
+        perror("tcsetattr");
+        return -1;
+    }
+
+    return 1;
 }
 
 /**
@@ -252,25 +289,26 @@ int uart_receive(int fd,char *rev_buff,int data_len)
     }
     return ret;
 }
-void *uart_thread(int argc, char *argv[])
+void *uart_thread(void *argc)
 {
     int res;
-    int set_baudrate = 115200;
-    int set_databits = 8;
-    int set_stopbits = 1;
-    char set_parity = 'N';
-    path = (char *)default_path;
+    // int set_baudrate = 2560000;
+    // int set_databits = 8;
+    // int set_stopbits = 1;
+    // char set_parity = 'N';
+    // path = (char *)default_path;
     uint8_t *uart2_buf;
 
     uart2_buf = malloc(1024);
 
-    printf("/dev/ttyS2 115200 8 1 N\n"); 
+    printf("/dev/ttyS2 2560000 8 1 N\n"); 
 
     /*
      * 串口初始化函数
      * uart init function
      * */
-    res = uart_init(set_baudrate,set_databits,set_stopbits,set_parity);
+    // res = uart_init(set_baudrate,set_databits,set_stopbits,set_parity);
+    res = uart_init();
     if(res < 0){
         printf("uart init failed \n");
     }

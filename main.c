@@ -27,6 +27,7 @@
 #include "fdpd.h"
 #include "gpio.h"
 #include "adc.h"
+#include "uart.h"
 
 int bExit = 0;
 
@@ -271,6 +272,7 @@ int main(int argc, char **argv) {
     pthread_t tid_ao, tid_ai, tid_aio_aec;
     pthread_t tid_udp_in, tid_udp_out, tid_spi;
     pthread_t tid_stream, tid_snap, tid_move, tim_osd, tid_fdpd, adc_thread_id;
+    pthread_t tid_uart;
     printf("Ver : %s.%s.%s\n", MAJOR_VER, MINOR_VER, CAHR_VER);
 
     mode = start_up_mode();
@@ -323,6 +325,8 @@ int main(int argc, char **argv) {
 		printf("cmd 21 Box LED ON/OFF\n");
 		printf("cmd 22 Box Camera Crop Test\n");
 		printf("cmd 23 Distortion Test\n");
+		printf("cmd 24 Flicker Test\n");
+		printf("cmd 25 Moasic On/Off\n");
 		printf("cmd 99 : exit\n");
 
 		cmd = scanf_cmd();
@@ -969,6 +973,18 @@ int main(int argc, char **argv) {
 
 			isp_filcker (freq, mode);
 		}
+		else if (cmd == 25) {
+			printf("cmd 25 Moasic On/Off\n");
+			if (!Mosaic_En) Mosaic_En = true;
+			else Mosaic_En = false;
+		}
+		else if (cmd == 26) {
+			ret = pthread_create(&tid_uart, NULL, uart_thread, NULL);
+			if(ret != 0) {
+				IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create uart_thread failed\n", __func__);
+				return -1;
+			}
+		}
 		else if (cmd == 99) {
 			printf("Exiting Program! Plz Wait!\n");
 			bExit = 1;
@@ -1536,6 +1552,7 @@ int stream_total(void) {
 		printf("cmd 11 LED Test!\n");
 		printf("cmd 12 adc test\n");
 		printf("cmd 13 Box LED ON/OFF\n");
+		printf("cmd 14 Moasic On/Off\n");
 		printf("cmd 99 : exit\n");
 
 		cmd = scanf_cmd();
@@ -1754,6 +1771,11 @@ int stream_total(void) {
 			}
 			if (gval == 0) gval = 1;
 			else gval = 0;
+		}
+		else if (cmd == 14) {
+			printf("cmd 14 Moasic On/Off\n");
+			if (!Mosaic_En) Mosaic_En = true;
+			else Mosaic_En = false;
 		}
 		else if (cmd == 99) {
 			printf("Exiting Program! Plz Wait!\n");

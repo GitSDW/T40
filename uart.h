@@ -6,10 +6,10 @@
 extern "C" {
 #endif
 
-int baud_rate[] = {B115200,B57600,B38400,B19200,B9600,B4800,B2400,B1200,B300};
-int baud_rate_num[] = {115200,57600,38400,19200,9600,4800,2400,1200,300};
+// int baud_rate[] = {B115200,B57600,B38400,B19200,B9600,B4800,B2400,B1200,B300};
+// int baud_rate_num[] = {115200,57600,38400,19200,9600,4800,2400,1200,300};
 
-char buf[1024] = "Ingenic tty send test.\n";
+// char buf[1024] = "Ingenic tty send test.\n";
 char *path;
 
 #define CSTOPB 0000100
@@ -25,6 +25,7 @@ char *path;
 #define CS7 0000040
 #define CS8 0000060
 
+void *uart_thread(void *argc);
 
 
 #if __cplusplus
