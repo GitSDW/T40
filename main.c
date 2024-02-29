@@ -1211,6 +1211,15 @@ int clip_total(void) {
 			}
 			else if(fr_state == FR_SUCCESS) {
 				// Make File Send
+				if (Ready_Busy_Check()){
+					printf("Face Crop JPG Send!\n");
+					memset(file_path, 0, 64);
+					sprintf(file_path, "/vtmp/face_crop.jpg");
+					spi_send_file(REC_SNAPSHOT, file_path);
+					}
+				else {
+					printf("Fail to Face Crop JPG Send.\n");
+				}
 				fr_state = FR_END;
 			}
 			else if (total_time > MAX_REC_TIME - 5000000) {
@@ -1226,6 +1235,15 @@ int clip_total(void) {
 			if (thumbnail_state == THUMB_SNAPSHOT) {
    				thumbnail_make(thum_face_data);
    				thumbnail_state = THUMB_END;
+   				if (Ready_Busy_Check()){
+					printf("Thumbnail Send!\n");
+					memset(file_path, 0, 64);
+					sprintf(file_path, "/vtmp/thumbnail_last.jpg");
+					spi_send_file(REC_SNAPSHOT, file_path);
+					}
+				else {
+					printf("Fail to Thumbnail Send.\n");
+				}
 			}
 
 			if ((total_time > MAX_REC_TIME) && (rec_state != 2)) {	// 60sec REC End
@@ -1270,7 +1288,9 @@ int clip_total(void) {
 			printf("MP4 Make!\n");
 			
 			system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/stream-0.h265 -c copy /vtmp/main.mp4");
+			system("rm /vtmp/stream-0.h265");
 			system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/stream-3.h265 -c copy /vtmp/box.mp4");
+			system("rm /vtmp/stream-3.h265");
 			// system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/stream-4.h264 -c copy /vtmp/box.mkv");
 			for (int i=0; i<file_cnt; i++){
 				if (i == 0) {

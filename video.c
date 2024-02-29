@@ -851,6 +851,7 @@ void *OSD_thread(void *args)
 					}
 				}
 			}
+			usleep(5*1000);
 		}
 
 		if (rect_flag && Mosaic_En) {

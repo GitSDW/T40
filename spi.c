@@ -263,12 +263,10 @@ int Make_Spi_Packet(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t major, 
                 	memcpy(&tbuff[9+V_SEND_RESERV], data, len);
                     break;
                 case REC_FACE:
-                    break;
                 case REC_BOX_ALM:
-                    break;
                 case REC_SNAPSHOT:
-                    break;
                 case REC_FACESHOT:
+                    memcpy(&tbuff[9+V_SEND_RESERV], data, len);
                     break;
                 case REC_STREAM_END:
                     break;
@@ -639,15 +637,15 @@ int spi_send_clip(int dly, int num)
 int Ready_Busy_Check(void) {
     int ret = -1;
 
-    for (int i=0; i<(READY_BUSY_TIME*10); i++) {
-        usleep(100*1000);
+    for (int i=0; i<(READY_BUSY_TIME*20); i++) {
+        usleep(50*1000);
         ret = gpio_get_val(PORTB+18);
         if (ret == 1) {
             printf("Ready Busy Check!!\n");
             return ret;
         }
         else {
-            if (i == (READY_BUSY_TIME*10)-1) {
+            if (i == (READY_BUSY_TIME*20)-1) {
                 printf("Ready Busy Not Checked!!(Wait %dSEC)\n", READY_BUSY_TIME);
                 return ret;
             }
@@ -675,8 +673,8 @@ int spi_send_file(uint8_t minor, char *file)
     	return -1;
     }
     sz_file = file_info.st_size;
-    printf("**********SPI FILE SEND************\n");
-    printf("d %s,s %d,d %d,b %d,m %d,f %s, size:%d\n",device,speed,delay,bits,mode,file,sz_file);
+    printf("**********FILE SEND START CMD************\n");
+    // printf("d %s,s %d,d %d,b %d,m %d,f %s, size:%d\n",device,speed,delay,bits,mode,file,sz_file);
 
     read_buff[0] = minor;
     read_buff[1] = (sz_file>>24)&0xFF;
@@ -693,6 +691,7 @@ int spi_send_file(uint8_t minor, char *file)
     //     first_send = true;
     // }
     spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
+
     
     if (Ready_Busy_Check())
         printf("File Send Start!\n");
@@ -707,8 +706,8 @@ int spi_send_file(uint8_t minor, char *file)
             // memset(tx_buff, 0, 1024);
             // memcpy(&tx_buff[6], read_buff, ret);
             spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
-            printf("STX:0x%02x CMD:0x%02x%02x LEN:0x%02x%02x ETX:0x%02x\n", 
-                        tx_buff[0+5], tx_buff[1+5], tx_buff[2+5], tx_buff[3+5], tx_buff[4+5], tx_buff[1023-5]);
+            // printf("STX:0x%02x CMD:0x%02x%02x LEN:0x%02x%02x ETX:0x%02x\n", 
+                        // tx_buff[0+5], tx_buff[1+5], tx_buff[2+5], tx_buff[3+5], tx_buff[4+5], tx_buff[1023-5]);
         }
         usleep(dly*1000);
     } while(ret != 0);
@@ -717,8 +716,7 @@ int spi_send_file(uint8_t minor, char *file)
     // memset(tx_buff, 0, 1033);
     // memcpy(&tx_buff[6], read_buff,1);
     spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
-    usleep(500*1000);
-
+    printf("**********FILE SEND END CMD************\n");
     return ret;
 }
 
