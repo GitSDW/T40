@@ -189,6 +189,34 @@ int isp_filcker (int freq, int mode) {
 	flickerAttr.mode = mode;
 	IMP_ISP_Tuning_SetAntiFlickerAttr(IMPVI_MAIN, &flickerAttr);
 	IMP_ISP_Tuning_SetAntiFlickerAttr(IMPVI_MAIN+1, &flickerAttr);
+
+	return 0;
+}
+
+uint32_t isp_integration_time(int getset, uint32_t value) {
+	IMPISPAEExprInfo expose_inf;
+	IMP_ISP_Tuning_GetAeExprInfo(IMPVI_MAIN, &expose_inf);
+	printf("Expose mode:%d Value:%d\n", expose_inf.AeMode, expose_inf.ExposureValue);
+	printf("igtime:%d again:%d dgain:%d\n", expose_inf.AeIntegrationTime, expose_inf.AeAGain, expose_inf.AeDGain);
+	printf("igmode:%d amode:%d dmode:%d\n", expose_inf.AeIntegrationTimeMode, expose_inf.AeAGainManualMode, expose_inf.AeDGainManualMode);
+
+	if (getset > 0) {
+		if (value == 0) {
+			expose_inf.AeIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_AUTO;
+			expose_inf.AeIntegrationTime = 132;
+		}
+		else {
+			expose_inf.AeIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+			expose_inf.AeIntegrationTime = value;
+		}
+
+		IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN, &expose_inf);
+	}
+	else {
+		printf("min : %d %d %d\n", expose_inf.AeMinIntegrationTime, expose_inf.AeMinAGain, expose_inf.AeMinDgain);
+		printf("max : %d %d %d\n", expose_inf.AeMaxIntegrationTime, expose_inf.AeMaxAGain, expose_inf.AeMaxDgain);
+	}
+	return expose_inf.AeIntegrationTime;
 }
 
 // int isp_wdr (int state, int cam) {
@@ -453,7 +481,7 @@ int video_init(void) {
 
 	IMPISPHVFLIP hvf;
 	hvf = IMPISP_FLIP_HV_MODE;
-	// IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN, &hvf);		// Main Cam Flip
+	IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN, &hvf);		// Main Cam Flip
 	// IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN+1, &hvf);	// Box Cam Flip
 
 	///////////////////////// Box Cam Crop ////////////////////////////
@@ -488,10 +516,25 @@ int video_init(void) {
 	IMP_ISP_Tuning_SetHLDCAttr(IMPVI_MAIN, &hldc);
 	///////////////////////////////////////////////////////////////////
 
+	///////////////////////////// Night Mode //////////////////////////
 	// if (Night_Mode) {
 	// 	IMP_ISP_StartNightMode(IMPVI_MAIN);	// Noight Mode ?
 	// 	IMP_ISP_StartNightMode(IMPVI_MAIN+1);	// Noight Mode ?
 	// }
+	///////////////////////////////////////////////////////////////////
+
+	///////////////////////////// Expose Change ///////////////////////
+	IMPISPAEExprInfo expose_inf;
+	IMP_ISP_Tuning_GetAeExprInfo(IMPVI_MAIN, &expose_inf);
+	printf("Expose mode:%d Value:%d\n", expose_inf.AeMode, expose_inf.ExposureValue);
+	printf("igtime:%d again:%d dgain:%d\n", expose_inf.AeIntegrationTime, expose_inf.AeAGain, expose_inf.AeDGain);
+	printf("igmode:%d amode:%d dmode:%d\n", expose_inf.AeIntegrationTimeMode, expose_inf.AeAGainManualMode, expose_inf.AeDGainManualMode);
+
+	expose_inf.AeMinIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+	expose_inf.AeMinIntegrationTime = 200;
+
+	IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN, &expose_inf);
+	///////////////////////////////////////////////////////////////////
 
 	return 0;
 }
@@ -705,6 +748,9 @@ void *OSD_thread(void *args)
 	int x_cal=0, y_cal=0, w_cal=0, h_cal=0;
 	int index = 0;
 	bool rect_flag = false;
+
+	int64_t total_time = 0;
+	int64_t oldt_time = 0;
 	// int f_cnt=0;
 	
 	// int mosaic_x = 300, mosaic_y = 300;
@@ -726,6 +772,8 @@ void *OSD_thread(void *args)
 	}
 	
 	do {
+
+		
 		if (main_motion_detect > 0) {
 			ret = IMP_OSD_ShowRgn(prHander[TEST_COVER_INDEX], mosdgrp, 1);
 			if (ret != 0) {
@@ -865,6 +913,14 @@ void *OSD_thread(void *args)
 			}
 		} 
 		// usleep(5*1000);
+
+
+
+		total_time = sample_gettimeus() - start_time;
+		if ((total_time/1000000 != oldt_time) && dot_En) {
+			oldt_time = total_time/1000000;
+			printf(".\n");
+		}
 	} while(!bExit);
 
 	return ((void*) 0);

@@ -1950,6 +1950,44 @@ static int save_stream(int fd, IMPEncoderStream *stream)
 	return 0;
 }
 
+static int save_stream1(int fd, IMPEncoderStream *stream, int ch)
+{
+	int ret, i, nr_pack = stream->packCount;
+
+  //IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u start----------\n", stream->packCount, stream->seq);
+	for (i = 0; i < nr_pack; i++) {
+	//IMP_LOG_DBG(TAG, "[%d]:%10u,%10lld,%10u,%10u,%10u\n", i, stream->pack[i].length, stream->pack[i].timestamp, stream->pack[i].frameEnd, *((uint32_t *)(&stream->pack[i].nalType)), stream->pack[i].sliceType);
+		IMPEncoderPack *pack = &stream->pack[i];
+		if(pack->length){
+			uint32_t remSize = stream->streamSize - pack->offset;
+			if(remSize < pack->length){
+				ret = write(fd, (void *)(stream->virAddr + pack->offset), remSize);
+				if (ret != remSize) {
+					IMP_LOG_ERR(TAG, "stream write ret(%d) != pack[%d].remSize(%d) error:%s\n", ret, i, remSize, strerror(errno));
+					return -1;
+				}
+				ret = write(fd, (void *)stream->virAddr, pack->length - remSize);
+				if (ret != (pack->length - remSize)) {
+					IMP_LOG_ERR(TAG, "stream write ret(%d) != pack[%d].(length-remSize)(%d) error:%s\n", ret, i, (pack->length - remSize), strerror(errno));
+					return -1;
+				}
+			}else {
+				ret = write(fd, (void *)(stream->virAddr + pack->offset), pack->length);
+				if (ret != pack->length) {
+					IMP_LOG_ERR(TAG, "stream write ret(%d) != pack[%d].length(%d) error:%s\n", ret, i, pack->length, strerror(errno));
+					return -1;
+				}
+			}
+			
+		}
+		total[ch] += pack->length;
+		// printf("nr_pack:%d/%d len:%d\n", i, nr_pack, pack->length);
+	}
+
+  //IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u end----------\n", stream->packCount, stream->seq);
+	return 0;
+}
+
 static int save_stream2(int fd, IMPEncoderStream *stream, int ch)
 {
 	int ret, i, nr_pack = stream->packCount;
@@ -2381,7 +2419,8 @@ static void *get_video_stream_user(void *args)
 			// if (start_time == 0)
 			// 	start_time = sample_gettimeus();
 			if ((sample_gettimeus()-start_time < MAX_REC_TIME) && rec_state != 2) {
-    			ret = save_stream2(stream_fd, &stream, chnNum);
+				if (chnNum == 0)	ret = save_stream1(stream_fd, &stream, chnNum);
+				if (chnNum == 3)	ret = save_stream2(stream_fd, &stream, chnNum);
     			if (ret < 0) {
 	    	    	close(stream_fd);
 			    	return ((void *)ret);

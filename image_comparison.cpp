@@ -28,7 +28,7 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
     int width = img1.cols;
 
     int borderSize = 100;
-    cv::Rect roi(borderSize, borderSize, width - 2 * borderSize, height - 2 * borderSize);
+    cv::Rect roi(borderSize, height/4, width - 2 * borderSize, height*3/4 - borderSize);
     img1 = img1(roi);
     img2 = img2(roi);
     
@@ -39,6 +39,7 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
     cv::equalizeHist(gray1, gray1);
     cv::equalizeHist(gray2, gray2);
 
+    // printf("box1\n");
     cv::Mat diff_image;
     cv::absdiff(gray1, gray2, diff_image);
 
@@ -47,33 +48,44 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
 
     // imwrite("bin.jpg", bin_img);
 
+    // printf("box2\n");
     vector<vector<cv::Point>> contours;
     cv::findContours(bin_img, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
     cv::Rect boundingRect2;
 
-    for(size_t i = 0; i< contours.size(); i++) {
-        cv::Rect boundingRect = cv::boundingRect(contours[i]);
 
-        if (boundingRect.width >= 50 && boundingRect.height > 50) {
-            box_cnt++;
-            // Maximum Scale Box
-            boxscale = boundingRect.width * boundingRect.height;
-            if (boxscale > boxscale2){
-                boxscale2 = boxscale;
-                // boundingRect2 = boundingRect;
+    // printf("box3\n");
+    try {
+        for(size_t i = 0; i< contours.size(); i++) {
+            cv::Rect boundingRect = cv::boundingRect(contours[i]);
+
+            if (boundingRect.width >= 50 && boundingRect.height > 50) {
+                box_cnt++;
+                // Maximum Scale Box
+                boxscale = boundingRect.width * boundingRect.height;
+                if (boxscale > boxscale2){
+                    boxscale2 = boxscale;
+                    // boundingRect2 = boundingRect;
+                }
+                // Box Find area
+                // if (boundingRect.x >= width/2 && boundingRect.x <= height/2) {
+                if (boundingRect.y+boundingRect.width >= width/2 && boundingRect.y+boundingRect.height <= height/2) {
+                        // cv::rectangle(img2, boundingRect, cv::Scalar(0, 255, 0), 2);
+                        // NULL;
+                    // }
+                }
+                cv::rectangle(img2, boundingRect, cv::Scalar(0, 255, 0), 2);
+
             }
-            // Box Find area
-            // if (boundingRect.x >= width/2 && boundingRect.x <= height/2) {
-            if (boundingRect.y+boundingRect.width >= width/2 && boundingRect.y+boundingRect.height <= height/2) {
-                    // cv::rectangle(img2, boundingRect, cv::Scalar(0, 255, 0), 2);
-                    // NULL;
-                // }
-            }
-            cv::rectangle(img2, boundingRect, cv::Scalar(0, 255, 0), 2);
         }
+        // printf("box count:%d\n", ); 
+    } catch (Exception& e) {
+        box_cnt = 0xFF;
+        printf("Too Many Box Count! Changed Camera Position!\n");
     }
     // cv::rectangle(img2, boundingRect2, cv::Scalar(0, 255, 0), 2);
+    // printf("box4\n");
 
     cv::imwrite("/vtmp/box_result.jpg", img2);
 
@@ -97,6 +109,8 @@ int package_sistic(char *imgpath1, char *imgpath2) {
         return -1;
     }
 
+
+#if 1
     // ORB 객체 생성
     Ptr<ORB> orb = ORB::create();
 
@@ -106,7 +120,7 @@ int package_sistic(char *imgpath1, char *imgpath2) {
     orb->detectAndCompute(image1, Mat(), keypoints1, descriptors1);
     orb->detectAndCompute(image2, Mat(), keypoints2, descriptors2);
 
-    // 특징점 매칭
+    // 특징점 매칭 
     BFMatcher matcher(NORM_HAMMING);
     vector<DMatch> matches;
     matcher.match(descriptors1, descriptors2, matches);
@@ -117,33 +131,90 @@ int package_sistic(char *imgpath1, char *imgpath2) {
 
     vector<DMatch> goodMatches;
     for (const DMatch& match : matches) {
+        // printf("distance:%f %f\n", match.distance, minDist);
         if (match.distance < 3 * minDist) {
             goodMatches.push_back(match);
         }
     }
 
     // 좋은 매칭을 사용하여 변환 행렬 계산
-    vector<Point2f> pts1, pts2;
-    for (const DMatch& match : goodMatches) {
-        pts1.push_back(keypoints1[match.queryIdx].pt);
-        pts2.push_back(keypoints2[match.trainIdx].pt);
+    if (goodMatches.size() > 10) {
+        try {
+            vector<Point2f> pts1, pts2;
+            for (const DMatch& match : goodMatches) {
+                pts1.push_back(keypoints1[match.queryIdx].pt);
+                pts2.push_back(keypoints2[match.trainIdx].pt);
+            }
+
+    
+            Mat H = findHomography(pts1, pts2, RANSAC);
+
+            // 이미지를 변환 행렬을 사용하여 보정
+            Mat correctedImage;
+            warpPerspective(image1, correctedImage, H, image1.size());
+
+            imwrite("/vtmp/corimg1.jpg", correctedImage);
+        } catch (Exception& e) {
+            cerr << "Fail comparison points!" << endl;
+
+            imwrite("/vtmp/corimg1.jpg", image1);
+            ///////////////// Log Point /////////////////
+        }
     }
-
-    try {
-        Mat H = findHomography(pts1, pts2, RANSAC);
-
-        // 이미지를 변환 행렬을 사용하여 보정
-        Mat correctedImage;
-        warpPerspective(image1, correctedImage, H, image1.size());
-
-        imwrite("/vtmp/corimg1.jpg", correctedImage);
-    } catch (Exception& e) {
-        cerr << "Not enough comparison points!" << endl;
+    else {
+        cerr << "Not enough comparison points:" << goodMatches.size() << endl;
 
         imwrite("/vtmp/corimg1.jpg", image1);
         ///////////////// Log Point /////////////////
     }
+#else
+    Ptr<SIFT> sift = SIFT::create();
 
+    vector<KeyPoint> kp1, kp2;
+    Mat des1, des2;
+    sift->detectAndCompute(image1, noArray(), kp1, des1);
+    sift->detectAndCompute(image2, noArray(), kp2, des2);
+
+    BFMatcher bf(NORM_L2);
+    vector<vector<DMatch>> matches;
+    bf.knnMatch(des1, des2, matches, 2);
+
+    vector<DMatch> good;
+    for (size_t i = 0; i < matches.size(); ++i) {
+        if (matches[i][0].distance < 0.75 * matches[i][1].distance) {
+            good.push_back(matches[i][0]);
+        }
+    }
+
+
+    if (good.size() > 10) {
+        try {
+            vector<Point2f> src_pts, dst_pts;
+            for (size_t i = 0; i < good.size(); ++i) {
+                src_pts.push_back(kp1[good[i].queryIdx].pt);
+                dst_pts.push_back(kp2[good[i].trainIdx].pt);
+            }
+
+            // 변환 매트릭스 계산
+            Mat H = findHomography(src_pts, dst_pts, RANSAC, 5.0);
+
+            Mat correctedImage;
+            warpPerspective(image1, correctedImage, H, image1.size());
+
+            imwrite("/vtmp/corimg1.jpg", correctedImage);
+        } catch (Exception& e) {
+            cerr << "Fail comparison points!" << endl;
+
+            imwrite("/vtmp/corimg1.jpg", image1);
+            ///////////////// Log Point /////////////////
+        }
+    }
+    else {
+        cerr << "Not enough comparison points!" << endl;
+
+        imwrite("/vtmp/corimg1.jpg", image1);
+    }
+#endif
     // 결과 이미지를 디스크에 저장
     
 

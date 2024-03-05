@@ -695,8 +695,10 @@ int spi_send_file(uint8_t minor, char *file)
     
     if (Ready_Busy_Check())
         printf("File Send Start!\n");
-    else
+    else{
         printf("Stop File Send!\n");
+        return -1;
+    }
 
     do {
         ret = read(filed, read_buff, FILE_READ_LENGTH);

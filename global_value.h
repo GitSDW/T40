@@ -10,7 +10,7 @@ extern "C" {
 
 #define MAJOR_VER	"0"
 #define MINOR_VER	"1"	
-#define CAHR_VER	"r"
+#define CAHR_VER	"s"
 
 typedef struct CIRCULAR_BUFF
 {
@@ -154,6 +154,7 @@ bool bStrem;
 int save_pcm;
 bool pcm_in, pcm_out;
 bool Mosaic_En, fdpd_En, fdpd_ck;
+bool dot_En;
 
 extern int bExit;
 

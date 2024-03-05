@@ -129,6 +129,7 @@ int global_value_init(void) {
 	Mosaic_En = true;
 	fdpd_En = false;
 	fdpd_ck = false;
+	dot_En = false;
 
 	for(i=0;i<10;i++){
 		fdpd_data[i].flag = false;
@@ -327,6 +328,9 @@ int main(int argc, char **argv) {
 		printf("cmd 23 Distortion Test\n");
 		printf("cmd 24 Flicker Test\n");
 		printf("cmd 25 Moasic On/Off\n");
+		printf("cmd 26 Uart Test\n");
+		printf("cmd 27 ISP integration time Test\n");
+		printf("cmd 28 Dot Test\n");
 		printf("cmd 99 : exit\n");
 
 		cmd = scanf_cmd();
@@ -979,11 +983,30 @@ int main(int argc, char **argv) {
 			else Mosaic_En = false;
 		}
 		else if (cmd == 26) {
+			printf("cmd 26 Uart Test\n");
 			ret = pthread_create(&tid_uart, NULL, uart_thread, NULL);
 			if(ret != 0) {
 				IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create uart_thread failed\n", __func__);
 				return -1;
 			}
+		}
+		else if (cmd == 27) {
+			uint32_t isp_igtime = 132;
+			int getset = 0;
+			printf("cmd 27 ISP integration time Test\n");
+			printf("time Get/Set(0/1):");
+			getset = scanf_index();
+			if (getset > 0) {
+				printf("Value:");
+				isp_igtime = (uint32_t)scanf_index();
+			}
+			isp_igtime = isp_integration_time(getset, isp_igtime);
+			
+		}
+		else if (cmd == 28) {
+			printf("cmd 28 Dot Test\n");
+			if (!dot_En) dot_En = true;
+			else dot_En = false;
 		}
 		else if (cmd == 99) {
 			printf("Exiting Program! Plz Wait!\n");
@@ -1188,8 +1211,13 @@ int clip_total(void) {
 		else {
 			total_time = sample_gettimeus() - start_time;
 
-			if((total_time <= THUMBNAIL_TIME) && (fr_state == FR_WAIT) &&
+			// if(total_time > THUMBNAIL_TIME) {
+				// printf("Thumb : %d fr : %d\n", thumbnail_state, fr_state);
+			// }
+
+			if((total_time > THUMBNAIL_TIME) && (fr_state == FR_WAIT) &&
 				(thumbnail_state == 0 || thumbnail_state == 3)) {
+				printf("Thumb state : %d\n", thumbnail_state);
 				fr_state++;
 			}
 			else if(fr_state == FR_SNAPSHOT) {
@@ -1211,15 +1239,15 @@ int clip_total(void) {
 			}
 			else if(fr_state == FR_SUCCESS) {
 				// Make File Send
-				if (Ready_Busy_Check()){
-					printf("Face Crop JPG Send!\n");
-					memset(file_path, 0, 64);
-					sprintf(file_path, "/vtmp/face_crop.jpg");
-					spi_send_file(REC_SNAPSHOT, file_path);
-					}
-				else {
-					printf("Fail to Face Crop JPG Send.\n");
-				}
+				// if (Ready_Busy_Check()){
+				// 	printf("Face Crop JPG Send!\n");
+				// 	memset(file_path, 0, 64);
+				// 	sprintf(file_path, "/vtmp/face_crop.jpg");
+				// 	spi_send_file(REC_FACESHOT, file_path);
+				// 	}
+				// else {
+				// 	printf("Fail to Face Crop JPG Send.\n");
+				// }
 				fr_state = FR_END;
 			}
 			else if (total_time > MAX_REC_TIME - 5000000) {
@@ -1235,15 +1263,15 @@ int clip_total(void) {
 			if (thumbnail_state == THUMB_SNAPSHOT) {
    				thumbnail_make(thum_face_data);
    				thumbnail_state = THUMB_END;
-   				if (Ready_Busy_Check()){
-					printf("Thumbnail Send!\n");
-					memset(file_path, 0, 64);
-					sprintf(file_path, "/vtmp/thumbnail_last.jpg");
-					spi_send_file(REC_SNAPSHOT, file_path);
-					}
-				else {
-					printf("Fail to Thumbnail Send.\n");
-				}
+   				// if (Ready_Busy_Check()){
+				// 	printf("Thumbnail Send!\n");
+				// 	memset(file_path, 0, 64);
+				// 	sprintf(file_path, "/vtmp/thumbnail_last.jpg");
+				// 	spi_send_file(REC_SNAPSHOT, file_path);
+				// 	}
+				// else {
+				// 	printf("Fail to Thumbnail Send.\n");
+				// }
 			}
 
 			if ((total_time > MAX_REC_TIME) && (rec_state != 2)) {	// 60sec REC End
@@ -1387,7 +1415,8 @@ int clip_total(void) {
 			int threshold = 65;
 			double sim = 0.0;
 			
-			if (box_n != -1 && box_o != -1 && box_b != -1) {
+			// if (box_n != -1 && box_o != -1 && box_b != -1) {
+			if (box_n != -1 && box_b != -1) {
 				// sim = calculateSimilarity(before_img, after_img);
 				sim = 0.85;
     			if (sim < 0.97) {
@@ -1410,6 +1439,10 @@ int clip_total(void) {
 	    	        		// std::cout << "Similarity:" << sim << "\n" << std::ends;
     	        			
         				}
+
+        				if (sim == 0xFF) {
+        					system("cp /vtmp/box.jpg /tmp/mnt/sdcard/box_origin.jpg");
+        				}
     				}
     			}
     			else {
@@ -1417,6 +1450,8 @@ int clip_total(void) {
 	    			printf("Similarity:%f\n", sim);
     			}
     		}
+
+    		system("cp /tmp/mnt/sdcard/box_before.jpg /tmp/mnt/sdcard/box_before2.jpg");
 
     		system("cp /vtmp/box.jpg /tmp/mnt/sdcard/box_before.jpg");
 
@@ -1458,7 +1493,8 @@ int stream_total(void) {
 	int ret = 0;
 	// int file_cnt = 0;
 	// bool start_flag = false;
-	int64_t total_time = 0;
+	// int64_t total_time = 0;
+	// int64_t oldt_time = 0;
 	// char file_path[64] = {0};
 
 	bool up_streming_flag = false;
@@ -1556,7 +1592,7 @@ int stream_total(void) {
 	usleep(1000*1000);
 
 	do {
-		total_time = sample_gettimeus() - start_time;
+		// total_time = sample_gettimeus() - start_time;
 		int cmd = 255; 
 
 		printf("cmd 1  Audio Up Streaming Start!\n");
@@ -1573,6 +1609,8 @@ int stream_total(void) {
 		printf("cmd 12 adc test\n");
 		printf("cmd 13 Box LED ON/OFF\n");
 		printf("cmd 14 Moasic On/Off\n");
+		printf("cmd 15 ISP integration time Test\n");
+		printf("cmd 16 Dot Test\n");
 		printf("cmd 99 : exit\n");
 
 		cmd = scanf_cmd();
@@ -1796,6 +1834,24 @@ int stream_total(void) {
 			printf("cmd 14 Moasic On/Off\n");
 			if (!Mosaic_En) Mosaic_En = true;
 			else Mosaic_En = false;
+		}
+		else if (cmd == 15) {
+			uint32_t isp_igtime = 132;
+			int getset = 0;
+			printf("cmd 15 ISP integration time Test\n");
+			printf("time Get/Set(0/1):");
+			getset = scanf_index();
+			if (getset > 0) {
+				printf("Value:");
+				isp_igtime = (uint32_t)scanf_index();
+			}
+			isp_igtime = isp_integration_time(getset, isp_igtime);
+			
+		}
+		else if (cmd == 16) {
+			printf("cmd 16 Dot Test\n");
+			if (!dot_En) dot_En = true;
+			else dot_En = false;
 		}
 		else if (cmd == 99) {
 			printf("Exiting Program! Plz Wait!\n");

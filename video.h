@@ -20,6 +20,7 @@ int isd_crop(int x, int y, int w, int h, int cam);
 int isd_distortion(int cx, int cy, int w, int h, int streng, int cam);
 int isp_filcker (int freq, int mode);
 // int isp_wdr (int state, int cam);
+uint32_t isp_integration_time(int getset, uint32_t value);
 
 #if __cplusplus
 }
