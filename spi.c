@@ -842,7 +842,7 @@ void *spi_send_stream (void *arg)
             			printf("Fail Send SPI Data!\n");
             		}
 	            	else {
-   	         		// printf("MAIN Send Data : 0x%02X 0x%02X\n", tx_buff[5], tx_buff[1018]);
+   	         		printf("cnt:%d total:%d dsize%d\n", i, framesize, datasize);
     	        		usleep(1*1000);
         	    	}
             	}
@@ -874,7 +874,7 @@ void *spi_send_stream (void *arg)
             			printf("Fail Send SPI Data!\n");
             		}
 	            	else {
-   	         		// printf("MAIN Send Data : 0x%02X%02X\n", tx_buff[3], tx_buff[4]);
+   	         		// printf("cnt:%d total:%d dsize%d\n", i, framesize, datasize);
     	        		usleep(1*1000);
         	    	}
             	}
@@ -1010,7 +1010,7 @@ void *spi_test_send_stream (void *arg)
                         printf("Fail Send SPI Data!\n");
                     }
                     else {
-                    // printf("MAIN Send Data : 0x%02X%02X\n", tx_buff[3], tx_buff[4]);
+                    printf("d:0x%02X%02X\n", tx_buff[3], tx_buff[4]);
                         usleep(1*1000);
                     }
                 }

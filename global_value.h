@@ -10,7 +10,7 @@ extern "C" {
 
 #define MAJOR_VER	"0"
 #define MINOR_VER	"1"	
-#define CAHR_VER	"s"
+#define CAHR_VER	"w"
 
 typedef struct CIRCULAR_BUFF
 {
@@ -130,7 +130,7 @@ typedef struct THUM_SNAP
 Thum_Data_t thum_face_data;
 
 #define START_CHECK_TIME 5000000
-#define READY_BUSY_TIME 3
+#define READY_BUSY_TIME 5
 
 int64_t start_time;
 
@@ -175,6 +175,12 @@ enum THUMB_STATE {
   THUMB_END,		// 3
 };
 
+
+// #define __TEST_FAKE_VEDIO__
+
+#ifdef __TEST_FAKE_VEDIO__
+	int led_cnt;
+#endif
 
 #if __cplusplus
 }

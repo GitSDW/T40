@@ -12,6 +12,7 @@
 #include "global_value.h"
 #include "video-common.h"
 #include "move.h"
+#include "gpio.h"
 
 #define TAG "video"
 
@@ -193,6 +194,21 @@ int isp_filcker (int freq, int mode) {
 	return 0;
 }
 
+int isp_filcker_get (void) {
+	IMPISPAntiflickerAttr flickerAttr;
+
+	memset(&flickerAttr, 0, sizeof(IMPISPAntiflickerAttr));
+	// flickerAttr.freq = freq;
+	// flickerAttr.mode = mode;
+	IMP_ISP_Tuning_GetAntiFlickerAttr(IMPVI_MAIN, &flickerAttr);
+	printf("flicker main mode : %d freq : %d\n", flickerAttr.mode, flickerAttr.freq);
+	memset(&flickerAttr, 0, sizeof(IMPISPAntiflickerAttr));
+	IMP_ISP_Tuning_GetAntiFlickerAttr(IMPVI_MAIN+1, &flickerAttr);
+	printf("flicker box mode : %d freq : %d\n", flickerAttr.mode, flickerAttr.freq);
+
+	return 0;
+}
+
 uint32_t isp_integration_time(int getset, uint32_t value) {
 	IMPISPAEExprInfo expose_inf;
 	IMP_ISP_Tuning_GetAeExprInfo(IMPVI_MAIN, &expose_inf);
@@ -202,21 +218,22 @@ uint32_t isp_integration_time(int getset, uint32_t value) {
 
 	if (getset > 0) {
 		if (value == 0) {
-			expose_inf.AeIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_AUTO;
-			expose_inf.AeIntegrationTime = 132;
+			expose_inf.AeMinIntegrationTimeMode = IMPISP_TUNING_OPS_MODE_ENABLE;
+			expose_inf.AeMinIntegrationTime = 0;
 		}
 		else {
-			expose_inf.AeIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
-			expose_inf.AeIntegrationTime = value;
+			expose_inf.AeMinIntegrationTimeMode = IMPISP_TUNING_OPS_MODE_ENABLE;
+			expose_inf.AeMinIntegrationTime = value;
 		}
 
 		IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN, &expose_inf);
+		IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN+1, &expose_inf);
 	}
 	else {
 		printf("min : %d %d %d\n", expose_inf.AeMinIntegrationTime, expose_inf.AeMinAGain, expose_inf.AeMinDgain);
 		printf("max : %d %d %d\n", expose_inf.AeMaxIntegrationTime, expose_inf.AeMaxAGain, expose_inf.AeMaxDgain);
 	}
-	return expose_inf.AeIntegrationTime;
+	return expose_inf.AeMinIntegrationTime;
 }
 
 // int isp_wdr (int state, int cam) {
@@ -530,10 +547,53 @@ int video_init(void) {
 	printf("igtime:%d again:%d dgain:%d\n", expose_inf.AeIntegrationTime, expose_inf.AeAGain, expose_inf.AeDGain);
 	printf("igmode:%d amode:%d dmode:%d\n", expose_inf.AeIntegrationTimeMode, expose_inf.AeAGainManualMode, expose_inf.AeDGainManualMode);
 
-	expose_inf.AeMinIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
-	expose_inf.AeMinIntegrationTime = 200;
+	// expose_inf.AeMinIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+	// expose_inf.AeMinIntegrationTime = 200;
+	// expose_inf.AeMinAGainMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+	// expose_inf.AeMinAGain = 0;
+	// expose_inf.AeMinDgainMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+	// expose_inf.AeMinDgain = 0;
 
-	IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN, &expose_inf);
+	// expose_inf.AeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+	// expose_inf.AeIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+	// expose_inf.AeIntegrationTime = 1;
+	// expose_inf.AeAGainManualMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+	// expose_inf.AeAGain = 1;
+	// expose_inf.AeDGainManualMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+	// expose_inf.AeDGain = 1;
+	// expose_inf.AeIspDGainManualMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+	// expose_inf.AeIspDGain = 1;
+
+
+	// IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN, &expose_inf);
+
+	IMPISPTuningOpsMode mode = IMPISP_TUNING_OPS_MODE_ENABLE;
+
+	IMP_ISP_WDR_ENABLE(IMPVI_MAIN, &mode);
+
+	IMPISPWdrOutputMode wdroutmode = IMPISP_WDR_OUTPUT_MODE_SHORT_FRAME;
+
+	// IMP_ISP_Tuning_SetWdrOutputMode(IMPVI_MAIN, &wdroutmode);
+	// IMP_ISP_Tuning_GetWdrOutputMode(IMPVI_MAIN, &wdroutmode);
+	// printf("outputmode:%d\n", wdroutmode);
+
+	IMPISPWBAttr awbattr;
+
+	IMP_ISP_Tuning_GetAwbAttr(IMPVI_MAIN, &awbattr);
+
+	awbattr.mode = ISP_CORE_WB_MODE_DAY_LIGHT;
+	// awbattr.gain_val.rgain = 100;
+	// awbattr.gain_val.bgain = 100;
+
+	IMP_ISP_Tuning_SetAwbAttr(IMPVI_MAIN, &awbattr);
+
+	IMP_ISP_Tuning_GetAwbAttr(IMPVI_MAIN, &awbattr);
+
+	printf("mode:%d ct:%d ", awbattr.mode, awbattr.ct);
+	printf("r:%d b:%d\n",
+					awbattr.gain_val.rgain, awbattr.gain_val.bgain);
+
+
 	///////////////////////////////////////////////////////////////////
 
 	return 0;
@@ -719,6 +779,84 @@ void *get_video_stream_user_thread(void *args)
 
 	return ((void*) 0);
 }
+
+#ifdef __TEST_FAKE_VEDIO__
+
+void *get_video_stream_test_thread(void *args)
+{
+	extern pthread_mutex_t buffMutex_vm;
+	start_time = sample_gettimeus();
+	// sample_get_video_stream_test();
+	uint8_t *test_buf=NULL;
+	int ret = -1;
+
+	test_buf = (uint8_t*)malloc(50*1024);
+
+	int size = 0;
+	int len = 0;
+	bool gval = false;
+
+	led_cnt = 0;
+
+	FILE *test_file1 = fopen("/tmp/mnt/sdcard/stream-0.h265", "rb");
+	if (test_file1 == NULL) {
+		IMP_LOG_ERR(TAG, "[ERROR] %s: fopen %s failed\n", __func__, test_file1);
+		return ((void*) 0);
+	}
+	FILE *test_file2 = fopen("/tmp/mnt/sdcard/stream-3.h265", "rb");
+	if (test_file2 == NULL) {
+		IMP_LOG_ERR(TAG, "[ERROR] %s: fopen %s failed\n", __func__, test_file2);
+		return ((void*) 0);
+	}
+
+	do {
+		size = fread(test_buf, 1, 40*1000, test_file1);
+		if (size == 0){
+			fclose(test_file1);
+			test_file1 = fopen("/tmp/mnt/sdcard/stream-0.h265", "rb");
+			if (test_file1 == NULL) {
+				IMP_LOG_ERR(TAG, "[ERROR] %s: fopen %s failed\n", __func__, test_file1);
+				return ((void*) 0);
+			}
+		}
+
+		// printf("size:%d 0:0x%02x 1:0x%02x 899:%02x\n", size, test_buf[0], test_buf[1], test_buf[899]);
+
+		if(VM_Frame_Buff.cnt >= 10){
+			printf("VM Frame Buffer Full!\n");
+			return ((void*) 0);
+		}
+		pthread_mutex_lock(&buffMutex_vm);
+		memset(VM_Frame_Buff.tx[VM_Frame_Buff.index], 0, 256*1024);
+
+		len = size;
+		memcpy(VM_Frame_Buff.tx[VM_Frame_Buff.index]+len, test_buf, len);
+
+		VM_Frame_Buff.len[VM_Frame_Buff.index] = len;
+		VM_Frame_Buff.index = (VM_Frame_Buff.index+1)%10;
+		VM_Frame_Buff.cnt++;
+		pthread_mutex_unlock(&buffMutex_vm);
+
+		usleep(100*1000);
+
+		led_cnt++;
+
+		if (led_cnt > 10) {
+			led_cnt = 0;
+			ret = gpio_set_val(PORTD+6, gval);
+			if (!gval) gval = true;
+			else gval = false;
+		}
+	}while (1);
+
+	fclose(test_file1);
+	fclose(test_file2);
+	free(test_buf);
+
+	return ((void*) 0);
+}
+
+#endif
 
 void *get_video_clip_user_thread(void *args)
 {

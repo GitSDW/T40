@@ -265,7 +265,9 @@ int main(int argc, char **argv) {
 
     memory_init();
 	global_value_init();
+#ifndef	__TEST_FAKE_VEDIO__
 	video_init();
+#endif
 	Init_Audio_In();
 	Init_Audio_Out();
 	Set_Vol(90,20,70,15);
@@ -642,6 +644,7 @@ int main(int argc, char **argv) {
 				stream_state = 1;
 				rec_state = 1;
 				// rec_stop = false;
+			#ifndef __TEST_FAKE_VEDIO__
 				ret = pthread_create(&tim_osd, NULL, OSD_thread, NULL);
 				if(ret != 0) {
 					IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create OSD_thread failed\n", __func__);
@@ -653,7 +656,7 @@ int main(int argc, char **argv) {
 					IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create get_video_stream_user_thread failed\n", __func__);
 					return -1;
 				}
-				
+
 				// pthread_t tid_clip;
 				// ret = pthread_create(&tid_clip, NULL, get_video_clip_user_thread, NULL);
 				// if(ret != 0) {
@@ -678,6 +681,16 @@ int main(int argc, char **argv) {
 					IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create fdpd_thread failed\n", __func__);
 					return -1;
 				}
+
+			#else
+				ret = pthread_create(&tid_stream, NULL, get_video_stream_test_thread, NULL);
+				if(ret != 0) {
+					IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create get_video_stream_user_thread failed\n", __func__);
+					return -1;
+				}
+			#endif
+				
+				
 
 				if (sel == 1) {
 					ret = pthread_create(&tid_udp_in, NULL, udp_recv_pthread, NULL);
@@ -976,6 +989,7 @@ int main(int argc, char **argv) {
 			mode = scanf_index();
 
 			isp_filcker (freq, mode);
+			isp_filcker_get();
 		}
 		else if (cmd == 25) {
 			printf("cmd 25 Moasic On/Off\n");
@@ -1323,22 +1337,22 @@ int clip_total(void) {
 			for (int i=0; i<file_cnt; i++){
 				if (i == 0) {
 					memset(file_sep, 0, 100);
-					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/main.mp4 -ss 0 -t 12 -c copy /vtmp/main%d.mp4", i);
+					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/main.mp4 -ss 0 -t 14 -c copy /vtmp/main%d.mp4", i);
 					printf("%s\n", file_sep);
 					system(file_sep);
 					memset(file_sep, 0, 100);
-					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/box.mp4 -ss 0 -t 12 -c copy /vtmp/box%d.mp4", i);
+					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/box.mp4 -ss 0 -t 15 -c copy /vtmp/box%d.mp4", i);
 					// sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/box.mkv -ss 0 -t 12 -c copy /vtmp/box%d.mkv", i);
 					printf("%s\n", file_sep);
 					system(file_sep);
 				}
 				else {
 					memset(file_sep, 0, 100);
-					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/main.mp4 -ss %d.4 -t 12 -c copy /vtmp/main%d.mp4", (i*12)-1, i);
+					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/main.mp4 -ss %d.4 -t 14 -c copy /vtmp/main%d.mp4", (i*14)-1, i);
 					printf("%s\n", file_sep);
 					system(file_sep);
 					memset(file_sep, 0, 100);
-					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/box.mp4 -ss %d.4 -t 12 -c copy /vtmp/box%d.mp4", (i*12)-1, i);
+					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/box.mp4 -ss %d.4 -t 15 -c copy /vtmp/box%d.mp4", (i*15)-1, i);
 					// sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/box.mkv -ss %d.4 -t 12 -c copy /vtmp/box%d.mkv", (i*12)-1, i);
 					printf("%s\n", file_sep);
 					system(file_sep);
@@ -1541,6 +1555,10 @@ int stream_total(void) {
     stream_state = 1;
 	rec_state = 0;
 	// rec_stop = false;
+	
+
+#ifndef __TEST_FAKE_VEDIO__
+
 	ret = pthread_create(&tim_osd, NULL, OSD_thread, NULL);
 	if(ret != 0) {
 		IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create OSD_thread failed\n", __func__);
@@ -1552,7 +1570,7 @@ int stream_total(void) {
 		IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create get_video_stream_user_thread failed\n", __func__);
 		return -1;
 	}
-				
+
 	// ret = pthread_create(&tid_clip, NULL, get_video_clip_user_thread, NULL);
 	// if(ret != 0) {
 	// 	IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create get_video_clip_user_thread failed\n", __func__);
@@ -1576,6 +1594,14 @@ int stream_total(void) {
 		IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create fdpd_thread failed\n", __func__);
 		return -1;
 	}
+#else
+
+	ret = pthread_create(&tid_stream, NULL, get_video_stream_test_thread, NULL);
+	if(ret != 0) {
+		IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create get_video_stream_user_thread failed\n", __func__);
+		return -1;
+	}
+#endif			
 
 	ret = pthread_create(&tid_ao, NULL, IMP_Audio_Play_Thread, NULL);
 	if(ret != 0) {

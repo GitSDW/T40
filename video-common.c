@@ -64,7 +64,7 @@ struct chn_conf chn[FS_CHN_NUM] = {
 			.pixFmt = PIX_FMT_NV12,
 			.outFrmRateNum = FIRST_SENSOR_FRAME_RATE_NUM,
 			.outFrmRateDen = FIRST_SENSOR_FRAME_RATE_DEN,
-			.nrVBs = 2,
+			.nrVBs = 3,
 			.type = FS_PHY_CHANNEL,
 
 			.scaler.enable = 0,
@@ -375,7 +375,7 @@ int sample_system_init()
 
 		index = i * 3;
 		/* chn[index].fs_chn_attr.pixFmt = PIX_FMT_RAW; */
-		chn[index].fs_chn_attr.nrVBs = 2;
+		// chn[index].fs_chn_attr.nrVBs = 2;
 		bypass_en = IMPISP_TUNING_OPS_MODE_ENABLE;
 
 		ret = IMP_ISP_Tuning_SetISPBypass(i, &bypass_en);
