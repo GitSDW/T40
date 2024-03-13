@@ -213,7 +213,7 @@ void *udp_send_pthread(void *arg) {
 				datasize = (framesize > V_SEND_SIZE) ? V_SEND_SIZE : framesize;
 				udp_vm_send(VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize);
 				framesize -= datasize;
-				printf("cnt:%d, total:%d, dsize:%d\n", i, framesize, datasize);
+				// printf("cnt:%d, total:%d, dsize:%d\n", i, framesize, datasize);
 				pthread_mutex_unlock(&buffMutex_vm);
 				usleep(1*1000);
 			}

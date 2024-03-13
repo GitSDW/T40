@@ -209,25 +209,40 @@ int isp_filcker_get (void) {
 	return 0;
 }
 
+uint32_t init_igtime = 0;
+
 uint32_t isp_integration_time(int getset, uint32_t value) {
 	IMPISPAEExprInfo expose_inf;
 	IMP_ISP_Tuning_GetAeExprInfo(IMPVI_MAIN, &expose_inf);
 	printf("Expose mode:%d Value:%d\n", expose_inf.AeMode, expose_inf.ExposureValue);
-	printf("igtime:%d again:%d dgain:%d\n", expose_inf.AeIntegrationTime, expose_inf.AeAGain, expose_inf.AeDGain);
+	printf("igtime:%d again:%d dgain:%d idgain%d totaldb:%d\n", expose_inf.AeIntegrationTime, expose_inf.AeAGain, expose_inf.AeDGain, expose_inf.AeIspDGain, expose_inf.TotalGainDb);
 	printf("igmode:%d amode:%d dmode:%d\n", expose_inf.AeIntegrationTimeMode, expose_inf.AeAGainManualMode, expose_inf.AeDGainManualMode);
+	printf("tgain:%d tgainshort:%d \n", expose_inf.TotalGainDb, expose_inf.TotalGainDbShort);
 
 	if (getset > 0) {
 		if (value == 0) {
-			expose_inf.AeMinIntegrationTimeMode = IMPISP_TUNING_OPS_MODE_ENABLE;
-			expose_inf.AeMinIntegrationTime = 0;
+			expose_inf.AeMode = IMPISP_TUNING_OPS_TYPE_AUTO;
+			expose_inf.AeIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_AUTO;
+			expose_inf.AeIntegrationTime = init_igtime;
 		}
 		else {
-			expose_inf.AeMinIntegrationTimeMode = IMPISP_TUNING_OPS_MODE_ENABLE;
-			expose_inf.AeMinIntegrationTime = value;
+			expose_inf.AeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+			expose_inf.AeIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+			expose_inf.AeIntegrationTime = value;
 		}
 
 		IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN, &expose_inf);
 		IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN+1, &expose_inf);
+
+	// expose_inf.AeAGainManualMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+	// expose_inf.AeAGain = 1;
+	// expose_inf.AeDGainManualMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+	// expose_inf.AeDGain = 1;
+	// expose_inf.AeIspDGainManualMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+	// expose_inf.AeIspDGain = 100;
+	
+
+	IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN, &expose_inf);
 	}
 	else {
 		printf("min : %d %d %d\n", expose_inf.AeMinIntegrationTime, expose_inf.AeMinAGain, expose_inf.AeMinDgain);
@@ -254,6 +269,95 @@ uint32_t isp_integration_time(int getset, uint32_t value) {
 // 	}
 // 	return 0;
 // }
+
+uint8_t SceneceSet(int getset, uint8_t val) {
+	IMPISPAEScenceAttr sceneattr;
+
+	IMP_ISP_Tuning_GetAeScenceAttr(IMPVI_MAIN, &sceneattr);
+	printf("Sceneattr get :\n");
+	printf("	HLC EN:%d HLC ST:%d\n", sceneattr.AeBLCEn, sceneattr.AeBLCStrength);
+	printf("	BLC EN:%d BLC ST:%d\n", sceneattr.AeHLCEn, sceneattr.AeHLCStrength);
+	printf("	TAR EN:%d TAR CP:%d\n", sceneattr.AeTargetCompEn, sceneattr.AeTargetComp);
+	printf("	STA EN:%d STA Ev:%d\n", sceneattr.AeStartEn ,sceneattr.AeStartEv);
+	printf("	luma  :%d lm sce:%d\n", sceneattr.luma ,sceneattr.luma_scence);
+	printf("	stable:%d target:%d aemean:%d\n", sceneattr.stable , sceneattr.target , sceneattr.ae_mean);
+	if (getset == 10) {
+		if (val = 0) {
+			sceneattr.AeBLCEn = TISP_AE_SCENCE_GLOBAL_ENABLE;
+			sceneattr.AeBLCStrength = 0;
+			sceneattr.AeHLCEn = TISP_AE_SCENCE_GLOBAL_ENABLE;
+			sceneattr.AeHLCStrength = 0;
+			sceneattr.AeTargetCompEn = IMP_ISP_AE_SCENCE_DISABLE;
+			sceneattr.AeTargetComp = 0;
+			sceneattr.AeStartEn = IMP_ISP_AE_SCENCE_DISABLE;
+			sceneattr.AeStartEv = 0;
+		}
+	}
+	else if (getset == 1) {
+			sceneattr.AeBLCEn = TISP_AE_SCENCE_GLOBAL_ENABLE;
+			sceneattr.AeBLCStrength = val;
+	}
+	else if (getset == 2) {
+			sceneattr.AeHLCEn = TISP_AE_SCENCE_GLOBAL_ENABLE;
+			sceneattr.AeHLCStrength = val;
+	}
+	else if (getset == 3) {
+			sceneattr.AeTargetCompEn = TISP_AE_SCENCE_GLOBAL_ENABLE;
+			sceneattr.AeTargetComp = val;
+	}
+	else if (getset == 4) {
+			sceneattr.AeStartEn = TISP_AE_SCENCE_GLOBAL_ENABLE;
+			sceneattr.AeStartEv = val;
+	}
+
+	if (getset > 0) {
+		printf("Sceneattr set : BackLight EN:%d Backlight Str:%d\n", sceneattr.AeBLCEn, sceneattr.AeBLCStrength);
+		IMP_ISP_Tuning_SetAeScenceAttr(IMPVI_MAIN, &sceneattr);
+	}
+	return val;
+}
+
+uint8_t BLC_User(void) {
+	IMPISPAEScenceAttr sceneattr;
+	IMPISPAEExprInfo expose_inf;
+	uint32_t ae_mean = 0;
+	static uint32_t AeIntegrationTime = 120;
+	bool set_flag = false;
+
+	IMP_ISP_Tuning_GetAeScenceAttr(IMPVI_MAIN, &sceneattr);
+	IMP_ISP_Tuning_GetAeExprInfo(IMPVI_MAIN, &expose_inf);
+
+	ae_mean = sceneattr.ae_mean;
+	// printf("Sceneattr get aemean:%d\n", sceneattr.ae_mean);
+
+	if (ae_mean > 120) {
+		if ((ae_mean-120) > 200) {
+			AeIntegrationTime -= 20;
+		}
+		else if ((ae_mean-120) > 100){
+			AeIntegrationTime -= 5;
+		}
+		else{
+			AeIntegrationTime -= 2;
+		}
+		expose_inf.AeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+		expose_inf.AeIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+		expose_inf.AeIntegrationTime = AeIntegrationTime;
+		IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN, &expose_inf);
+		IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN+1, &expose_inf);
+		printf("Set Value : %d\n", AeIntegrationTime);
+	}
+	else if (ae_mean < 60) {
+		expose_inf.AeMode = IMPISP_TUNING_OPS_TYPE_AUTO;
+		expose_inf.AeIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_AUTO;
+		expose_inf.AeIntegrationTime = AeIntegrationTime = 120;
+		IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN, &expose_inf);
+		IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN+1, &expose_inf);
+		printf("Auto Set!\n");
+	}
+
+	return AeIntegrationTime;
+}
 
 IMPCell osdcell;
 
@@ -544,9 +648,10 @@ int video_init(void) {
 	IMPISPAEExprInfo expose_inf;
 	IMP_ISP_Tuning_GetAeExprInfo(IMPVI_MAIN, &expose_inf);
 	printf("Expose mode:%d Value:%d\n", expose_inf.AeMode, expose_inf.ExposureValue);
-	printf("igtime:%d again:%d dgain:%d\n", expose_inf.AeIntegrationTime, expose_inf.AeAGain, expose_inf.AeDGain);
+	printf("igtime:%d again:%d dgain:%d idgain:%d\n", expose_inf.AeIntegrationTime, expose_inf.AeAGain, expose_inf.AeDGain, expose_inf.AeIspDGain);
 	printf("igmode:%d amode:%d dmode:%d\n", expose_inf.AeIntegrationTimeMode, expose_inf.AeAGainManualMode, expose_inf.AeDGainManualMode);
 
+	// init_igtime = expose_inf.AeIntegrationTime;
 	// expose_inf.AeMinIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
 	// expose_inf.AeMinIntegrationTime = 200;
 	// expose_inf.AeMinAGainMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
@@ -554,46 +659,72 @@ int video_init(void) {
 	// expose_inf.AeMinDgainMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
 	// expose_inf.AeMinDgain = 0;
 
-	// expose_inf.AeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
-	// expose_inf.AeIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
-	// expose_inf.AeIntegrationTime = 1;
+	// expose_inf.AeMode = IMPISP_TUNING_OPS_TYPE_AUTO;
+	// expose_inf.AeIntegrationTimeMode = ISP_CORE_EXPR_UNIT_US;
+	// expose_inf.AeIntegrationTime = 159;
 	// expose_inf.AeAGainManualMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
 	// expose_inf.AeAGain = 1;
 	// expose_inf.AeDGainManualMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
 	// expose_inf.AeDGain = 1;
 	// expose_inf.AeIspDGainManualMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
-	// expose_inf.AeIspDGain = 1;
+	// expose_inf.AeIspDGain = 100;
+
+	// expose_inf.AeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+	// expose_inf.AeIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+	// expose_inf.AeIntegrationTime = 90;
+
+	IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN, &expose_inf);
 
 
-	// IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN, &expose_inf);
+	// IMPISPTuningOpsMode mode = IMPISP_TUNING_OPS_MODE_ENABLE;
 
-	IMPISPTuningOpsMode mode = IMPISP_TUNING_OPS_MODE_ENABLE;
+	// IMP_ISP_WDR_ENABLE(IMPVI_MAIN, &mode);
 
-	IMP_ISP_WDR_ENABLE(IMPVI_MAIN, &mode);
-
-	IMPISPWdrOutputMode wdroutmode = IMPISP_WDR_OUTPUT_MODE_SHORT_FRAME;
+	// IMPISPWdrOutputMode wdroutmode = IMPISP_WDR_OUTPUT_MODE_SHORT_FRAME;
 
 	// IMP_ISP_Tuning_SetWdrOutputMode(IMPVI_MAIN, &wdroutmode);
 	// IMP_ISP_Tuning_GetWdrOutputMode(IMPVI_MAIN, &wdroutmode);
 	// printf("outputmode:%d\n", wdroutmode);
 
-	IMPISPWBAttr awbattr;
+	// IMPISPWBAttr awbattr;
 
-	IMP_ISP_Tuning_GetAwbAttr(IMPVI_MAIN, &awbattr);
+	// IMP_ISP_Tuning_GetAwbAttr(IMPVI_MAIN, &awbattr);
 
-	awbattr.mode = ISP_CORE_WB_MODE_DAY_LIGHT;
-	// awbattr.gain_val.rgain = 100;
-	// awbattr.gain_val.bgain = 100;
+	// awbattr.mode = ISP_CORE_WB_MODE_DAY_LIGHT;
+	// // awbattr.gain_val.rgain = 500;
+	// // awbattr.gain_val.bgain = 500;
 
-	IMP_ISP_Tuning_SetAwbAttr(IMPVI_MAIN, &awbattr);
+	// IMP_ISP_Tuning_SetAwbAttr(IMPVI_MAIN, &awbattr);
 
-	IMP_ISP_Tuning_GetAwbAttr(IMPVI_MAIN, &awbattr);
+	// IMP_ISP_Tuning_GetAwbAttr(IMPVI_MAIN, &awbattr);
 
-	printf("mode:%d ct:%d ", awbattr.mode, awbattr.ct);
-	printf("r:%d b:%d\n",
-					awbattr.gain_val.rgain, awbattr.gain_val.bgain);
+	// printf("mode:%d ct:%d ", awbattr.mode, awbattr.ct);
+	// printf("r:%d b:%d\n",
+	// 				awbattr.gain_val.rgain, awbattr.gain_val.bgain);
 
+	IMPISPAEScenceAttr sceneattr;
 
+	IMP_ISP_Tuning_GetAeScenceAttr(IMPVI_MAIN, &sceneattr);
+
+	// printf("Sceneattr : BackLight EN:%d Backlight Str:%d\n", sceneattr.AeBLCEn, sceneattr.AeBLCStrength);
+
+	// sceneattr.AeBLCEn = TISP_AE_SCENCE_ROI_ENABLE;
+	// sceneattr.AeBLCStrength = 8;
+
+	sceneattr.AeBLCEn = TISP_AE_SCENCE_GLOBAL_ENABLE;
+	sceneattr.AeBLCStrength = 10;
+	sceneattr.AeHLCEn = TISP_AE_SCENCE_GLOBAL_ENABLE;
+	sceneattr.AeHLCStrength = 10;
+
+	ret = IMP_ISP_Tuning_SetAeScenceAttr(IMPVI_MAIN, &sceneattr);
+	if (ret < 0) {
+		printf("ScenceAttr Set Fail!\n");
+	}
+	else {
+		printf("ScenceAttr Set Success!\n");
+	}
+
+	Mosaic_En = false;
 	///////////////////////////////////////////////////////////////////
 
 	return 0;
@@ -888,7 +1019,8 @@ void *OSD_thread(void *args)
 	bool rect_flag = false;
 
 	int64_t total_time = 0;
-	int64_t oldt_time = 0;
+	int64_t oldt_time = 0, BLC_time = 0;
+
 	// int f_cnt=0;
 	
 	// int mosaic_x = 300, mosaic_y = 300;
@@ -1055,9 +1187,17 @@ void *OSD_thread(void *args)
 
 
 		total_time = sample_gettimeus() - start_time;
-		if ((total_time/1000000 != oldt_time) && dot_En) {
+		if (total_time/1000000 != oldt_time) {
 			oldt_time = total_time/1000000;
-			printf(".\n");
+			if (dot_En) {
+				printf(".\n");
+			}
+			// isp_integration_time(0, 0);
+			// SceneceSet(0, 0);
+		}
+		if (total_time/150000 != BLC_time) {
+			BLC_time = total_time/150000;
+			BLC_User();
 		}
 	} while(!bExit);
 

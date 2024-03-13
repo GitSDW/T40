@@ -53,7 +53,7 @@ extern "C"
 // #define	FIRST_VIDEO_INTERFACE		IMPISP_SENSOR_VI_MIPI_CSI0 	//sensor interface type (dvp/csi0/csi1)
 // #define	FIRST_MCLK					IMPISP_SENSOR_MCLK1		//sensor clk source (mclk0/mclk1/mclk2)
 // #define	FIRST_DEFAULT_BOOT			0					//sensor default mode(0/1/2/3/4)
-#define FIRST_SNESOR_NAME 			"gc2093"			//sensor name (match with snesor driver name)
+#define FIRST_SNESOR_NAME 			"gc2063"			//sensor name (match with snesor driver name)
 #define	FIRST_I2C_ADDR				0x37				//sensor i2c address
 #define	FIRST_I2C_ADAPTER_ID		1					//sensor controller number used (0/1/2/3)
 #define FIRST_SENSOR_WIDTH			1920				//sensor width
@@ -67,7 +67,7 @@ extern "C"
 #define	FIRST_DEFAULT_BOOT			0					//sensor default mode(0/1/2/3/4)
 
 /* second sensor */
-#define SECOND_SNESOR_NAME 			"gc2093s1"			//sensor name (match with snesor driver name)
+#define SECOND_SNESOR_NAME 			"gc2063s1"			//sensor name (match with snesor driver name)
 #define	SECOND_I2C_ADDR				0x37				//sensor i2c address
 #define	SECOND_I2C_ADAPTER_ID		3					//sensor controller number used (0/1/2/3)
 #define SECOND_SENSOR_WIDTH			1920				//sensor width

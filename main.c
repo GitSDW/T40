@@ -1022,6 +1022,17 @@ int main(int argc, char **argv) {
 			if (!dot_En) dot_En = true;
 			else dot_En = false;
 		}
+		else if (cmd == 29) {
+			int getset = 0;
+			uint8_t val = 0;
+			printf("cmd 29 Back Light Compresion\n");
+			getset = scanf_index();
+			if (getset > 0) {
+				printf("Value:");
+				val = scanf_index();
+			}
+			SceneceSet(getset, val);
+		}
 		else if (cmd == 99) {
 			printf("Exiting Program! Plz Wait!\n");
 			bExit = 1;

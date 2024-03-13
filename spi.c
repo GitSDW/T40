@@ -842,7 +842,7 @@ void *spi_send_stream (void *arg)
             			printf("Fail Send SPI Data!\n");
             		}
 	            	else {
-   	         		printf("cnt:%d total:%d dsize%d\n", i, framesize, datasize);
+   	         		    // printf("cnt:%d total:%d dsize%d\n", i, framesize, datasize);
     	        		usleep(1*1000);
         	    	}
             	}

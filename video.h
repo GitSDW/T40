@@ -22,7 +22,7 @@ int isp_filcker (int freq, int mode);
 int isp_filcker_get (void);
 // int isp_wdr (int state, int cam);
 uint32_t isp_integration_time(int getset, uint32_t value);
-
+uint8_t SceneceSet(int getset, uint8_t val);
 
 
 
