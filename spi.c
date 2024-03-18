@@ -262,10 +262,11 @@ int Make_Spi_Packet(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t major, 
                 	// }
                 	memcpy(&tbuff[9+V_SEND_RESERV], data, len);
                     break;
+                case REC_FACESHOT:
+
                 case REC_FACE:
                 case REC_BOX_ALM:
                 case REC_SNAPSHOT:
-                case REC_FACESHOT:
                     memcpy(&tbuff[9+V_SEND_RESERV], data, len);
                     break;
                 case REC_STREAM_END:
@@ -660,6 +661,7 @@ int spi_send_file(uint8_t minor, char *file)
     int dly = 3;
     struct stat file_info;
     int sz_file;
+    int len = 0;
  
     
     if ( 0 > stat(file, &file_info)) {
@@ -681,7 +683,26 @@ int spi_send_file(uint8_t minor, char *file)
     read_buff[2] = (sz_file>>16)&0xFF;
     read_buff[3] = (sz_file>>8)&0xFF;
     read_buff[4] = sz_file&0xFF;
-    Make_Spi_Packet(tx_buff, read_buff, 5, REC, REC_STREAM_STR);
+    if (minor == REC_CLIP_F || minor == REC_CLIP_B) {
+        len = 7;
+        read_buff[5] = 0x01;
+        if (!roaming_person) read_buff[6] = 0x01;
+        else read_buff[6] = 0x02;
+    }
+    else if (minor == REC_BOX_ALM) {
+        len = 7;
+        read_buff[5] = 0x02;
+        read_buff[6] = 0x01;
+    }
+    else {
+        len = 5;
+        read_buff[5] = (sz_file>>8)&0xFF;
+        read_buff[6] = sz_file&0xFF;
+    }
+    printf("start len : 0x%02x size : 0x%02x 0x%02x 0x%02x 0x%02x type : 0x%02x 0x%02x\n", len, 
+                                                                    read_buff[1], read_buff[2], read_buff[3], read_buff[4],
+                                                                    read_buff[5], read_buff[6]);
+    Make_Spi_Packet(tx_buff, read_buff, len, REC, REC_STREAM_STR);
     // memset(tx_buff, 0, 1033);
     // memcpy(&tx_buff[6], read_buff,1);
 

@@ -10,7 +10,7 @@ extern "C" {
 
 #define MAJOR_VER	"0"
 #define MINOR_VER	"1"	
-#define CAHR_VER	"w"
+#define CAHR_VER	"z"
 
 typedef struct CIRCULAR_BUFF
 {
@@ -133,6 +133,7 @@ Thum_Data_t thum_face_data;
 #define READY_BUSY_TIME 5
 
 int64_t start_time;
+uint32_t ExpVal;
 
 int stream_state;
 int thumbnail_state;
@@ -147,6 +148,7 @@ bool main_snap;
 bool box_snap;
 bool thumbnail_snap;
 bool face_snap;
+bool roaming_person;
 
 bool bStrem;
 

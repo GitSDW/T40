@@ -282,7 +282,7 @@ uint8_t SceneceSet(int getset, uint8_t val) {
 	printf("	luma  :%d lm sce:%d\n", sceneattr.luma ,sceneattr.luma_scence);
 	printf("	stable:%d target:%d aemean:%d\n", sceneattr.stable , sceneattr.target , sceneattr.ae_mean);
 	if (getset == 10) {
-		if (val = 0) {
+		if (val == 0) {
 			sceneattr.AeBLCEn = TISP_AE_SCENCE_GLOBAL_ENABLE;
 			sceneattr.AeBLCStrength = 0;
 			sceneattr.AeHLCEn = TISP_AE_SCENCE_GLOBAL_ENABLE;
@@ -322,7 +322,6 @@ uint8_t BLC_User(void) {
 	IMPISPAEExprInfo expose_inf;
 	uint32_t ae_mean = 0;
 	static uint32_t AeIntegrationTime = 120;
-	bool set_flag = false;
 
 	IMP_ISP_Tuning_GetAeScenceAttr(IMPVI_MAIN, &sceneattr);
 	IMP_ISP_Tuning_GetAeExprInfo(IMPVI_MAIN, &expose_inf);
@@ -651,9 +650,11 @@ int video_init(void) {
 	printf("igtime:%d again:%d dgain:%d idgain:%d\n", expose_inf.AeIntegrationTime, expose_inf.AeAGain, expose_inf.AeDGain, expose_inf.AeIspDGain);
 	printf("igmode:%d amode:%d dmode:%d\n", expose_inf.AeIntegrationTimeMode, expose_inf.AeAGainManualMode, expose_inf.AeDGainManualMode);
 
+	ExpVal = expose_inf.ExposureValue;
+
 	// init_igtime = expose_inf.AeIntegrationTime;
-	// expose_inf.AeMinIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
-	// expose_inf.AeMinIntegrationTime = 200;
+	expose_inf.AeMinIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+	expose_inf.AeMinIntegrationTime = 200;
 	// expose_inf.AeMinAGainMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
 	// expose_inf.AeMinAGain = 0;
 	// expose_inf.AeMinDgainMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
@@ -724,7 +725,7 @@ int video_init(void) {
 		printf("ScenceAttr Set Success!\n");
 	}
 
-	Mosaic_En = false;
+	// Mosaic_En = false;
 	///////////////////////////////////////////////////////////////////
 
 	return 0;

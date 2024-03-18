@@ -126,7 +126,7 @@ int global_value_init(void) {
 	pcm_in = false;
 	pcm_out = false;
 
-	Mosaic_En = true;
+	Mosaic_En = false;
 	fdpd_En = false;
 	fdpd_ck = false;
 	dot_En = false;
@@ -144,34 +144,26 @@ int global_value_init(void) {
 	return 0;
 }
 
-int start_up_mode(void){
-	int ret = 0, gpio_917_0 = 0, gpio_917_1 = 1;
+int gpio_init(void) {
+	int ret = 0;
 
-
-	ret = gpio_export(PORTB+17);
+	ret = gpio_export(PORTB+17);	// Clip Gpio
 	if(ret < 0){
 		printf("Fail Export GPIO : %d\n", PORTB+17);
 		return -1;
 	}
-
-	ret = gpio_export(PORTB+18);
-	if(ret < 0){
-		printf("Fail Export GPIO : %d\n", PORTB+17);
-		return -1;
-	}
-
-	ret = gpio_export(PORTB+19);
-	if(ret < 0){
-		printf("Fail Export GPIO : %d\n", PORTB+19);
-		return -1;
-	}
-
-
-
 
 	ret = gpio_set_dir(PORTB+17, GPIO_INPUT, GPIO_LOW);
 	if(ret < 0){
 		printf("Fail get dir GPIO : %d\n", PORTB+17);
+		return -1;
+	}
+
+
+
+	ret = gpio_export(PORTB+18);	// Ready Busy Gpio
+	if(ret < 0){
+		printf("Fail Export GPIO : %d\n", PORTB+17);
 		return -1;
 	}
 
@@ -181,38 +173,23 @@ int start_up_mode(void){
 		return -1;
 	}
 
+
+
+	ret = gpio_export(PORTB+19);	// Stream Gpio
+	if(ret < 0){
+		printf("Fail Export GPIO : %d\n", PORTB+19);
+		return -1;
+	}
+
 	ret = gpio_set_dir(PORTB+19, GPIO_INPUT, GPIO_LOW);
 	if(ret < 0){
 		printf("Fail get dir GPIO : %d\n", PORTB+19);
 		return -1;
 	}
 
-	gpio_917_0 = gpio_get_val(PORTB+17);
-	if(gpio_917_0 < 0){
-		printf("Fail get val GPIO : %d\n", PORTB+17);
-		return -1;
-	}
-	gpio_917_1 = gpio_get_val(PORTB+19);
-	if(gpio_917_1 < 0){
-		printf("Fail get val GPIO : %d\n", PORTB+19);
-		return -1;
-	}
 
-	// printf("917 %d %d\n", gpio_917_0, gpio_917_1);
 
-	ret = gpio_unexport(PORTB+17);
-	if(ret < 0){
-		printf("Fail Unexport GPIO : %d\n", PORTB+17);
-		return -1;
-	}
-
-	ret = gpio_unexport(PORTB+19);
-	if(ret < 0){
-		printf("Fail Unexport GPIO : %d\n", PORTB+19);
-		return -1;
-	}
-
-	ret = gpio_export(PORTD+6);
+	ret = gpio_export(PORTD+6);	// Box LED Gpio
 	if(ret < 0){
 		printf("Fail Export GPIO : %d\n", PORTB+19);
 		return -1;
@@ -230,12 +207,98 @@ int start_up_mode(void){
 		return -1;
 	}
 
+	return 0;
+}
+
+int gpio_deinit(void) {
+	int ret = 0;
+
+	ret = gpio_unexport(PORTB+17);
+	if(ret < 0){
+		printf("Fail Unexport GPIO : %d\n", PORTB+17);
+		return -1;
+	}
+
+	ret = gpio_unexport(PORTB+18);
+	if(ret < 0){
+		printf("Fail Unexport GPIO : %d\n", PORTB+18);
+		return -1;
+	}
+
+	ret = gpio_unexport(PORTB+19);
+	if(ret < 0){
+		printf("Fail Unexport GPIO : %d\n", PORTB+19);
+		return -1;
+	}
+
+	ret = gpio_unexport(PORTD+6);
+	if(ret < 0){
+		printf("Fail Unexport GPIO : %d\n", PORTD+6);
+		return -1;
+	}
+
+	return 0;
+}
+
+int start_up_mode(void){
+	int ret = 0, gpio_917_0 = 0, gpio_917_1 = 1;
+
+	gpio_917_0 = gpio_get_val(PORTB+17);
+	if(gpio_917_0 < 0){
+		printf("Fail get val GPIO : %d\n", PORTB+17);
+		return -1;
+	}
+	gpio_917_1 = gpio_get_val(PORTB+19);
+	if(gpio_917_1 < 0){
+		printf("Fail get val GPIO : %d\n", PORTB+19);
+		return -1;
+	}
+
 	if (gpio_917_0 == 1 && gpio_917_1 == 0)
 		return 1;
 	else if (gpio_917_0 == 0 && gpio_917_1 == 1)
 		return 2;
 	else if (gpio_917_0 == 1 && gpio_917_1 == 1)
 		return 3;
+
+	return 0;
+}
+
+int gpio_LED_Set(int onoff) {
+	static bool led_flag=false;
+	int led_duty = 0, ret = 0;;
+	char file_sep[100] = {0};
+
+	if (!led_flag) {
+		system("echo 6 > /sys/class/pwm/pwmchip0/export");
+		led_flag = true;
+	}
+
+	if (onoff > 0) {
+		led_duty = 0;
+		system("echo 1000000 > /sys/class/pwm/pwmchip0/pwm6/period");
+		memset(file_sep, 0, 100);
+		sprintf(file_sep, "echo %d > /sys/class/pwm/pwmchip0/pwm6/duty_cycle", 10000*(led_duty));
+		printf(file_sep);
+		printf("\n");
+		system(file_sep);
+		system("echo 0 > /sys/class/pwm/pwmchip0/pwm6/enable");
+		system("echo 1 > /sys/class/pwm/pwmchip0/pwm6/enable");
+
+		ret = gpio_set_val(PORTD+6, 0);
+		if(ret < 0){
+			printf("Fail set Value GPIO : %d\n", PORTD+6);
+			return -1;
+		}
+	}
+	else {
+		system("echo 0 > /sys/class/pwm/pwmchip0/pwm6/enable");
+		ret = gpio_set_val(PORTD+6, 1);
+		if(ret < 0){
+			printf("Fail set Value GPIO : %d\n", PORTD+6);
+			return -1;
+		}
+	}
 
 	return 0;
 }
@@ -259,8 +322,8 @@ int main(int argc, char **argv) {
     bool camera_test_flag = false;
     bool fdpd_flag = false;
     bool adc_flag = false;
-    bool led_flag = false;
-    char file_sep[100] = {0};
+    // bool led_flag = false;
+    // char file_sep[100] = {0};
     int gval = 0;
 
     memory_init();
@@ -270,7 +333,12 @@ int main(int argc, char **argv) {
 #endif
 	Init_Audio_In();
 	Init_Audio_Out();
-	Set_Vol(90,20,70,15);
+	
+	ret = gpio_init();
+	if(ret < 0){
+		printf("Fail GPIO Init\n");
+		return -1;
+	}
 
     pthread_t tid_ao, tid_ai, tid_aio_aec;
     pthread_t tid_udp_in, tid_udp_out, tid_spi;
@@ -278,10 +346,19 @@ int main(int argc, char **argv) {
     pthread_t tid_uart;
     printf("Ver : %s.%s.%s\n", MAJOR_VER, MINOR_VER, CAHR_VER);
 
+    Set_Vol(100,25,80,15);
+
+    isd_crop(240, 270, 1440, 810, 1);
+
+    printf("expval : %d\n", ExpVal);
+
+    if (ExpVal > 1000) gpio_LED_Set(1);
+
     mode = start_up_mode();
     // mode = 2;
     if (mode == 1){
     	printf("Clip Mode!!\n");
+    	if (ExpVal > 1000) gpio_LED_Set(1);
     	ret = clip_total();
     	if(ret < 0){
         	printf("Clip Mode error\n");
@@ -290,6 +367,7 @@ int main(int argc, char **argv) {
     }
     else if(mode == 2){
     	printf("Streming Mode!!\n");
+    	if (ExpVal > 1000) gpio_LED_Set(1);
     	ret = stream_total();
     	if(ret < 0){
     		printf("Strem Mode Error\n");
@@ -561,23 +639,25 @@ int main(int argc, char **argv) {
 			Set_Vol(ai_vol, ai_gain, ao_vol, ao_gain);
 		}
 		else if (cmd == 7) {
-			int led_duty = 0;
-			printf("cmd 7 LED Test!\n");
-			if (!led_flag) {
-				system("echo 6 > /sys/class/pwm/pwmchip0/export");
+			// int led_duty = 0;
+			// printf("cmd 7 LED Test!\n");
+			// if (!led_flag) {
+			// 	system("echo 6 > /sys/class/pwm/pwmchip0/export");
 				
-				led_flag = true;
-			}
-			printf("Duty?");
-			led_duty = scanf_index();
-			system("echo 1000000 > /sys/class/pwm/pwmchip0/pwm6/period");
-			memset(file_sep, 0, 100);
-			sprintf(file_sep, "echo %d > /sys/class/pwm/pwmchip0/pwm6/duty_cycle", 10000*(led_duty));
-			printf(file_sep);
-			printf("\n");
-			system(file_sep);
-			system("echo 0 > /sys/class/pwm/pwmchip0/pwm6/enable");
-			system("echo 1 > /sys/class/pwm/pwmchip0/pwm6/enable");
+			// 	led_flag = true;
+			// }
+			// printf("Duty?");
+			// led_duty = scanf_index();
+			// system("echo 1000000 > /sys/class/pwm/pwmchip0/pwm6/period");
+			// memset(file_sep, 0, 100);
+			// sprintf(file_sep, "echo %d > /sys/class/pwm/pwmchip0/pwm6/duty_cycle", 10000*(led_duty));
+			// printf(file_sep);
+			// printf("\n");
+			// system(file_sep);
+			// system("echo 0 > /sys/class/pwm/pwmchip0/pwm6/enable");
+			// system("echo 1 > /sys/class/pwm/pwmchip0/pwm6/enable");
+
+			gpio_LED_Set(1);
 		}
 		else if (cmd == 8) {
 			int sel = 0;
@@ -1227,6 +1307,7 @@ int clip_total(void) {
 			if ((face_cnt > 0) || (person_cnt > 0) || (main_motion_detect > 1)) {
 				printf("Start REC!!\n");
 				start_flag = true;
+				roaming_person = false;
 			}
 			else if ((sample_gettimeus() - start_time) > START_CHECK_TIME) {
 				printf("Not Detection!! Device Turn Off.\n");
@@ -1264,15 +1345,15 @@ int clip_total(void) {
 			}
 			else if(fr_state == FR_SUCCESS) {
 				// Make File Send
-				// if (Ready_Busy_Check()){
-				// 	printf("Face Crop JPG Send!\n");
-				// 	memset(file_path, 0, 64);
-				// 	sprintf(file_path, "/vtmp/face_crop.jpg");
-				// 	spi_send_file(REC_FACESHOT, file_path);
-				// 	}
-				// else {
-				// 	printf("Fail to Face Crop JPG Send.\n");
-				// }
+				if (Ready_Busy_Check()){
+					printf("Face Crop JPG Send!\n");
+					memset(file_path, 0, 64);
+					sprintf(file_path, "/vtmp/face_crop.jpg");
+					spi_send_file(REC_FACESHOT, file_path);
+				}
+				else {
+					printf("Fail to Face Crop JPG Send.\n");
+				}
 				fr_state = FR_END;
 			}
 			else if (total_time > MAX_REC_TIME - 5000000) {
@@ -1288,15 +1369,20 @@ int clip_total(void) {
 			if (thumbnail_state == THUMB_SNAPSHOT) {
    				thumbnail_make(thum_face_data);
    				thumbnail_state = THUMB_END;
-   				// if (Ready_Busy_Check()){
-				// 	printf("Thumbnail Send!\n");
-				// 	memset(file_path, 0, 64);
-				// 	sprintf(file_path, "/vtmp/thumbnail_last.jpg");
-				// 	spi_send_file(REC_SNAPSHOT, file_path);
-				// 	}
+   				if (Ready_Busy_Check()){
+					printf("Thumbnail Send!\n");
+					memset(file_path, 0, 64);
+					sprintf(file_path, "/vtmp/thumbnail_last.jpg");
+					spi_send_file(REC_SNAPSHOT, file_path);
+				}
 				// else {
 				// 	printf("Fail to Thumbnail Send.\n");
 				// }
+			}
+
+			if (start_flag && (person_cnt != 0) && !roaming_person) {
+				printf("roaming_person Check!\n");
+				roaming_person = true;
 			}
 
 			if ((total_time > MAX_REC_TIME) && (rec_state != 2)) {	// 60sec REC End
@@ -1304,7 +1390,6 @@ int clip_total(void) {
 				rec_state = 2;
 				box_snap = true;
 				file_cnt = 4;
-				
 			}
 			
 			if (file_cnt == 0) {	// File Seperation
@@ -1462,7 +1547,15 @@ int clip_total(void) {
         	    			sim = calculateSimilarity(sistic_img, after_img);
     	        			printf("similarity:%f\n", sim);
 	    	        		// std::cout << "Similarity:" << sim << "\n" << std::ends;
-    	        			
+        				}
+        				else if (ret >= 1){
+        					printf("Find Box!!\n");
+        					if (Ready_Busy_Check()){
+								printf("Box Send!\n");
+								memset(file_path, 0, 64);
+								sprintf(file_path, "/vtmp/box_result.jpg");
+								spi_send_file(REC_BOX_ALM, file_path);
+							}
         				}
 
         				if (sim == 0xFF) {
@@ -1471,7 +1564,7 @@ int clip_total(void) {
     				}
     			}
     			else {
-    				printf("Chang Not Find!\n");
+    				printf("Change Not Find!\n");
 	    			printf("Similarity:%f\n", sim);
     			}
     		}

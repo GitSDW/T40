@@ -18,8 +18,8 @@ IVS_LIB = -I../../../../IVS/include
 IVS_LIB_DIR = $(IVS_DIR)/lib/uclibc
 
 # CFLAGS = $(T40_INCLUDE) $(IVS_LIB) -O2 -Wall -march=mips32r2 -lpthread -lm -lrt -ldl -muclibc
-CFLAGS = $(T40_INCLUDE) $(IVS_LIB) -Wall -Wl,-gc-sections -lpthread -lm -lrt -lstdc++ -muclibc
-CXXFLAGS = $(OPENCV_INCLUDE) $(T40_INCLUDE) $(IVS_LIB) -Wall -g -std=c++11 -muclibc -lpthread -lm -lrt -ldl
+CFLAGS = $(T40_INCLUDE) $(IVS_LIB) -Wall -Wl,-gc-sections -lpthread -lm -lrt -lstdc++ -muclibc -lopenssl
+CXXFLAGS = $(OPENCV_INCLUDE) $(T40_INCLUDE) $(IVS_LIB) -Wall -g -std=c++11 -muclibc -lpthread -lm -lrt -ldl 
 OPENCV_LIBS = -L../../../../opencv/lib -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_imgcodecs -lopencv_features2d -lopencv_calib3d -lopencv_flann
 SDK_LIB_DIR = ../../../lib/uclibc
 LIBS = $(SDK_LIB_DIR)/libimp.a $(SDK_LIB_DIR)/libalog.a \
