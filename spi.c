@@ -480,7 +480,7 @@ static int Recv_Spi_Packet_live(uint8_t *rbuff) {
 
     len = rbuff[index+3]*256 + rbuff[index+4];
 
-    printf("spi cnt:%d %d %d\n", spicnt, rbuff[index+8], len);
+    // printf("spi cnt:%d %d %d\n", spicnt, rbuff[index+8], len);
 
     if (len != 1000){
         return -1;

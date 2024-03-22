@@ -18,7 +18,7 @@ IVS_LIB = -I../../../../IVS/include
 IVS_LIB_DIR = $(IVS_DIR)/lib/uclibc
 
 # CFLAGS = $(T40_INCLUDE) $(IVS_LIB) -O2 -Wall -march=mips32r2 -lpthread -lm -lrt -ldl -muclibc
-CFLAGS = $(T40_INCLUDE) $(IVS_LIB) -Wall -Wl,-gc-sections -lpthread -lm -lrt -lstdc++ -muclibc -lopenssl
+CFLAGS = $(T40_INCLUDE) $(IVS_LIB) -Wall -Wl,-gc-sections -lpthread -lm -lrt -lstdc++ -muclibc
 CXXFLAGS = $(OPENCV_INCLUDE) $(T40_INCLUDE) $(IVS_LIB) -Wall -g -std=c++11 -muclibc -lpthread -lm -lrt -ldl 
 OPENCV_LIBS = -L../../../../opencv/lib -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_imgcodecs -lopencv_features2d -lopencv_calib3d -lopencv_flann
 SDK_LIB_DIR = ../../../lib/uclibc
@@ -32,7 +32,7 @@ VENUS_LIB = -L$(IVS_LIB_DIR) -lvenus
 LDFLAG = -Wall -Wl,-gc-sections -lpthread -lm -lrt -lstdc++
 LDFLAG += -muclibc
 
-C_SRCS = main.c video-common.c video.c c_util.c udp.c audio.c spi.c move.c fdpd.c gpio.c adc.c uart.c # fdpd-common.c move-common.c
+C_SRCS = main.c video-common.c video.c c_util.c udp.c audio.c spi.c move.c fdpd.c gpio.c adc.c uart.c setting.c# fdpd-common.c move-common.c
 CPP_SRCS = cxx_util.cpp image_comparison.cpp 
 
 C_OBJS = $(C_SRCS:.c=.o)

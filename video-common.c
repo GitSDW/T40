@@ -1681,8 +1681,8 @@ IMPRgnHandle *osd_init(int grpNum)
 	rAttrRect.type = OSD_REG_RECT;
 	rAttrRect.rect.p0.x = 0;
 	rAttrRect.rect.p0.y = 0;
-	rAttrRect.rect.p1.x = rAttrRect.rect.p0.x + 100 - 1;
-	rAttrRect.rect.p1.y = rAttrRect.rect.p0.y + 100 - 1;
+	rAttrRect.rect.p1.x = rAttrRect.rect.p0.x + 20 - 1;
+	rAttrRect.rect.p1.y = rAttrRect.rect.p0.y + 20 - 1;
 	rAttrRect.fmt = PIX_FMT_MONOWHITE;
 	rAttrRect.data.lineRectData.color = OSD_RED;
 	rAttrRect.data.lineRectData.linewidth = 5;
@@ -1716,8 +1716,8 @@ IMPRgnHandle *osd_init(int grpNum)
 	rAttrTestCover.type = OSD_REG_COVER;
 	rAttrTestCover.rect.p0.x = 0;
 	rAttrTestCover.rect.p0.y = 0;
-	rAttrTestCover.rect.p1.x = 100 - 1;
-	rAttrTestCover.rect.p1.y = 100 - 1 ;
+	rAttrTestCover.rect.p1.x = 20 - 1;
+	rAttrTestCover.rect.p1.y = 20 - 1 ;
     rAttrTestCover.fmt = PIX_FMT_BGRA;
 	rAttrTestCover.data.coverData.color = OSD_IPU_RED;
 	ret = IMP_OSD_SetRgnAttr(rHanderMoveCover, &rAttrTestCover);

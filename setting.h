@@ -22,6 +22,12 @@ uint32_t crc_table[256];
 Settings settings;
 // Settings load_settings;
 
+
+void Setting_Reinit(void);
+void Setting_Init(void);
+void Setting_Save(void);
+
+
 #ifdef __cplusplus
 }
 #endif	// __cplusplus

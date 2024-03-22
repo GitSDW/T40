@@ -29,11 +29,11 @@
 
 #define AUDIO_SAMPLE_BUF_SIZE (AUDIO_SAMPLE_RATE * sizeof(short) * AUDIO_SAMPLE_TIME / 1000)
 
-int set_ai_vol = 90;
-int set_ai_gain = 20;
+int set_ai_vol = 0;
+int set_ai_gain = 0;
 
-int set_ao_vol = 90;
-int set_ao_gain = 20;
+int set_ao_vol = 0;
+int set_ao_gain = 0;
 
 IMPAudioIOAttr ai_attr;
 int ai_devID = 1;

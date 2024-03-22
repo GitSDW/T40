@@ -136,6 +136,15 @@ int isd_crop(int x, int y, int w, int h, int cam) {
 		IMP_LOG_ERR(TAG, "IMP_ISP_Tuning_SetAutoZoom() error\n");
 		return -1;
 	}
+
+	IMPISPHLDCAttr hldc;
+	hldc.strength = 100;     			/**< Distortion correction intensity [range: 0 to 255, default: 128]*/
+    hldc.width = w;          		/**< Image width */
+    hldc.height = h;         		/**< Image height */
+    hldc.center_w = x+(w/2);       /**< Image distortion horizontal optical center range:[width/2-120, width/2+120] */
+    hldc.center_h = y+(h/2);      /**< Image distortion vertical optical center range:[height/2-120, height/2+120] */
+
+	IMP_ISP_Tuning_SetHLDCAttr(IMPVI_MAIN+cam, &hldc);
 	return 0;
 }
 
@@ -322,6 +331,7 @@ uint8_t BLC_User(void) {
 	IMPISPAEExprInfo expose_inf;
 	uint32_t ae_mean = 0;
 	static uint32_t AeIntegrationTime = 120;
+	static bool auto_flag = true;
 
 	IMP_ISP_Tuning_GetAeScenceAttr(IMPVI_MAIN, &sceneattr);
 	IMP_ISP_Tuning_GetAeExprInfo(IMPVI_MAIN, &expose_inf);
@@ -329,8 +339,15 @@ uint8_t BLC_User(void) {
 	ae_mean = sceneattr.ae_mean;
 	// printf("Sceneattr get aemean:%d\n", sceneattr.ae_mean);
 
-	if (ae_mean > 120) {
-		if ((ae_mean-120) > 200) {
+	if (expose_inf.AeMode == IMPISP_TUNING_OPS_TYPE_AUTO) {
+		auto_flag = false;
+	}
+	else {
+		auto_flag = true;
+	}
+
+	if (ae_mean > 160) {
+		if ((ae_mean-150) > 200) {
 			AeIntegrationTime -= 20;
 		}
 		else if ((ae_mean-120) > 100){
@@ -344,15 +361,16 @@ uint8_t BLC_User(void) {
 		expose_inf.AeIntegrationTime = AeIntegrationTime;
 		IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN, &expose_inf);
 		IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN+1, &expose_inf);
+		
 		printf("Set Value : %d\n", AeIntegrationTime);
 	}
-	else if (ae_mean < 60) {
+	else if (ae_mean < 60 && auto_flag) {
 		expose_inf.AeMode = IMPISP_TUNING_OPS_TYPE_AUTO;
 		expose_inf.AeIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_AUTO;
 		expose_inf.AeIntegrationTime = AeIntegrationTime = 120;
 		IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN, &expose_inf);
 		IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN+1, &expose_inf);
-		printf("Auto Set!\n");
+		printf("Auto Set! : %d\n", ae_mean);
 	}
 
 	return AeIntegrationTime;
@@ -647,8 +665,8 @@ int video_init(void) {
 	IMPISPAEExprInfo expose_inf;
 	IMP_ISP_Tuning_GetAeExprInfo(IMPVI_MAIN, &expose_inf);
 	printf("Expose mode:%d Value:%d\n", expose_inf.AeMode, expose_inf.ExposureValue);
-	printf("igtime:%d again:%d dgain:%d idgain:%d\n", expose_inf.AeIntegrationTime, expose_inf.AeAGain, expose_inf.AeDGain, expose_inf.AeIspDGain);
-	printf("igmode:%d amode:%d dmode:%d\n", expose_inf.AeIntegrationTimeMode, expose_inf.AeAGainManualMode, expose_inf.AeDGainManualMode);
+	// printf("igtime:%d again:%d dgain:%d idgain:%d\n", expose_inf.AeIntegrationTime, expose_inf.AeAGain, expose_inf.AeDGain, expose_inf.AeIspDGain);
+	// printf("igmode:%d amode:%d dmode:%d\n", expose_inf.AeIntegrationTimeMode, expose_inf.AeAGainManualMode, expose_inf.AeDGainManualMode);
 
 	ExpVal = expose_inf.ExposureValue;
 
@@ -721,9 +739,9 @@ int video_init(void) {
 	if (ret < 0) {
 		printf("ScenceAttr Set Fail!\n");
 	}
-	else {
-		printf("ScenceAttr Set Success!\n");
-	}
+	// else {
+		// printf("ScenceAttr Set Success!\n");
+	// }
 
 	// Mosaic_En = false;
 	///////////////////////////////////////////////////////////////////
@@ -1173,7 +1191,7 @@ void *OSD_thread(void *args)
 			usleep(5*1000);
 		}
 
-		if (rect_flag && Mosaic_En) {
+		if (rect_flag && Mosaic_En && (rec_state < 2)) {
 			rect_flag = false;
 			for (int j=0; j<10; j++) {
 				ret = IMP_OSD_ShowRgn(prHander[2+j], mosdgrp, 0);

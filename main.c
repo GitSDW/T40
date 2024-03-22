@@ -28,6 +28,7 @@
 #include "gpio.h"
 #include "adc.h"
 #include "uart.h"
+#include "setting.h"
 
 int bExit = 0;
 
@@ -195,7 +196,7 @@ int gpio_init(void) {
 		return -1;
 	}
 
-	ret = gpio_set_dir(PORTD+6, GPIO_OUTPUT, GPIO_LOW);
+	ret = gpio_set_dir(PORTD+6, GPIO_OUTPUT, GPIO_HIGH);
 	if(ret < 0){
 		printf("Fail get dir GPIO : %d\n", PORTB+17);
 		return -1;
@@ -339,6 +340,7 @@ int main(int argc, char **argv) {
 		printf("Fail GPIO Init\n");
 		return -1;
 	}
+	Setting_Init();
 
     pthread_t tid_ao, tid_ai, tid_aio_aec;
     pthread_t tid_udp_in, tid_udp_out, tid_spi;
@@ -411,6 +413,9 @@ int main(int argc, char **argv) {
 		printf("cmd 26 Uart Test\n");
 		printf("cmd 27 ISP integration time Test\n");
 		printf("cmd 28 Dot Test\n");
+		printf("cmd 29 Back Light Compresion\n");
+		printf("cmd 30 Setting Value Test\n");
+		printf("cmd 90 Reset Test\n");
 		printf("cmd 99 : exit\n");
 
 		cmd = scanf_cmd();
@@ -1113,6 +1118,22 @@ int main(int argc, char **argv) {
 			}
 			SceneceSet(getset, val);
 		}
+		else if (cmd == 30) {
+			printf("cmd 30 Setting Value Test\n");
+			printf("Height:");
+			settings.height = scanf_index();
+			printf("width:");
+			settings.width = scanf_index();
+			printf("length:");
+			settings.length = scanf_index();
+			printf("exposure:");
+			settings.exposure = scanf_index();
+			Setting_Save();
+		}
+		else if (cmd == 90) {
+			printf("cmd 90 Reset Test\n");
+			system("reboot");
+		}
 		else if (cmd == 99) {
 			printf("Exiting Program! Plz Wait!\n");
 			bExit = 1;
@@ -1410,7 +1431,7 @@ int clip_total(void) {
 						else if (total_time >= 48000000) {
 							file_cnt = 4;
 						}
-						printf("Detection End! REC END.\n");
+						printf("Detection End! REC END. file cnt : %d\n", file_cnt);
 					}
 				}
 				else {
@@ -1433,7 +1454,7 @@ int clip_total(void) {
 			for (int i=0; i<file_cnt; i++){
 				if (i == 0) {
 					memset(file_sep, 0, 100);
-					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/main.mp4 -ss 0 -t 14 -c copy /vtmp/main%d.mp4", i);
+					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/main.mp4 -ss 0 -t 15 -c copy /vtmp/main%d.mp4", i);
 					printf("%s\n", file_sep);
 					system(file_sep);
 					memset(file_sep, 0, 100);
@@ -1444,7 +1465,7 @@ int clip_total(void) {
 				}
 				else {
 					memset(file_sep, 0, 100);
-					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/main.mp4 -ss %d.4 -t 14 -c copy /vtmp/main%d.mp4", (i*14)-1, i);
+					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/main.mp4 -ss %d.4 -t 15 -c copy /vtmp/main%d.mp4", (i*15)-1, i);
 					printf("%s\n", file_sep);
 					system(file_sep);
 					memset(file_sep, 0, 100);
@@ -1741,6 +1762,7 @@ int stream_total(void) {
 		printf("cmd 14 Moasic On/Off\n");
 		printf("cmd 15 ISP integration time Test\n");
 		printf("cmd 16 Dot Test\n");
+		printf("cmd 90 Reset Test\n");
 		printf("cmd 99 : exit\n");
 
 		cmd = scanf_cmd();
@@ -1982,6 +2004,10 @@ int stream_total(void) {
 			printf("cmd 16 Dot Test\n");
 			if (!dot_En) dot_En = true;
 			else dot_En = false;
+		}
+		else if (cmd == 90) {
+			printf("cmd 90 Reset Test\n");
+			system("reboot");
 		}
 		else if (cmd == 99) {
 			printf("Exiting Program! Plz Wait!\n");
