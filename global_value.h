@@ -10,7 +10,7 @@ extern "C" {
 
 #define MAJOR_VER	"0"
 #define MINOR_VER	"2"	
-#define CAHR_VER	"b"
+#define CAHR_VER	"d"
 
 typedef struct CIRCULAR_BUFF
 {
@@ -140,6 +140,7 @@ int thumbnail_state;
 int rec_state;
 int face_cnt, person_cnt;
 int fr_state;
+int polling_err_cnt;
 
 // bool rec_stop;
 bool main_rec_end;

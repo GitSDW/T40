@@ -2397,8 +2397,8 @@ static void *get_video_stream_user(void *args)
 		ret = IMP_Encoder_PollingStream(chnNum, 1000);
 		if (ret < 0) {
 			IMP_LOG_ERR(TAG, "IMP_Encoder_PollingStream(%d) timeout\n", chnNum);
-			printf("[Enc%d] Polling Error\n", chnNum
-				);
+			printf("[Enc%d] Polling Error\n", chnNum);
+			polling_err_cnt++;
 			continue;
 		}
 
@@ -2572,6 +2572,7 @@ static void *sample_get_jpeg_snap(void *args)
 		if (ret < 0) {
 			IMP_LOG_ERR(TAG, "Polling stream timeout\n");
 			printf("[snap] %d Polling Error\n", chnNum);
+			polling_err_cnt++;
 			continue;
 		}
 

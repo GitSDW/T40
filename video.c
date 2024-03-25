@@ -1029,6 +1029,8 @@ void *move_detecte_thread(void *args)
 	return ((void*) 0);
 }
 
+extern void func_reboot(void);
+
 void *OSD_thread(void *args)
 {
 	int ret;
@@ -1217,6 +1219,9 @@ void *OSD_thread(void *args)
 		if (total_time/150000 != BLC_time) {
 			BLC_time = total_time/150000;
 			BLC_User();
+		}
+		if (polling_err_cnt > 6) {
+			func_reboot();
 		}
 	} while(!bExit);
 

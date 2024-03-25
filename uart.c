@@ -24,7 +24,7 @@
 #include "global_value.h"
 
 const char default_path[] = "/dev/ttyS2";
-int fd;
+int fd_uart;
 
 /**
 * uart init
@@ -132,35 +132,58 @@ int uart_init(void) {
     struct termios tty;
 
     // 시리얼 포트 열기
-    fd = open("/dev/ttyS2", O_RDWR);
-    if (fd < 0) {
+    fd_uart = open("/dev/ttyS2", O_RDWR);
+    if (fd_uart < 0) {
         perror("Unable to open serial port");
         return -1;
     }
 
+    /*
+     * 清空串口接收缓冲区
+     * Clear the serial port receive buffer
+     * */
+    // tcflush(fd_uart, TCIOFLUSH);
+    tcgetattr(fd_uart, &tty);
+
     // 현재 시리얼 포트 설정 가져오기
-    if(tcgetattr(fd, &tty) != 0) {
-        perror("tcgetattr");
-        return -1;
-    }
+    // if(tcgetattr(fd, &tty) != 0) {
+    //     perror("tcgetattr");
+    //     return -1;
+    // }
 
     // 시리얼 통신 속도 설정 (2560000 bps)
-    cfsetospeed(&tty, B2500000);
-    cfsetispeed(&tty, B2500000);
+    // cfsetospeed(&tty, B2500000);
+    // cfsetispeed(&tty, B2500000);
+    // cfsetospeed(&tty, B115200);
+    // cfsetispeed(&tty, B115200);
 
     // 통신 속성 설정
-    tty.c_cflag &= ~PARENB;  // 패리티 비활성화
-    tty.c_cflag &= ~CSTOPB;  // 1 스탑 비트 설정
-    tty.c_cflag &= ~CSIZE;   // 데이터 비트 크기 비트를 지웁니다.
+    tty.c_cflag = B115200;
     tty.c_cflag |= CS8;      // 8 비트 데이터 비트 크기
-    tty.c_cflag &= ~CRTSCTS; // RTS/CTS 흐름 제어를 비활성화합니다.
-    tty.c_cflag |= CREAD | CLOCAL; // 읽기를 활성화하고 로컬 라인을 유지합니다.
+    // tty.c_cflag &= ~CSIZE;   // 데이터 비트 크기 비트를 지웁니다.
+    tty.c_cflag |= CLOCAL; // 읽기를 활성화하고 로컬 라인을 유지합니다.
+    tty.c_cflag |= CREAD; // 읽기를 활성화하고 로컬 라인을 유지합니다.
+    tty.c_iflag = IGNPAR;
+    tty.c_oflag = 0;
+    tty.c_lflag = 0;
+    tty.c_cc[VTIME] = 0;
+    tty.c_cc[VMIN] = 1;
+
 
     // 설정 적용
-    if (tcsetattr(fd, TCSANOW, &tty) != 0) {
+    if (tcsetattr(fd_uart, TCSANOW, &tty) != 0) {
         perror("tcsetattr");
         return -1;
     }
+
+    // tty.c_cflag |= (CLOCAL | CREAD); // 로컬 제어 및 읽기 활성화
+    // tty.c_cflag &= ~PARENB; // 패리티 비트 비활성화
+    // tty.c_cflag &= ~CSTOPB; // 1개의 스탑 비트 설정
+    // tty.c_cflag &= ~CSIZE; // 데이터 비트의 크기를 지정하기 위해 비트를 지운다.
+    // tty.c_cflag |= CS8; // 8개의 데이터 비트
+    // tcsetattr(fd_uart, TCSANOW, &tty); // 옵션 설정 적용
+
+   
 
     return 1;
 }
@@ -170,7 +193,7 @@ int uart_init(void) {
  *
  *
  * */
-const int uart_send(int fd,char *send_buf,int data_len)
+const int uart_send(int fd,uint8_t *send_buf,int data_len)
 {
     int len = 0;
     len = write(fd,send_buf,data_len);
@@ -279,7 +302,7 @@ int Make_Spi_Packet_uart(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t ma
  *
  * **/
 
-int uart_receive(int fd,char *rev_buff,int data_len)
+int uart_receive(int fd,uint8_t *rev_buff,int data_len)
 {
     int bytes = 0;
     int ret = 0;
@@ -289,6 +312,20 @@ int uart_receive(int fd,char *rev_buff,int data_len)
     }
     return ret;
 }
+
+void uart_tx_test (void) {
+    uint8_t *uart2_buf;
+    uart2_buf = malloc(512);
+
+    // sprintf(uart2_buf, "0123456789");
+    for (uint8_t i=0; i<0xFF; i++) {
+        uart2_buf[i] = i+1;
+    }
+
+    printf("Uart Tx!\n");
+    uart_send(fd_uart,uart2_buf, 0xff);
+}
+
 void *uart_thread(void *argc)
 {
     int res;
@@ -301,7 +338,7 @@ void *uart_thread(void *argc)
 
     uart2_buf = malloc(1024);
 
-    printf("/dev/ttyS2 2560000 8 1 N\n"); 
+    printf("/dev/ttyS2 115200 8 1 N\n"); 
 
     /*
      * 串口初始化函数
@@ -318,19 +355,22 @@ void *uart_thread(void *argc)
      * test code
      */
     do {
-        res = read(fd, uart2_buf, 1024);
-        if (res > 0) {
-            printf("UART RX: ");
-            for (int i=0; i<res; i++) {
-                printf("0x%02x ", uart2_buf[i]);
-                if (i%16 == 15)
-                    printf("\n");
-            }
-            printf("\n");
-        }
+        res = read(fd_uart, uart2_buf, 512);
+        printf("len : %d\n", res);
+        // if (res > 0) {
+        //     printf("UART RX: ");
+        //     for (int i=0; i<res; i++) {
+        //         printf("0x%02x ", uart2_buf[i]);
+        //         if (i%16 == 15)
+        //             printf("\n");
+        //     }
+        //     printf("\n");
+        // }
+        uart_send(fd_uart,uart2_buf, res);
+
     }while (!bExit);
 
 
-    close(fd);
+    close(fd_uart);
     return 0;
 }

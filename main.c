@@ -115,6 +115,7 @@ int global_value_init(void) {
 	face_cnt = 0;
 	person_cnt = 0;
 	fr_state = 0;
+	polling_err_cnt = 0;
 
 	main_snap = false;
 	box_snap = false;
@@ -197,6 +198,7 @@ int gpio_init(void) {
 	}
 
 	ret = gpio_set_dir(PORTD+6, GPIO_OUTPUT, GPIO_HIGH);
+	// ret = gpio_set_dir(PORTD+6, GPIO_OUTPUT, GPIO_LOW);
 	if(ret < 0){
 		printf("Fail get dir GPIO : %d\n", PORTB+17);
 		return -1;
@@ -302,6 +304,11 @@ int gpio_LED_Set(int onoff) {
 	}
 
 	return 0;
+}
+
+void func_reboot(void) {
+	printf("Reboot Test\n");
+	system("reboot");
 }
 
 
@@ -1082,11 +1089,22 @@ int main(int argc, char **argv) {
 			else Mosaic_En = false;
 		}
 		else if (cmd == 26) {
+			int type = 0;
 			printf("cmd 26 Uart Test\n");
-			ret = pthread_create(&tid_uart, NULL, uart_thread, NULL);
-			if(ret != 0) {
-				IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create uart_thread failed\n", __func__);
-				return -1;
+			printf("1: rx Thread 2: Tx Test\n");
+			type = scanf_index();
+			if (type == 1) {
+				ret = pthread_create(&tid_uart, NULL, uart_thread, NULL);
+				if(ret != 0) {
+					IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create uart_thread failed\n", __func__);
+					return -1;
+				}
+			}
+			else if (type == 2) {
+				uart_tx_test();
+			}
+			else {
+				printf("Tyep Invaild.\n");
 			}
 		}
 		else if (cmd == 27) {
@@ -1441,7 +1459,7 @@ int clip_total(void) {
 			}
 		}
 
-		if (main_rec_end && box_rec_end){
+		if (main_rec_end && box_rec_end) {
 			if (face_snap == false) bStrem = true;
 
 			printf("MP4 Make!\n");

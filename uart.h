@@ -26,6 +26,7 @@ char *path;
 #define CS8 0000060
 
 void *uart_thread(void *argc);
+void uart_tx_test (void);
 
 
 #if __cplusplus
