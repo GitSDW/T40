@@ -532,13 +532,16 @@ static int Recv_Spi_Packet_live(uint8_t *rbuff) {
                 }
                 else buff_space = A_BUFF_SIZE;
                 if (buff_space >= len) {
-                    for(int j = 0; j < len; ++j) {
-                        AO_Cir_Buff.tx[AO_Cir_Buff.WIndex] = rbuff[index+9+j];
-                        AO_Cir_Buff.WIndex = (AO_Cir_Buff.WIndex+1) % (500*1024);
-                        if (AO_Cir_Buff.WIndex == AO_Cir_Buff.RIndex) {
-                            AO_Cir_Buff.RIndex = (AO_Cir_Buff.RIndex+1) % (500*1024);
-                        }
-                    }
+                    // for(int j = 0; j < len; ++j) {
+                    //     AO_Cir_Buff.tx[AO_Cir_Buff.WIndex] = rbuff[index+9+j];
+                    //     AO_Cir_Buff.WIndex = (AO_Cir_Buff.WIndex+1) % (500*1024);
+                    //     if (AO_Cir_Buff.WIndex == AO_Cir_Buff.RIndex) {
+                    //         AO_Cir_Buff.RIndex = (AO_Cir_Buff.RIndex+1) % (500*1024);
+                    //     }
+                    // }
+                    memset(&AO_Cir_Buff.tx[AO_Cir_Buff.WIndex], 0x00, len);
+                    memcpy(&AO_Cir_Buff.tx[AO_Cir_Buff.WIndex], &rbuff[index+9], len);
+                    AO_Cir_Buff.WIndex = (AO_Cir_Buff.WIndex+len) % (500*1024);
                     // printf("[CIR_BUFF Audio Out]buff_space:%d WIndex:%d RIndex%d\n", buff_space, AO_Cir_Buff.WIndex, AO_Cir_Buff.RIndex);
                 }
                 else {
@@ -877,12 +880,12 @@ void *spi_send_stream (void *arg)
 		if (VB_Frame_Buff.cnt > 0) {
 			framesize = VB_Frame_Buff.len[VB_Frame_Buff.Rindex];
 			for(int i=0; framesize > 0; i++){
-				pthread_mutex_lock(&buffMutex_vm);
+				pthread_mutex_lock(&buffMutex_vb);
 				datasize = (framesize > V_SEND_SIZE) ? V_SEND_SIZE : framesize;
 				// udp_vm_send(VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize);
 				framesize -= datasize;
 				// printf("cnt:%d, total:%d, dsize:%d\n", i, framesize, datasize);
-				pthread_mutex_unlock(&buffMutex_vm);
+				pthread_mutex_unlock(&buffMutex_vb);
 				// printf("[CIR_BUFF_VM]datasize:%d WIndex:%d RIndex%d\n", datasize, VM_Cir_Buff.WIndex, VM_Cir_Buff.RIndex);
 				Make_Spi_Packet_live(tx_buff, VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize, STREAMING, STREAM_VEDIO_B);
     	        // memset(tx_buff, 0, 1024);

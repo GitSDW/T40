@@ -1283,7 +1283,7 @@ int clip_total(void) {
 	bool start_flag = false;
 	
 	int64_t end_time = 0, total_time = 0;
-	char file_path[64] = {0};
+	char file_path[128] = {0};
 	char file_sep[100] = {0};
 
 	// pthread_t tid_ao, tid_ai, tid_aio_aec;
@@ -1437,18 +1437,19 @@ int clip_total(void) {
 						// rec_stop = true;
 						rec_state = 2;
 						box_snap = true;
-						if (total_time < 18000000) {
+						if (total_time < 23000000) {
 							file_cnt = 1;
 						}
-						else if (total_time < 33000000) {
+						else if (total_time < 43000000) {
 							file_cnt = 2;
 						}
-						else if (total_time < 48000000) {
+						else if (total_time >= 43000000) {
 							file_cnt = 3;
 						}
-						else if (total_time >= 48000000) {
-							file_cnt = 4;
-						}
+						// else {
+							// printf("file Count Error!\n");
+							// file_cnt = 3;
+						// }
 						printf("Detection End! REC END. file cnt : %d\n", file_cnt);
 					}
 				}
@@ -1472,22 +1473,22 @@ int clip_total(void) {
 			for (int i=0; i<file_cnt; i++){
 				if (i == 0) {
 					memset(file_sep, 0, 100);
-					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/main.mp4 -ss 0 -t 15 -c copy /vtmp/main%d.mp4", i);
+					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/main.mp4 -ss 0 -t 20 -c copy /vtmp/main%d.mp4", i);
 					printf("%s\n", file_sep);
 					system(file_sep);
 					memset(file_sep, 0, 100);
-					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/box.mp4 -ss 0 -t 15 -c copy /vtmp/box%d.mp4", i);
+					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/box.mp4 -ss 0 -t 20 -c copy /vtmp/box%d.mp4", i);
 					// sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/box.mkv -ss 0 -t 12 -c copy /vtmp/box%d.mkv", i);
 					printf("%s\n", file_sep);
 					system(file_sep);
 				}
 				else {
 					memset(file_sep, 0, 100);
-					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/main.mp4 -ss %d.4 -t 15 -c copy /vtmp/main%d.mp4", (i*15)-1, i);
+					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/main.mp4 -ss %d.4 -t 20 -c copy /vtmp/main%d.mp4", (i*20)-1, i);
 					printf("%s\n", file_sep);
 					system(file_sep);
 					memset(file_sep, 0, 100);
-					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/box.mp4 -ss %d.4 -t 15 -c copy /vtmp/box%d.mp4", (i*15)-1, i);
+					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/box.mp4 -ss %d.4 -t 20 -c copy /vtmp/box%d.mp4", (i*20)-1, i);
 					// sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/box.mkv -ss %d.4 -t 12 -c copy /vtmp/box%d.mkv", (i*12)-1, i);
 					printf("%s\n", file_sep);
 					system(file_sep);
@@ -1499,11 +1500,17 @@ int clip_total(void) {
 			
 			
 			if (file_cnt > 0) { 
+				bool send_fail = false;
+				uint32_t nowtime = 0;
+
 				// memset(file_path, 0, 64);
 				// sprintf(file_path, "/vtmp/faceperson.data");
 				// spi_send_file(REC_FACE, file_path);
 
+				system("ubi_mount");
+
 				for (int i=0; i<file_cnt; i++) {
+					send_fail = false;
 					if (Ready_Busy_Check()){
 						printf("File %d-1 Start!\n", i+1);
 						memset(file_path, 0, 64);
@@ -1512,6 +1519,7 @@ int clip_total(void) {
 						}
 					else {
 						printf("Fail to Send %d-1\n", i+1);
+						send_fail = true;
 					}
 					
 					if (Ready_Busy_Check()){
@@ -1523,6 +1531,16 @@ int clip_total(void) {
 						}
 					else {
 						printf("Fail to Send %d-2\n", i+1);
+						send_fail = true;
+					}
+					if (send_fail) {
+						nowtime = sample_gettimeus();
+						memset(file_path, 0, 128);
+						sprintf(file_path, "cp /vtmp/main%d.mp4 /maincam/main%d_%d", i, i, nowtime);
+						system(file_path);
+						memset(file_path, 0, 128);
+						sprintf(file_path, "cp /vtmp/box%d.mp4 /boxcam/box%d_%d", i, i, nowtime);
+						system(file_path);
 					}
 				}
 
@@ -1696,7 +1714,7 @@ int stream_total(void) {
 	//////////////////////////////////////////////////////////////////////////////////////////
 #endif
     stream_state = 1;
-	rec_state = 0;
+	rec_state = 1;
 	// rec_stop = false;
 	
 
@@ -1771,8 +1789,8 @@ int stream_total(void) {
 		printf("cmd 5  Grid Test!\n");
 		printf("cmd 6  snap shot!\n");
 		printf("cmd 7  Rec Start!(60sec)\n");
-		printf("cmd 8 PCM Save Start/End\n");
-		printf("cmd 9 Box Camera Crop Test\n");
+		printf("cmd 8  PCM Save Start/End\n");
+		printf("cmd 9  Box Camera Crop Test\n");
 		printf("cmd 10 Distortion Test\n");
 		printf("cmd 11 LED Test!\n");
 		printf("cmd 12 adc test\n");
@@ -1893,7 +1911,6 @@ int stream_total(void) {
 			printf("cmd 6 Snap Shot Test!\n");
 			printf("main : 1\n");
 			printf("secoend : 2\n");
-			printf("cmd 10 snap shot!\n");
 			snap = scanf_index();
 			if (snap == 1) {
 				main_snap = true;
@@ -1907,6 +1924,7 @@ int stream_total(void) {
 		}
 		else if (cmd == 7) {
 			printf("cmd 7  Rec Start!(60sec)\n");
+			start_time = sample_gettimeus();
 			rec_state = 1;
 		}
 		else if (cmd == 8) {

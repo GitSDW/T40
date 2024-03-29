@@ -159,7 +159,7 @@ struct chn_conf chn[FS_CHN_NUM] = {
             .i2dattr.flip_enable = 0,
             .i2dattr.mirr_enable = 0,
             .i2dattr.rotate_enable = 1,
-            .i2dattr.rotate_angle = 180,
+            .i2dattr.rotate_angle = 90,
 
             .pixFmt = PIX_FMT_NV12,
 			.outFrmRateNum = SECOND_SENSOR_FRAME_RATE_NUM,
@@ -875,19 +875,22 @@ int sample_encoder_init(int ch)
             IMP_LOG_ERR(TAG, "IMP_FrameSource_GetI2dAttr(%d) error !\n", chn[i].index);
             return -1;
         }
+        printf("ch:%d en:%d rotate en:%d ratate:%d\n", chn[i].index, sti2dattr.i2d_enable, sti2dattr.rotate_enable, sti2dattr.rotate_angle);
 
-        // memset(&sti2dattr,0x0,sizeof(IMPFSI2DAttr));
-        // sti2dattr.i2d_enable = 1;
-        // sti2dattr.flip_enable = 0;
-        // sti2dattr.mirr_enable = 0;
-        // sti2dattr.rotate_enable = 1;
-        // sti2dattr.rotate_angle = 180;
-        // // sti2dattr.rotate_angle = 0;
-        // ret = IMP_FrameSource_SetI2dAttr(chn[i].index,&sti2dattr);
-        // if (ret < 0) {
-        //     IMP_LOG_ERR(TAG, "IMP_FrameSource_SetI2dAttr(%d) error !\n", chn[i].index);
-        //     return -1;
-        // }
+        // if (ch == 3) {
+	    //     // memset(&sti2dattr,0x0,sizeof(IMPFSI2DAttr));
+	    //     sti2dattr.i2d_enable = 1;
+	    //     sti2dattr.flip_enable = 0;
+	    //     sti2dattr.mirr_enable = 0;
+	    //     sti2dattr.rotate_enable = 1;
+	    //     sti2dattr.rotate_angle = 90;
+	    //     // sti2dattr.rotate_angle = 0;
+	    //     ret = IMP_FrameSource_SetI2dAttr(chn[i].index,&sti2dattr);
+	    //     if (ret < 0) {
+	    //         IMP_LOG_ERR(TAG, "IMP_FrameSource_SetI2dAttr(%d) error !\n", chn[i].index);
+	    //         return -1;
+	    //     }
+	    // }
 
         if((1 == sti2dattr.i2d_enable) &&
             ((sti2dattr.rotate_enable) && (sti2dattr.rotate_angle == 90 || sti2dattr.rotate_angle == 270))){
@@ -2554,6 +2557,8 @@ static void *sample_get_jpeg_snap(void *args)
 	int chnNum, i, ret;
 	char snap_path[64];
 	int *val_p;
+	int main_cnt = 0;
+	int box_cnt = 0;
 
 	val_p = (int*)args;
 	chnNum = *val_p;
@@ -2590,10 +2595,13 @@ static void *sample_get_jpeg_snap(void *args)
 			(thumbnail_snap && chnNum == 2) || (face_snap && chnNum == 2)) {
 			memset(snap_path, 0, 64);
 			if (main_snap) {
-				sprintf(snap_path, "%s/main.jpg",SNAP_FILE_PATH_PREFIX);
+				sprintf(snap_path, "%s/main%d.jpg",SNAP_FILE_PATH_PREFIX, main_cnt);
+				main_cnt++;
+				printf("Main JPG Start!\n");
 			}
 			else if(box_snap) {
-				sprintf(snap_path, "%s/box.jpg",SNAP_FILE_PATH_PREFIX);
+				sprintf(snap_path, "%s/box%d.jpg",SNAP_FILE_PATH_PREFIX, box_cnt);
+				box_cnt++;
 				printf("Box JPG Start!\n");
 			}
 			else if(thumbnail_snap) {
@@ -3026,53 +3034,26 @@ void *sample_soft_photosensitive_ctrl(IMPVI_NUM vinum, void *p)
 
 
 
-int sample_framesource_i2dopr(void)
+int sample_framesource_i2dopr(int ch)
 {
-    int i = 0,ret = 0;
-    static int s32cnt = 0;
+    int ret = 0;
     IMPFSI2DAttr sti2dattr;
-    for(i = 0;i < FS_CHN_NUM;i++){
-        if(chn[i].enable){
-            if(s32cnt++ % 2 == 0)
-            {
-                /*i2d enable*/
-                ret = IMP_FrameSource_GetI2dAttr(chn[i].index,&sti2dattr);
-                if (ret < 0) {
-                    IMP_LOG_ERR(TAG, "IMP_FrameSource_GetI2dAttr(%d) error !\n", chn[i].index);
-                    return -1;
-                }
-                memset(&sti2dattr,0x0,sizeof(IMPFSI2DAttr));
-                sti2dattr.i2d_enable = 1;
-                sti2dattr.flip_enable = 0;
-                sti2dattr.mirr_enable = 0;
-                sti2dattr.rotate_enable = 1;
-                sti2dattr.rotate_angle = 90;
-                ret = IMP_FrameSource_SetI2dAttr(chn[i].index,&sti2dattr);
-                if (ret < 0) {
-                    IMP_LOG_ERR(TAG, "IMP_FrameSource_SetI2dAttr(%d) error !\n", chn[i].index);
-                    return -1;
-                }
-
-            }else{
-                /*i2d disable*/
-                ret = IMP_FrameSource_GetI2dAttr(chn[i].index,&sti2dattr);
-                if (ret < 0) {
-                    IMP_LOG_ERR(TAG, "IMP_FrameSource_GetI2dAttr(%d) error !\n", chn[i].index);
-                    return -1;
-                }
-                memset(&sti2dattr,0x0,sizeof(IMPFSI2DAttr));
-                sti2dattr.i2d_enable = 1;/*if this off,all i2d off*/
-                sti2dattr.flip_enable = 0;
-                sti2dattr.mirr_enable = 0;
-                sti2dattr.rotate_enable = 0;
-                sti2dattr.rotate_angle = 90;
-                ret = IMP_FrameSource_SetI2dAttr(chn[i].index,&sti2dattr);
-                if(ret < 0){
-                    IMP_LOG_ERR(TAG, "IMP_FrameSource_SetI2dAttr(%d) error !\n", chn[i].index);
-                    return -1;
-                }
-            }
-        }
+    /*i2d enable*/
+    ret = IMP_FrameSource_GetI2dAttr(chn[ch].index, &sti2dattr);
+    if (ret < 0) {
+        IMP_LOG_ERR(TAG, "IMP_FrameSource_GetI2dAttr(%d) error !\n", chn[ch].index);
+        return -1;
+    }
+    memset(&sti2dattr,0x0,sizeof(IMPFSI2DAttr));
+    sti2dattr.i2d_enable = 1;
+    sti2dattr.flip_enable = 0;
+    sti2dattr.mirr_enable = 0;
+    sti2dattr.rotate_enable = 1;
+    sti2dattr.rotate_angle = 90;
+    ret = IMP_FrameSource_SetI2dAttr(chn[ch].index,&sti2dattr);
+    if (ret < 0) {
+        IMP_LOG_ERR(TAG, "IMP_FrameSource_SetI2dAttr(%d) error !\n", chn[ch].index);
+        return -1;
     }
     return 0;
 }

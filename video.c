@@ -459,6 +459,12 @@ int video_init(void) {
 		return -1;
 	}
 
+	// ret = sample_framesource_i2dopr(CH3_INDEX);
+	// if (ret < 0) {
+	// 	IMP_LOG_ERR(TAG, "sample_framesource_i2dopr(%d) error !\n", chn[CH3_INDEX].index);
+	// 	return -1;
+	// }
+
 	ret = IMP_Encoder_CreateGroup(chn[CH3_INDEX].index);
 	if (ret < 0) {
 		IMP_LOG_ERR(TAG, "IMP_Encoder_CreateGroup(%d) error !\n", chn[CH3_INDEX].index);
@@ -620,7 +626,8 @@ int video_init(void) {
 	IMPISPHVFLIP hvf;
 	hvf = IMPISP_FLIP_HV_MODE;
 	IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN, &hvf);		// Main Cam Flip
-	// IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN+1, &hvf);	// Box Cam Flip
+	hvf = IMPISP_FLIP_SHIV_MODE;
+	IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN+1, &hvf);	// Box Cam Flip
 
 	///////////////////////// Box Cam Crop ////////////////////////////
 	// IMPISPAutoZoom autozoom;
@@ -739,9 +746,15 @@ int video_init(void) {
 	if (ret < 0) {
 		printf("ScenceAttr Set Fail!\n");
 	}
-	// else {
-		// printf("ScenceAttr Set Success!\n");
-	// }
+
+	// int fps_num, fps_den;
+	// IMP_ISP_Tuning_GetSensorFPS(IMPVI_MAIN,&fps_num, &fps_den);
+
+	// printf("fps_num:%d fps_den:%d\n", fps_num, fps_den);
+
+	// fps_num = 30;
+	// fps_den = 1;
+	// IMP_ISP_Tuning_GetSensorFPS(IMPVI_MAIN,&fps_num, &fps_den);
 
 	// Mosaic_En = false;
 	///////////////////////////////////////////////////////////////////
