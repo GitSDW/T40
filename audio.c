@@ -324,6 +324,7 @@ int Init_Audio_Out(void)
 		return ret;
 	}
 
+
 	return 0;
 }
 
@@ -708,6 +709,8 @@ void *IMP_Audio_Play_Thread(void *argv)
 	int datasize = 0;
 	// int len_cal, len;
 	// int read_len = AUDIO_SAMPLE_BUF_SIZE;
+	int old_chnbusy=0, old_busy_cnt=0;
+	bool bufclear_flag = false;
 
 	int save_fd = 0;
     save_fd = open("/vtmp/save_ao.pcm", O_RDWR | O_CREAT | O_TRUNC, 0777);
@@ -737,13 +740,20 @@ void *IMP_Audio_Play_Thread(void *argv)
 				datasize = AUDIO_SAMPLE_BUF_SIZE;
 				// printf("[CIR_BUFF_AO]AO_SIZE:%d datasize:%d WIndex:%d RIndex%d\n", AUDIO_SAMPLE_BUF_SIZE, datasize, AO_Cir_Buff.WIndex, AO_Cir_Buff.RIndex);
 			}
-			else {
-				datasize = 0;
-			}
+			// else {
+			// 	datasize = 0;
+			// }
 			for (int i = 0; i < datasize; ++i) {
 				buf[i] = AO_Cir_Buff.tx[AO_Cir_Buff.RIndex];
 				AO_Cir_Buff.RIndex = (AO_Cir_Buff.RIndex+1) % (500*1024);
 			}
+			if (AO_Cir_Buff.RIndex == AO_Cir_Buff.WIndex) {
+				// printf("Buffer Clear!! : %d\n", datasize);
+				AO_Cir_Buff.RIndex = AO_Cir_Buff.WIndex = 0;
+			}
+			// memset(buf, 0, datasize);
+			// memcpy(buf, &AO_Cir_Buff.tx[AO_Cir_Buff.RIndex], datasize);
+			// AO_Cir_Buff.RIndex = (AO_Cir_Buff.RIndex + datasize) % (500&1024);
 		}
 		pthread_mutex_unlock(&buffMutex_ao);
 
@@ -764,8 +774,26 @@ void *IMP_Audio_Play_Thread(void *argv)
 			// continue;
 
 		// printf("WIndex:%d busynum:%d\n", AO_Cir_Buff.WIndex, play_status.chnBusyNum);
+		if (play_status.chnBusyNum > 0) {
+			if (old_chnbusy != play_status.chnBusyNum) {
+				old_chnbusy = play_status.chnBusyNum;
+				// printf("busynum:%d cnt:%d\n", old_chnbusy, old_busy_cnt);
+				old_busy_cnt = 0;
+				bufclear_flag = false;
+			}
+			else {
+				old_busy_cnt++;
+				if (old_busy_cnt > 1000000) {
+					if (!bufclear_flag) {
+						bufclear_flag = true;
+						IMP_AO_ClearChnBuf(ao_devID, ao_chnID);
+						printf("AO Buf clear!\n");
+					}
+				}
+			}
+		}
 		if (datasize > 0 && play_status.chnBusyNum < 18) {
-			// printf("WIndex:%d busynum:%d\n", AO_Cir_Buff.WIndex, play_status.chnBusyNum);
+			
 
 			/* Step 5: send frame data. */
 			IMPAudioFrame frm;
@@ -807,6 +835,7 @@ void ao_file_play_thread(void *argv)
 	unsigned char *buf = NULL;
 	int size = 0;
 	int ret = -1;
+	int old_chnbusy=0, old_busy_cnt=0;
 
 	buf = (unsigned char *)malloc(AUDIO_SAMPLE_BUF_SIZE);
 	if (buf == NULL) {
@@ -851,6 +880,19 @@ void ao_file_play_thread(void *argv)
 			return;
 		}
 
+		if (play_status.chnBusyNum > 0) {
+			if (old_chnbusy != play_status.chnBusyNum) {
+				old_chnbusy = play_status.chnBusyNum;
+				old_busy_cnt = 0;
+			}
+			else {
+				old_busy_cnt++;
+				if (old_busy_cnt%10 == 0) {
+					printf("busynum:%d\n", play_status.chnBusyNum);
+				}
+			}
+		}
+
 		IMP_LOG_INFO(TAG, "Play: TotalNum %d, FreeNum %d, BusyNum %d\n",
 				play_status.chnTotalNum, play_status.chnFreeNum, play_status.chnBusyNum);
 	}while (1);
@@ -866,6 +908,7 @@ void ao_file_play_pcm_thread(void *argv)
 	unsigned char *buf = NULL;
 	int size = 0;
 	int ret = -1;
+
 
 	buf = (unsigned char *)malloc(AUDIO_SAMPLE_BUF_SIZE);
 	if (buf == NULL) {
@@ -949,7 +992,6 @@ void *IMP_Audio_InOut_AEC_Thread(void *argv)
 			IMP_LOG_ERR(TAG, "Audio release frame data error\n");
 			return NULL;
 		}
-
 
 		IMPAudioOChnState play_status;
 

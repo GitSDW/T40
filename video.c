@@ -138,7 +138,10 @@ int isd_crop(int x, int y, int w, int h, int cam) {
 	}
 
 	IMPISPHLDCAttr hldc;
-	hldc.strength = 100;     			/**< Distortion correction intensity [range: 0 to 255, default: 128]*/
+	if (cam == 0)
+		hldc.strength = 70;     			/**< Distortion correction intensity [range: 0 to 255, default: 128]*/
+	else
+		hldc.strength = 128;     			/**< Distortion correction intensity [range: 0 to 255, default: 128]*/
     hldc.width = w;          		/**< Image width */
     hldc.height = h;         		/**< Image height */
     hldc.center_w = x+(w/2);       /**< Image distortion horizontal optical center range:[width/2-120, width/2+120] */

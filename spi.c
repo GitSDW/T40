@@ -432,24 +432,99 @@ static int Recv_Spi_Packet_live(uint8_t *rbuff) {
     // static uint8_t data[10]= {0};
     int bad_cnt = 0;
     static int spicnt = 0;
+    
 
     
 
 #if 0
-    // if (rbuff[0] == 0x02) {
-        printf("apktcnt:%d ", a_pkt_cnt);
-        printf("RX: ");
-        for(int i=0;i<10;i++) {
-            printf("0x%02x ", rbuff[i]);
-        }
-        printf("\n");
+    static int filefd = 0;
+    if (filefd == 0) {
+        filefd = open("/vtmp/test.pcm", O_RDWR | O_CREAT | O_TRUNC, 0777);
+    }
 
-        a_pkt_cnt = rbuff[8];
-        memset(rbuff, 0, 1024);
-    // }
-    // else{
-        // printf("X 0x%02x 0x%02x\n", rbuff[0], rbuff[1]);
-    // }
+    index = 0;
+    major = rbuff[index+1];
+    minor = rbuff[index+2];
+    if (rbuff[index] != 0x02) {
+        // printf("S\n");
+        // return -1;
+        bad_cnt++;
+    }
+    
+    if (major != 0x82) {
+        bad_cnt++;
+    } 
+
+    if (minor != 0x07) {
+        bad_cnt++;
+    }
+
+    if (bad_cnt > 1) {
+        return -1;
+    }
+
+    len = rbuff[index+3]*256 + rbuff[index+4];
+
+    // printf("spi cnt:%d %d %d\n", spicnt, rbuff[index+8], len);
+
+    if (len != 1000){
+        return -1;
+    }
+    
+    if (spicnt == rbuff[index+8]) {
+        // printf("C\n");
+        return -1;
+    }
+    else {
+        printf("oldcnt:%d newcnt:%d\n", spicnt, rbuff[index+8]);
+        spicnt = rbuff[index+8];
+        a_pkt_cnt = spicnt;
+    }
+
+    switch(major) {
+    case DTEST_BACK:
+
+    case REC_BACK:
+    case STREAMING_BACK:
+        switch(minor) {
+        case STREAM_AUDIO_B:
+            // printf("audio dn len:%d\n", len);
+            // len = 882;
+            if(len > 0){
+                write(filefd, &rbuff[index+9], len);
+                pthread_mutex_lock(&buffMutex_ao);
+                if (AO_Cir_Buff.RIndex != AO_Cir_Buff.WIndex) {
+                    buff_space = (AO_Cir_Buff.RIndex - AO_Cir_Buff.WIndex - 1 + A_BUFF_SIZE) % (500*1024);
+                }
+                else buff_space = A_BUFF_SIZE;
+                if (buff_space >= len) {
+                    // for(int j = 0; j < len; ++j) {
+                    //     AO_Cir_Buff.tx[AO_Cir_Buff.WIndex] = rbuff[index+9+j];
+                    //     AO_Cir_Buff.WIndex = (AO_Cir_Buff.WIndex+1) % (500*1024);
+                    //     if (AO_Cir_Buff.WIndex == AO_Cir_Buff.RIndex) {
+                    //         AO_Cir_Buff.RIndex = (AO_Cir_Buff.RIndex+1) % (500*1024);
+                    //     }
+                    // }
+                    memset(&AO_Cir_Buff.tx[AO_Cir_Buff.WIndex], 0x00, len);
+                    memcpy(&AO_Cir_Buff.tx[AO_Cir_Buff.WIndex], &rbuff[index+9], len);
+                    AO_Cir_Buff.WIndex = (AO_Cir_Buff.WIndex+len) % (500*1024);
+                    // printf("[CIR_BUFF Audio Out]buff_space:%d WIndex:%d RIndex%d\n", buff_space, AO_Cir_Buff.WIndex, AO_Cir_Buff.RIndex);
+                }
+                else {
+                    printf("AO Cir Buff Overflow!1\n");
+                }
+                pthread_mutex_unlock(&buffMutex_ao);
+            }
+        break;
+        }
+    break;
+    case SETTING_BACK:
+        
+    break;
+    default:
+        return -1;
+    break;        
+    }
 #else
     index = 0;
     // for (int i=0; i<10; i++) {

@@ -357,7 +357,9 @@ int main(int argc, char **argv) {
 
     Set_Vol(100,25,80,15);
 
-    isd_crop(240, 270, 1440, 810, 1);
+    isd_crop(0, 0, 1920, 1080, 0);
+
+    isd_crop(160, 180, 1600, 900, 1);
 
     printf("expval : %d\n", ExpVal);
 
