@@ -252,7 +252,7 @@ int Make_Spi_Packet(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t major, 
             break;
         case REC:
             switch(minor){
-                case REC_START:
+                case REC_DEV_START:
                     break;
                 case REC_STREAM_STR:
                 case REC_CLIP_F:
@@ -273,7 +273,7 @@ int Make_Spi_Packet(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t major, 
                     break;
                 case REC_ACK:
                     break;
-                case REC_STOP:
+                case REC_DEV_STOP:
                     break;
                 default:
                     return -1;
@@ -295,7 +295,7 @@ int Make_Spi_Packet(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t major, 
                 case STREAM_AUDIO_F:
                 	memcpy(&tbuff[9+V_SEND_RESERV], data, len);
                     break;
-                case REC_STOP:
+                case STREAM_STOP:
                     break;
                 default:
                     return -1;
@@ -347,7 +347,7 @@ int Make_Spi_Packet_live(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t ma
             break;
         case REC:
             switch(minor){
-                case REC_START:
+                case REC_DEV_START:
                     break;
                 case REC_STREAM_STR:
                     memcpy(&tbuff[9+V_SEND_RESERV], data, len);
@@ -364,7 +364,7 @@ int Make_Spi_Packet_live(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t ma
                     break;
                 case REC_ACK:
                     break;
-                case REC_STOP:
+                case REC_DEV_STOP:
                     break;
                 default:
                     return -1;
@@ -388,7 +388,7 @@ int Make_Spi_Packet_live(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t ma
                 case STREAM_AUDIO_F:
                 	memcpy(&tbuff[9+V_SEND_RESERV], data, len);
                     break;
-                case REC_STOP:
+                case STREAM_STOP:
                     break;
                 default:
                     return -1;
@@ -772,6 +772,11 @@ int spi_send_file(uint8_t minor, char *file)
         read_buff[5] = 0x02;
         read_buff[6] = 0x01;
     }
+    else if (minor == REC_STREAMING_M ||minor == REC_STREAMING_B) {
+        len = 7;
+        read_buff[5] = 0x05;
+        read_buff[6] = 0x01;
+    }
     else {
         len = 5;
         read_buff[5] = (sz_file>>8)&0xFF;
@@ -888,7 +893,7 @@ int spi_send_fake_file(uint8_t minor)
 int spi_device_off(uint8_t major)
 {
     printf("off device %s ,speed %d ,delay %d ,bpw %d, mode %d\n",device,speed,delay,bits,mode);
-    Make_Spi_Packet(tx_buff, read_buff, 0, major, REC_STOP);
+    Make_Spi_Packet(tx_buff, read_buff, 0, major, REC_DEV_STOP);
     spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
     usleep(1*1000);
     

@@ -107,11 +107,11 @@ extern "C"
 /* third sensor output channel (6) */
 /* dual sensor joint mode only channel (0/1/2) */
 #define CHN0_EN                	1
-#define CHN1_EN              	1
+#define CHN1_EN              	0
 #define CHN2_EN                	1
 
 #define CHN3_EN					1
-#define CHN4_EN					1
+#define CHN4_EN					0
 #define CHN5_EN					1
 
 #define CHN6_EN					0

@@ -429,7 +429,7 @@ void *fdpd_thread(void *args)
                         // printf("fdpd cnt: %d/%d class : %d track %d confidence : %f x : %d y : %d\n"
                             // , i, r->count, class_id, track_id, confidence, fdpd_data[i].ul_x, fdpd_data[i].ul_y);
                         // if ((fr_state == 1 && track_id > 0 && confidence > 0.85) &&
-                        if ((fr_state == FR_START && confidence > 0.90) &&
+                        if ((fr_state == FR_START && confidence > 0.90 && !thumbnail_snap) &&
                             (((fdpd_data[i].ul_x+fdpd_data[i].br_x)/2) > 100) &&
                             (((fdpd_data[i].ul_x+fdpd_data[i].br_x)/2) < 1920 - 100) &&
                             (((fdpd_data[i].ul_y+fdpd_data[i].br_y)/2) > 100) &&
@@ -487,7 +487,7 @@ void *fdpd_thread(void *args)
         ret = IMP_IVS_ReleaseResult(3, (void *)result);
         if (ret < 0) {
             IMP_LOG_ERR(TAG, "IMP_IVS_ReleaseResult(%d) failed\n", 3);
-        return NULL;
+            return NULL;
         }
         // usleep(100*1000);
         if (!fdpd_En){

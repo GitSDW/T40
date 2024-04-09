@@ -40,15 +40,18 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
     cv::equalizeHist(gray2, gray2);
 
     // printf("box1\n");
+    cerr << "find gray!" << endl;
     cv::Mat diff_image;
     cv::absdiff(gray1, gray2, diff_image);
 
+    cerr << "find set threshold!" << endl;
     cv::Mat bin_img;
     cv::threshold(diff_image, bin_img, thhold, 255, cv::THRESH_BINARY);
 
     // imwrite("bin.jpg", bin_img);
 
     // printf("box2\n");
+    cerr << "find contours!" << endl;
     vector<vector<cv::Point>> contours;
     cv::findContours(bin_img, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
@@ -56,6 +59,7 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
 
 
     // printf("box3\n");
+    cerr << "find try!" << endl;
     try {
         for(size_t i = 0; i< contours.size(); i++) {
             cv::Rect boundingRect = cv::boundingRect(contours[i]);
@@ -111,20 +115,24 @@ int package_sistic(char *imgpath1, char *imgpath2) {
 
 
 #if 1
+    cerr << "sistic make!" << endl;
     // ORB 객체 생성
     Ptr<ORB> orb = ORB::create();
 
+    cerr << "sistic point cal!" << endl;
     // 키 포인트와 디스크립터 계산
     vector<KeyPoint> keypoints1, keypoints2;
     Mat descriptors1, descriptors2;
     orb->detectAndCompute(image1, Mat(), keypoints1, descriptors1);
     orb->detectAndCompute(image2, Mat(), keypoints2, descriptors2);
 
+    cerr << "sistic point match!" << endl;
     // 특징점 매칭 
     BFMatcher matcher(NORM_HAMMING);
     vector<DMatch> matches;
     matcher.match(descriptors1, descriptors2, matches);
 
+    cerr << "sistic filtering!" << endl;
     // 좋은 매칭 필터링
     double minDist = min_element(matches.begin(), matches.end(),
         [](const DMatch& m1, const DMatch& m2) { return m1.distance < m2.distance; })->distance;
@@ -137,6 +145,7 @@ int package_sistic(char *imgpath1, char *imgpath2) {
         }
     }
 
+    cerr << "sistic metrix cal!" << endl;
     // 좋은 매칭을 사용하여 변환 행렬 계산
     if (goodMatches.size() > 10) {
         try {
@@ -497,21 +506,27 @@ int facecrop_make(Fdpd_Data_t cont) {
     if (y+size >= 1080) y = 1080-size-1;
 
     printf("cx:%d cy:%d size:%d x:%d y:%d\n", cx, cy, size, x, y);
-    // 이미지 로드
-    Mat image = imread(inputImagePath);
+    try {
+        // 이미지 로드
+        Mat image = imread(inputImagePath);
 
-    // 입력 좌표와 크기로 이미지를 크롭
-    Rect roi(x, y, size, size);
-    Mat croppedImage = image(roi);
+        // 입력 좌표와 크기로 이미지를 크롭
+        Rect roi(x, y, size, size);
+        Mat croppedImage = image(roi);
 
-    resizeImage(croppedImage, 500, 500);
+        resizeImage(croppedImage, 500, 500);
 
-    vector<int> compression_params;
-    compression_params.push_back(IMWRITE_JPEG_QUALITY);
-    compression_params.push_back(100);
+        vector<int> compression_params;
+        compression_params.push_back(IMWRITE_JPEG_QUALITY);
+        compression_params.push_back(100);
 
-    // 크롭된 이미지 저장
-    imwrite(outputImagePath, croppedImage, compression_params);
+        // 크롭된 이미지 저장
+        imwrite(outputImagePath, croppedImage, compression_params);
 
-    return 0;
+        return 0;
+
+    } catch (Exception& e) {
+        cerr << "Face Crop Fail!" << endl;
+        return -1;
+    }
 }

@@ -11,6 +11,11 @@ int64_t sample_gettimeus(void);
 char** listJPGFiles(const char* folderPath, int* fileCount);
 void displayFileList(char** fileList, int fileCount);
 void freeFileList(char** fileList, int fileCount);
+int FileShow(const char* directory, const char* filename);
+int SetTime(int year, int month, int day, int hour, int min, int sec);
+int GetTime(void);
+void record_shutdown_time();
+void set_system_time_from_file();
 
 #if __cplusplus
 }

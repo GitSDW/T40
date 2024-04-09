@@ -10,7 +10,7 @@ extern "C" {
 
 #define MAJOR_VER	"0"
 #define MINOR_VER	"2"	
-#define CAHR_VER	"h"
+#define CAHR_VER	"m"
 
 typedef struct CIRCULAR_BUFF
 {
@@ -126,6 +126,13 @@ typedef struct THUM_SNAP
 	int ey[10];
 } Thum_Data_t;
 
+// typedef struct STREAMING_REC
+// {
+// 	int rec_cnt;
+// 	uint32_t rec_start[20];
+// 	uint32_t rec_end[20];
+// } Streaming_Rec_t;
+
 // Thum_Data_t mosaic_data;
 Thum_Data_t thum_face_data;
 
@@ -137,14 +144,20 @@ uint32_t ExpVal;
 
 int stream_state;
 int thumbnail_state;
-int rec_state;
+
 int face_cnt, person_cnt;
 int fr_state;
 int polling_err_cnt;
+int rec_cnt;
+
+// int rec_state;
+int clip_rec_state;
+int streaming_rec_state;
+int bell_rec_state;
 
 // bool rec_stop;
-bool main_rec_end;
-bool box_rec_end;
+// bool main_rec_end;
+// bool box_rec_end;
 bool main_snap;
 bool box_snap;
 bool thumbnail_snap;
@@ -158,6 +171,12 @@ int save_pcm;
 bool pcm_in, pcm_out;
 bool Mosaic_En, fdpd_En, fdpd_ck;
 bool dot_En;
+
+// uart control
+bool light_on;
+bool rec_on;
+bool rec_mem_flag;
+// Streaming_Rec_t str_rec_t;
 
 extern int bExit;
 
@@ -178,8 +197,18 @@ enum THUMB_STATE {
   THUMB_END,		// 3
 };
 
+enum REC_STATE {
+	REC_READY = 0,	// 0
+	REC_START,			// 1
+	REC_ING,				// 2
+	REC_STOP,				// 3
+	REC_WAIT,				// 4
+	REC_MP4MAKE,		// 5
+};
+
 
 // #define __TEST_FAKE_VEDIO__
+#define __STREAMING_CMD__
 
 #ifdef __TEST_FAKE_VEDIO__
 	int led_cnt;

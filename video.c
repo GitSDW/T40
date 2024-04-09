@@ -379,6 +379,27 @@ uint8_t BLC_User(void) {
 	return AeIntegrationTime;
 }
 
+int Set_Target_Bit(uint32_t targetbit) {
+	IMPEncoderAttrRcMode encecmode;
+
+	IMP_Encoder_GetChnAttrRcMode(CH0_INDEX, &encecmode);
+	encecmode.attrCbr.uTargetBitRate = targetbit;
+	IMP_Encoder_SetChnAttrRcMode(CH0_INDEX, &encecmode);
+	IMP_Encoder_GetChnAttrRcMode(CH0_INDEX, &encecmode);
+
+	printf("enc rc mode:%d\n", encecmode.rcMode);
+	printf("enc rc CBR uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
+	printf("enc rc CBR iInitialQP:%d\n", encecmode.attrCbr.iInitialQP);
+	printf("enc rc CBR iMinQP:%d\n", encecmode.attrCbr.iMinQP);
+	printf("enc rc CBR iMaxQP:%d\n", encecmode.attrCbr.iMaxQP);
+	printf("enc rc CBR iIPDelta:%d\n", encecmode.attrCbr.iIPDelta);
+	printf("enc rc CBR iPBDelta:%d\n", encecmode.attrCbr.iPBDelta);
+	printf("enc rc CBR eRcOptions:%d\n", encecmode.attrCbr.eRcOptions);
+	printf("enc rc CBR uMaxPictureSize:%d\n", encecmode.attrCbr.uMaxPictureSize);
+
+	return 0;
+}
+
 IMPCell osdcell;
 
 int video_init(void) {
@@ -629,8 +650,8 @@ int video_init(void) {
 	IMPISPHVFLIP hvf;
 	hvf = IMPISP_FLIP_HV_MODE;
 	IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN, &hvf);		// Main Cam Flip
-	hvf = IMPISP_FLIP_SHIV_MODE;
-	IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN+1, &hvf);	// Box Cam Flip
+	// hvf = IMPISP_FLIP_SHIV_MODE;
+	// IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN+1, &hvf);	// Box Cam Flip
 
 	///////////////////////// Box Cam Crop ////////////////////////////
 	// IMPISPAutoZoom autozoom;
@@ -750,14 +771,34 @@ int video_init(void) {
 		printf("ScenceAttr Set Fail!\n");
 	}
 
-	// int fps_num, fps_den;
+	IMPEncoderAttrRcMode encecmode;
+
+	IMP_Encoder_GetChnAttrRcMode(CH0_INDEX, &encecmode);
+	printf("enc rc mode:%d\n", encecmode.rcMode);
+	printf("enc rc CBR uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
+	printf("enc rc CBR iInitialQP:%d\n", encecmode.attrCbr.iInitialQP);
+	printf("enc rc CBR iMinQP:%d\n", encecmode.attrCbr.iMinQP);
+	printf("enc rc CBR iMaxQP:%d\n", encecmode.attrCbr.iMaxQP);
+	printf("enc rc CBR iIPDelta:%d\n", encecmode.attrCbr.iIPDelta);
+	printf("enc rc CBR iPBDelta:%d\n", encecmode.attrCbr.iPBDelta);
+	printf("enc rc CBR eRcOptions:%d\n", encecmode.attrCbr.eRcOptions);
+	printf("enc rc CBR uMaxPictureSize:%d\n", encecmode.attrCbr.uMaxPictureSize);
+
+
+	// IMP_Encoder_SetChnAttrRcMode(CH0_INDEX, encecmode);
+
+	// uint32_t fps_num, fps_den;
 	// IMP_ISP_Tuning_GetSensorFPS(IMPVI_MAIN,&fps_num, &fps_den);
 
-	// printf("fps_num:%d fps_den:%d\n", fps_num, fps_den);
+	// printf("1 fps_num:%d fps_den:%d\n", fps_num, fps_den);
 
-	// fps_num = 30;
-	// fps_den = 1;
+	// fps_num = 60;
+	// fps_den = 2;
+	// IMP_ISP_Tuning_SetSensorFPS(IMPVI_MAIN,&fps_num, &fps_den);
+
 	// IMP_ISP_Tuning_GetSensorFPS(IMPVI_MAIN,&fps_num, &fps_den);
+
+	// printf("2 fps_num:%d fps_den:%d\n", fps_num, fps_den);
 
 	// Mosaic_En = false;
 	///////////////////////////////////////////////////////////////////
@@ -1079,8 +1120,6 @@ void *OSD_thread(void *args)
 	}
 	
 	do {
-
-		
 		if (main_motion_detect > 0) {
 			ret = IMP_OSD_ShowRgn(prHander[TEST_COVER_INDEX], mosdgrp, 1);
 			if (ret != 0) {
@@ -1209,7 +1248,10 @@ void *OSD_thread(void *args)
 			usleep(5*1000);
 		}
 
-		if (rect_flag && Mosaic_En && (rec_state < 2)) {
+		if (rect_flag && Mosaic_En && (clip_rec_state < REC_MP4MAKE) && 
+										(streaming_rec_state < REC_MP4MAKE) && 
+										(bell_rec_state < REC_MP4MAKE)) 
+		{
 			rect_flag = false;
 			for (int j=0; j<10; j++) {
 				ret = IMP_OSD_ShowRgn(prHander[2+j], mosdgrp, 0);
@@ -1220,6 +1262,13 @@ void *OSD_thread(void *args)
 			}
 		} 
 		// usleep(5*1000);
+
+		if (streaming_rec_state == REC_MP4MAKE || 
+			(clip_rec_state == REC_MP4MAKE && bell_rec_state == REC_MP4MAKE) ||
+			(clip_rec_state == REC_MP4MAKE && bell_rec_state == REC_READY)) {
+			printf("OSD Thread END!\n");
+			return ((void*) 0);
+		}
 
 
 

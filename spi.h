@@ -26,7 +26,7 @@ typedef enum {
 } MINOR_TEST;
 
 typedef enum {
-	REC_START  		= 0x01,
+	REC_DEV_START  	= 0x01,
 	REC_STREAM_STR  = 0x02,
 	REC_CLIP_F 		= 0x03,
 	REC_CLIP_B  	= 0x04,  // or Bottom Capture
@@ -34,10 +34,12 @@ typedef enum {
 	REC_BOX_ALM  	= 0x06,
 	REC_SNAPSHOT    = 0x07,
 	REC_FACESHOT  	= 0x08,
-	REC_STREAM_END	= 0x0F,  // Not Used, Backward
+	REC_STREAMING_M = 0x09,
+	REC_STREAMING_B = 0x0A,
+ 	REC_STREAM_END	= 0x0F,  // Not Used, Backward
 	REC_ACK  		= 0x80,
 
-	REC_STOP  		= 0x7F
+	REC_DEV_STOP  	= 0x7F
 } MINOR_REC;
 
 typedef enum {
@@ -58,6 +60,28 @@ typedef enum {
 
 	SET_STOP  		= 0x7F
 } MINOR_SETTING;
+
+
+
+
+typedef enum {
+	UREC_START  		= 0x01,
+	
+
+	UREC_STOP  		= 0x7F
+} MINOR_UART_REC;
+
+
+typedef enum {
+	USTREAM_START  	= 0x01,
+	USTREAM_REC_S	= 0x0A,
+	USTREAM_REC_E 	= 0x0B,
+	USTREAM_MIC_VOL	= 0x0C,
+	USTREAM_FACE 	= 0x0D,
+	USTREAM_LIGHT 	= 0x0E,
+
+	USTREAM_STOP  	= 0x7F
+} MINOR_UART_STREAMING;
 
 int spi_init(void);
 void spi_deinit(void);

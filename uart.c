@@ -22,9 +22,11 @@
 #include "uart.h"
 #include "spi.h"
 #include "global_value.h"
+#include "c_util.h"
 
 const char default_path[] = "/dev/ttyS2";
 int fd_uart;
+bool ack_flag = false;
 
 /**
 * uart init
@@ -206,6 +208,29 @@ const int uart_send(int fd,uint8_t *send_buf,int data_len)
     return 0;
 }
 
+uint8_t ack_major = 0;
+uint8_t ack_minor = 0;
+
+int Make_Uart_Ack(uint8_t *tbuff, int len, uint8_t *data, uint8_t major, uint8_t minor)
+{
+    memset(tbuff, 0, len+10);
+    tbuff[0] = 0x02;
+    tbuff[1] = (major & 0x7F) & 0xFF;
+    tbuff[2] = (minor | 0x80) & 0xFF;
+    tbuff[3] = (len>>8) & 0xFF;
+    tbuff[4] = len & 0xFF;
+    tbuff[5] = 0x00;
+    tbuff[6] = 0x00;
+    tbuff[7] = 0x00;
+    tbuff[8] = 0x00;
+    if (len > 0) {
+        memcpy(&tbuff[9], data, len);
+    }
+    tbuff[9+len] = 0x03;
+
+    return 10+len;
+}
+
 int Make_Spi_Packet_uart(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t major, uint8_t minor)
 {
     if (len < 10) {
@@ -237,7 +262,7 @@ int Make_Spi_Packet_uart(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t ma
             break;
         case REC:
             switch(minor){
-                case REC_START:
+                case REC_DEV_START:
                     break;
                 case REC_STREAM_STR:
                     memcpy(&tbuff[9], data, len);
@@ -254,7 +279,7 @@ int Make_Spi_Packet_uart(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t ma
                     break;
                 case REC_ACK:
                     break;
-                case REC_STOP:
+                case REC_DEV_STOP:
                     break;
                 default:
                     return -1;
@@ -278,7 +303,7 @@ int Make_Spi_Packet_uart(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t ma
                 case STREAM_AUDIO_F:
                     memcpy(&tbuff[9], data, len);
                     break;
-                case REC_STOP:
+                case STREAM_STOP:
                     break;
                 default:
                     return -1;
@@ -294,6 +319,115 @@ int Make_Spi_Packet_uart(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t ma
     }
     // tbuff[len + 8] = 0x03;
     tbuff[1023] = 0x03;
+    return 0;
+}
+
+extern int gpio_LED_Set(int onoff);
+
+static int Recv_Uart_Packet_live(uint8_t *rbuff) {
+    int index, len, light_val, ack_len, res;
+    uint8_t major, minor, buf_8;
+    int bad_cnt = 0;
+    uint8_t *uart_tx;
+    uint8_t ack_data[256];
+    static int64_t rec_time_s = 0;
+    int64_t rec_time_e = 0;
+
+        
+    index = 0;
+
+    major = rbuff[index+1];
+    minor = rbuff[index+2];
+    if (rbuff[index] != 0x02) {
+        printf("S\n");
+        bad_cnt++;
+    }
+    
+    buf_8 = major&0x80;
+    if (buf_8 == 0) {
+        printf("M\n");
+        bad_cnt++;
+    } 
+
+    // if (minor != 0x07) {
+    //     bad_cnt++;
+    // }
+
+    if (bad_cnt > 1) {
+        return -1;
+    }
+
+    len = rbuff[index+3]*256 + rbuff[index+4];
+
+    printf("PKT Len : %d\n", len);
+
+    ack_major = major;
+    ack_minor = minor;
+
+    switch(major) {
+    case DTEST_BACK:
+
+    case REC_BACK:
+    case STREAMING_BACK:
+        switch(minor) {
+        case USTREAM_LIGHT:
+            if (len > 0) {
+                if (rbuff[index+9] > 0)     light_val = 1;
+                else                        light_val = 0;
+                gpio_LED_Set(light_val);
+                ack_len = 0;
+                ack_flag = true;
+            }
+
+            printf("Light %d\n", light_val);
+        break;
+        case USTREAM_REC_S:
+            printf("Streaming Rec Start!\n");
+            if (rec_on) {
+                ack_len = 1;
+                ack_data[0] = 2;
+                ack_flag = true;
+            }
+            else if (rec_mem_flag) {
+                ack_len = 1;
+                ack_data[0] = 3;
+                ack_flag = true;
+            }
+            else {
+                rec_time_s = sample_gettimeus();
+                streaming_rec_state = REC_START;
+                rec_on = true;
+                rec_cnt++;
+                ack_len = 1;
+                ack_data[0] = 1;
+                ack_flag = true;
+            }
+        break;
+        case USTREAM_REC_E:
+            printf("Streaming Rec Start!\n");
+            rec_time_e = sample_gettimeus()-rec_time_s;
+            printf("Rec Time : %lld\n", rec_time_e);
+            streaming_rec_state = REC_STOP;
+            rec_on = false;
+        break;
+        }
+    break;
+    case SETTING_BACK:
+        
+    break;
+    default:
+        return -1;
+    break;        
+    }
+
+    if (ack_flag) {
+        uart_tx = malloc(ack_len+10);
+        res = Make_Uart_Ack(uart_tx, ack_len, ack_data, ack_major, ack_minor);
+        uart_send(fd_uart, uart_tx, res);
+        ack_flag = false;
+        free(uart_tx);
+    }
+
     return 0;
 }
 
@@ -334,10 +468,10 @@ void *uart_thread(void *argc)
     // int set_stopbits = 1;
     // char set_parity = 'N';
     // path = (char *)default_path;
-    uint8_t *uart2_buf;
+    uint8_t *uart_rx;
 
-    uart2_buf = malloc(1024);
-
+    uart_rx = malloc(1024);
+    
     printf("/dev/ttyS2 115200 8 1 N\n"); 
 
     /*
@@ -355,21 +489,22 @@ void *uart_thread(void *argc)
      * test code
      */
     do {
-        res = read(fd_uart, uart2_buf, 512);
+        res = read(fd_uart, uart_rx, 512);
         printf("len : %d\n", res);
-        // if (res > 0) {
-        //     printf("UART RX: ");
-        //     for (int i=0; i<res; i++) {
-        //         printf("0x%02x ", uart2_buf[i]);
-        //         if (i%16 == 15)
-        //             printf("\n");
-        //     }
-        //     printf("\n");
-        // }
-        uart_send(fd_uart,uart2_buf, res);
+        if (res > 0) {
+            printf("UART RX: ");
+            for (int i=0; i<res; i++) {
+                printf("0x%02x ", uart_rx[i]);
+            }
+            printf("\n");
+            Recv_Uart_Packet_live(uart_rx);
+        }
+
+        
 
     }while (!bExit);
 
+    free(uart_rx);
 
     close(fd_uart);
     return 0;
