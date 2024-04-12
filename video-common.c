@@ -63,7 +63,7 @@ struct chn_conf chn[FS_CHN_NUM] = {
 
 			.pixFmt = PIX_FMT_NV12,
 			.outFrmRateNum = FIRST_SENSOR_FRAME_RATE_NUM,
-			.outFrmRateDen = FIRST_SENSOR_FRAME_RATE_DEN,
+			.outFrmRateDen = FIRST_SENSOR_FRAME_RATE_DEN,			
 			.nrVBs = 3,
 			.type = FS_PHY_CHANNEL,
 
@@ -367,13 +367,13 @@ int sample_system_init()
 	}
 
 	for(i = 0; i < mode.sensor_num; i++) {
-		int index;
+		// int index;
 		IMPISPTuningOpsMode bypass_en;
 
 		if(!sensor_bypass[i])
 			continue;
 
-		index = i * 3;
+		// index = i * 3;
 		/* chn[index].fs_chn_attr.pixFmt = PIX_FMT_RAW; */
 		// chn[index].fs_chn_attr.nrVBs = 2;
 		bypass_en = IMPISP_TUNING_OPS_MODE_ENABLE;
@@ -875,7 +875,7 @@ int sample_encoder_init(int ch)
             IMP_LOG_ERR(TAG, "IMP_FrameSource_GetI2dAttr(%d) error !\n", chn[i].index);
             return -1;
         }
-        printf("ch:%d en:%d rotate en:%d ratate:%d\n", chn[i].index, sti2dattr.i2d_enable, sti2dattr.rotate_enable, sti2dattr.rotate_angle);
+        // printf("ch:%d en:%d rotate en:%d ratate:%d\n", chn[i].index, sti2dattr.i2d_enable, sti2dattr.rotate_enable, sti2dattr.rotate_angle);
 
         // if (ch == 3) {
 	    //     // memset(&sti2dattr,0x0,sizeof(IMPFSI2DAttr));
@@ -2065,48 +2065,48 @@ static int save_stream2(int fd, IMPEncoderStream *stream, int ch)
 	return 0;
 }
 
-static int save_stream_end(int fd, IMPEncoderStream *stream, int ch)
-{
-	int ret, i, nr_pack = stream->packCount;
+// static int save_stream_end(int fd, IMPEncoderStream *stream, int ch)
+// {
+// 	int ret, i, nr_pack = stream->packCount;
 
-  //IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u start----------\n", stream->packCount, stream->seq);
+//   //IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u start----------\n", stream->packCount, stream->seq);
 	
-	for (i = 0; i < nr_pack; i++) {
-	//IMP_LOG_DBG(TAG, "[%d]:%10u,%10lld,%10u,%10u,%10u\n", i, stream->pack[i].length, stream->pack[i].timestamp, stream->pack[i].frameEnd, *((uint32_t *)(&stream->pack[i].nalType)), stream->pack[i].sliceType);
-		IMPEncoderPack *pack = &stream->pack[i];
-		if(pack->length){
-			uint32_t remSize = stream->streamSize - pack->offset;
-			if(remSize < pack->length){
-				ret = write(fd, (void *)(stream->virAddr + pack->offset), remSize);
-				if (ret != remSize) {
-					IMP_LOG_ERR(TAG, "stream write ret(%d) != pack[%d].remSize(%d) error:%s\n", ret, i, remSize, strerror(errno));
-					return -1;
-				}
-				ret = write(fd, (void *)stream->virAddr, pack->length - remSize);
-				if (ret != (pack->length - remSize)) {
-					IMP_LOG_ERR(TAG, "stream write ret(%d) != pack[%d].(length-remSize)(%d) error:%s\n", ret, i, (pack->length - remSize), strerror(errno));
-					return -1;
-				}
-			}else {
-				ret = write(fd, (void *)(stream->virAddr + pack->offset), pack->length);
-				if (ret != pack->length) {
-					IMP_LOG_ERR(TAG, "stream write ret(%d) != pack[%d].length(%d) error:%s\n", ret, i, pack->length, strerror(errno));
-					return -1;
-				}
-			}
-		}
-		total[ch] += pack->length;
-		// printf("E:nr_pack:%d/%d len:%d\n", i, nr_pack, pack->length);
-	}
+// 	for (i = 0; i < nr_pack; i++) {
+// 	//IMP_LOG_DBG(TAG, "[%d]:%10u,%10lld,%10u,%10u,%10u\n", i, stream->pack[i].length, stream->pack[i].timestamp, stream->pack[i].frameEnd, *((uint32_t *)(&stream->pack[i].nalType)), stream->pack[i].sliceType);
+// 		IMPEncoderPack *pack = &stream->pack[i];
+// 		if(pack->length){
+// 			uint32_t remSize = stream->streamSize - pack->offset;
+// 			if(remSize < pack->length){
+// 				ret = write(fd, (void *)(stream->virAddr + pack->offset), remSize);
+// 				if (ret != remSize) {
+// 					IMP_LOG_ERR(TAG, "stream write ret(%d) != pack[%d].remSize(%d) error:%s\n", ret, i, remSize, strerror(errno));
+// 					return -1;
+// 				}
+// 				ret = write(fd, (void *)stream->virAddr, pack->length - remSize);
+// 				if (ret != (pack->length - remSize)) {
+// 					IMP_LOG_ERR(TAG, "stream write ret(%d) != pack[%d].(length-remSize)(%d) error:%s\n", ret, i, (pack->length - remSize), strerror(errno));
+// 					return -1;
+// 				}
+// 			}else {
+// 				ret = write(fd, (void *)(stream->virAddr + pack->offset), pack->length);
+// 				if (ret != pack->length) {
+// 					IMP_LOG_ERR(TAG, "stream write ret(%d) != pack[%d].length(%d) error:%s\n", ret, i, pack->length, strerror(errno));
+// 					return -1;
+// 				}
+// 			}
+// 		}
+// 		total[ch] += pack->length;
+// 		// printf("E:nr_pack:%d/%d len:%d\n", i, nr_pack, pack->length);
+// 	}
 	
-  //IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u end----------\n", stream->packCount, stream->seq);
-	if (nr_pack > 1) {
-		printf("Total Len : %d\n", total[ch]);
-		return 1;
-	}
+//   //IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u end----------\n", stream->packCount, stream->seq);
+// 	if (nr_pack > 1) {
+// 		printf("Total Len : %d\n", total[ch]);
+// 		return 1;
+// 	}
 
-	return 0;
-}
+// 	return 0;
+// }
 
 extern pthread_mutex_t buffMutex_vm;
 int Send_Frame_Main_UDP(IMPEncoderStream *stream) {

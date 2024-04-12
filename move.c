@@ -20,6 +20,7 @@
 // #include "move-common.h"
 #include "video-common.h"
 #include "global_value.h"
+#include "setting.h"
 
 #define TAG "MOVE"
 
@@ -58,7 +59,7 @@ int sample_ivs_move_start(int grp_num, int chn_num, IMPIVSInterface **interface)
     //check ivs version    
 	move_param_input_t param;
 	memset(&param, 0, sizeof(move_param_input_t));
-	param.sense = 2;
+	param.sense = settings.move_sensitivty;
 	param.frameInfo.width = 1920;
 	param.frameInfo.height = 1080;
 	param.min_h = 50;

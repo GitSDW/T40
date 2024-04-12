@@ -10,7 +10,7 @@ extern "C" {
 
 #define MAJOR_VER	"0"
 #define MINOR_VER	"2"	
-#define CAHR_VER	"m"
+#define CAHR_VER	"o"
 
 typedef struct CIRCULAR_BUFF
 {
@@ -61,7 +61,9 @@ int move_det_xs, move_det_ys, move_det_xe, move_det_ye;
 #define V_SEND_RESERV 5
 #define V_BUFF_SIZE 256*1024
 #define MAX_REC_TIME 60000000	// 60 * 1000 * 1000 usec
+#define ROAMING_PER_TIME 30000000	// 60 * 1000 * 1000 usec
 #define THUMBNAIL_TIME 5000000
+#define FACE_FIND_END_TIME 10000000
 
 int data_sel;
 char ip[30];
@@ -126,15 +128,24 @@ typedef struct THUM_SNAP
 	int ey[10];
 } Thum_Data_t;
 
-// typedef struct STREAMING_REC
-// {
-// 	int rec_cnt;
-// 	uint32_t rec_start[20];
-// 	uint32_t rec_end[20];
-// } Streaming_Rec_t;
-
 // Thum_Data_t mosaic_data;
 Thum_Data_t thum_face_data;
+
+typedef struct STREAMING_REC
+{
+	int64_t rec_time[20];
+	int rec_fcnt[20];
+} Streaming_Rec_t;
+
+Streaming_Rec_t str_rec_t;
+
+typedef struct CLIP_CAUSE
+{
+	uint8_t Major;
+	uint8_t Minor;
+} Clip_Cause_t;
+
+Clip_Cause_t clip_cause_t;
 
 #define START_CHECK_TIME 5000000
 #define READY_BUSY_TIME 5
@@ -154,6 +165,8 @@ int rec_cnt;
 int clip_rec_state;
 int streaming_rec_state;
 int bell_rec_state;
+
+int boot_mode;
 
 // bool rec_stop;
 // bool main_rec_end;
@@ -176,7 +189,7 @@ bool dot_En;
 bool light_on;
 bool rec_on;
 bool rec_mem_flag;
-// Streaming_Rec_t str_rec_t;
+
 
 extern int bExit;
 
@@ -204,6 +217,56 @@ enum REC_STATE {
 	REC_STOP,				// 3
 	REC_WAIT,				// 4
 	REC_MP4MAKE,		// 5
+};
+
+enum CLIP_CAUSE_ENUM {
+	CLIP_CAUSE_REV   = 0,	// 0
+	CLIP_CAUSE_MOVE  = 1,	// 1
+	CLIP_CAUSE_BOX   = 2,	// 2
+	CLIP_CAUSE_BELL  = 3,	// 3
+	CLIP_CAUSE_FACE  = 4,	// 4
+	CLIP_CAUSE_STREM = 5,	// 5
+	CLIP_CAUSE_MOUNT = 6, // 6
+};
+
+enum CLIP_MOVE {
+	CLIP_MOVE_REV   = 0,	// 0
+	CLIP_MOVE_MOVE  = 1,  // 1
+	CLIP_MOVE_PER		= 2,  // 2
+};
+
+enum CLIP_BOX {
+	CLIP_BOX_REV   = 0,	// 0
+	CLIP_BOX_OCCUR = 1,  // 1
+	CLIP_BOX_DISAP = 2,  // 2
+};
+
+enum CLIP_STRM {
+	CLIP_STRM_REV   = 0,	// 0
+	CLIP_STRM_REC   = 1,  // 1
+};
+
+enum CLIP_FACE {
+	CLIP_FACE_REV   = 0,	// 0
+	CLIP_FACE_DET   = 1,  // 1
+};
+
+enum CLIP_STREAM {
+	CLIP_STREAM_REV   = 0,	// 0
+	CLIP_STREAM_REC   = 1,  // 1
+};
+
+enum CLIP_BELL {
+	CLIP_BELL_REV   = 0,	// 0
+	CLIP_BELL_CALL = 1,  // 1
+	CLIP_BELL_BELL = 2,  // 2
+};
+
+
+enum CLIP_MOUNT {
+	CLIP_MOUNT_REV   = 0,	// 0
+	CLIP_MOUNT_MOUNT = 1,  // 1
+	CLIP_MOUNT_DISMT = 2,  // 2
 };
 
 

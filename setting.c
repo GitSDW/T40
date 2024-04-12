@@ -86,10 +86,7 @@ void loadSettings(Settings *settings, const char *filename) {
         fclose(file);
     } else {
         // 파일이 없는 경우 기본값으로 설정
-        settings->height = 0;
-        settings->width = 0;
-        settings->length = 0;
-        settings->exposure = 0;
+        settings->spk_vol = 0;
         printf("Warning: Unable to open file for reading. Loading default settings.\n");
     }
 }
@@ -97,10 +94,26 @@ void loadSettings(Settings *settings, const char *filename) {
 void Setting_Reinit(void) {
     printf("Setting Reinit.\n");
     // 기본 설정값 사용
-    settings.height = 0;
-    settings.width = 0;
-    settings.length = 0;
-    settings.exposure = 0;
+    settings.spk_vol = 4;
+    settings.bell_type = 0;
+    settings.move_sensitivty = 2;
+    settings.move_ex_s_x = 0;
+    settings.move_ex_s_y = 0;
+    settings.move_ex_e_x = 0;
+    settings.move_ex_e_y = 0;
+    for (int i=0; i<28; i++) {
+        settings.door_grid[i] = 0;
+        settings.user_grid[i] = 0;
+    }
+
+    settings.SF.bits.led = 1;
+    settings.SF.bits.backlight = 1;
+    settings.SF.bits.flicker = 1;
+    settings.SF.bits.move_ex = 0;
+    settings.SF.bits.per_face = 0;
+    settings.SF.bits.door_g = 0;
+    settings.SF.bits.user_g = 0;
+
     // 파일에 설정값 저장
     saveSettings(&settings, setting_file);
     // 파일의 CRC 값 저장
@@ -143,10 +156,8 @@ void Setting_Init(void) {
 
     // 현재 설정값 출력
     printf("Current settings:\n");
-    printf("Height: %d\n", settings.height);
-    printf("Width: %d\n", settings.width);
-    printf("Length: %d\n", settings.length);
-    printf("Exposure: %d\n", settings.exposure);
+    printf("Spk Vol: %d\n", settings.spk_vol);
+    printf("Setting Flag : 0x%04X\n", settings.SF.bytes);
 }
 
 void Setting_Save(void) {

@@ -13,6 +13,7 @@
 #include "video-common.h"
 #include "move.h"
 #include "gpio.h"
+#include "setting.h"
 
 #define TAG "video"
 
@@ -695,35 +696,37 @@ int video_init(void) {
 	///////////////////////////// Expose Change ///////////////////////
 	IMPISPAEExprInfo expose_inf;
 	IMP_ISP_Tuning_GetAeExprInfo(IMPVI_MAIN, &expose_inf);
-	printf("Expose mode:%d Value:%d\n", expose_inf.AeMode, expose_inf.ExposureValue);
+	// printf("Expose mode:%d Value:%d\n", expose_inf.AeMode, expose_inf.ExposureValue);
 	// printf("igtime:%d again:%d dgain:%d idgain:%d\n", expose_inf.AeIntegrationTime, expose_inf.AeAGain, expose_inf.AeDGain, expose_inf.AeIspDGain);
 	// printf("igmode:%d amode:%d dmode:%d\n", expose_inf.AeIntegrationTimeMode, expose_inf.AeAGainManualMode, expose_inf.AeDGainManualMode);
 
 	ExpVal = expose_inf.ExposureValue;
 
-	// init_igtime = expose_inf.AeIntegrationTime;
-	expose_inf.AeMinIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
-	expose_inf.AeMinIntegrationTime = 200;
-	// expose_inf.AeMinAGainMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
-	// expose_inf.AeMinAGain = 0;
-	// expose_inf.AeMinDgainMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
-	// expose_inf.AeMinDgain = 0;
+	if (settings.SF.bits.flicker) {
+		// init_igtime = expose_inf.AeIntegrationTime;
+		expose_inf.AeMinIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+		expose_inf.AeMinIntegrationTime = 200;
+		// expose_inf.AeMinAGainMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+		// expose_inf.AeMinAGain = 0;
+		// expose_inf.AeMinDgainMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+		// expose_inf.AeMinDgain = 0;
 
-	// expose_inf.AeMode = IMPISP_TUNING_OPS_TYPE_AUTO;
-	// expose_inf.AeIntegrationTimeMode = ISP_CORE_EXPR_UNIT_US;
-	// expose_inf.AeIntegrationTime = 159;
-	// expose_inf.AeAGainManualMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
-	// expose_inf.AeAGain = 1;
-	// expose_inf.AeDGainManualMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
-	// expose_inf.AeDGain = 1;
-	// expose_inf.AeIspDGainManualMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
-	// expose_inf.AeIspDGain = 100;
+		// expose_inf.AeMode = IMPISP_TUNING_OPS_TYPE_AUTO;
+		// expose_inf.AeIntegrationTimeMode = ISP_CORE_EXPR_UNIT_US;
+		// expose_inf.AeIntegrationTime = 159;
+		// expose_inf.AeAGainManualMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+		// expose_inf.AeAGain = 1;
+		// expose_inf.AeDGainManualMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+		// expose_inf.AeDGain = 1;
+		// expose_inf.AeIspDGainManualMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+		// expose_inf.AeIspDGain = 100;
 
-	// expose_inf.AeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
-	// expose_inf.AeIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
-	// expose_inf.AeIntegrationTime = 90;
+		// expose_inf.AeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+		// expose_inf.AeIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+		// expose_inf.AeIntegrationTime = 90;
 
-	IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN, &expose_inf);
+		IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN, &expose_inf);
+	}
 
 
 	// IMPISPTuningOpsMode mode = IMPISP_TUNING_OPS_MODE_ENABLE;
@@ -774,15 +777,15 @@ int video_init(void) {
 	IMPEncoderAttrRcMode encecmode;
 
 	IMP_Encoder_GetChnAttrRcMode(CH0_INDEX, &encecmode);
-	printf("enc rc mode:%d\n", encecmode.rcMode);
-	printf("enc rc CBR uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
-	printf("enc rc CBR iInitialQP:%d\n", encecmode.attrCbr.iInitialQP);
-	printf("enc rc CBR iMinQP:%d\n", encecmode.attrCbr.iMinQP);
-	printf("enc rc CBR iMaxQP:%d\n", encecmode.attrCbr.iMaxQP);
-	printf("enc rc CBR iIPDelta:%d\n", encecmode.attrCbr.iIPDelta);
-	printf("enc rc CBR iPBDelta:%d\n", encecmode.attrCbr.iPBDelta);
-	printf("enc rc CBR eRcOptions:%d\n", encecmode.attrCbr.eRcOptions);
-	printf("enc rc CBR uMaxPictureSize:%d\n", encecmode.attrCbr.uMaxPictureSize);
+	// printf("enc rc mode:%d\n", encecmode.rcMode);
+	// printf("enc rc CBR uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
+	// printf("enc rc CBR iInitialQP:%d\n", encecmode.attrCbr.iInitialQP);
+	// printf("enc rc CBR iMinQP:%d\n", encecmode.attrCbr.iMinQP);
+	// printf("enc rc CBR iMaxQP:%d\n", encecmode.attrCbr.iMaxQP);
+	// printf("enc rc CBR iIPDelta:%d\n", encecmode.attrCbr.iIPDelta);
+	// printf("enc rc CBR iPBDelta:%d\n", encecmode.attrCbr.iPBDelta);
+	// printf("enc rc CBR eRcOptions:%d\n", encecmode.attrCbr.eRcOptions);
+	// printf("enc rc CBR uMaxPictureSize:%d\n", encecmode.attrCbr.uMaxPictureSize);
 
 
 	// IMP_Encoder_SetChnAttrRcMode(CH0_INDEX, encecmode);
@@ -800,7 +803,7 @@ int video_init(void) {
 
 	// printf("2 fps_num:%d fps_den:%d\n", fps_num, fps_den);
 
-	// Mosaic_En = false;
+	// Mosaic_En = settings.SF.bits.per_face;
 	///////////////////////////////////////////////////////////////////
 
 	return 0;
@@ -1281,7 +1284,7 @@ void *OSD_thread(void *args)
 			// isp_integration_time(0, 0);
 			// SceneceSet(0, 0);
 		}
-		if (total_time/150000 != BLC_time) {
+		if (total_time/150000 != BLC_time && settings.SF.bits.backlight) {
 			BLC_time = total_time/150000;
 			BLC_User();
 		}

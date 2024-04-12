@@ -20,10 +20,22 @@ typedef enum {
 } MAJOR;
 
 typedef enum {
-	TEST_START  	= 0x01,
+	STREAM_START  	= 0x01,
+	STREAM_REV  	= 0x02,
+	STREAM_VEDIO_M	= 0x03,
+	STREAM_VEDIO_B  = 0x04,
+	STREAM_FACE  	= 0x05,
+	STREAM_AUDIO_F  = 0x06,
+	STREAM_AUDIO_B  = 0x07,  // Backward
 
-	TEST_STOP  		= 0x7F
-} MINOR_TEST;
+	USTREAM_REC_S	= 0x41,
+	USTREAM_REC_E 	= 0x42,
+	USTREAM_MIC_VOL	= 0x43,
+	USTREAM_LIGHT 	= 0x44,
+
+	STREAM_ACK  	= 0x80,
+	STREAM_STOP  	= 0x7F,
+} MINOR_STREAMING;
 
 typedef enum {
 	REC_DEV_START  	= 0x01,
@@ -37,29 +49,41 @@ typedef enum {
 	REC_STREAMING_M = 0x09,
 	REC_STREAMING_B = 0x0A,
  	REC_STREAM_END	= 0x0F,  // Not Used, Backward
+
+	UREC_BELL 		= 0x41,
+	UREC_FACE		= 0x42,	
+
 	REC_ACK  		= 0x80,
-
-	REC_DEV_STOP  	= 0x7F
+	REC_DEV_STOP  	= 0x7F,
 } MINOR_REC;
-
-typedef enum {
-	STREAM_START  	= 0x01,
-	STREAM_REV  	= 0x02,
-	STREAM_VEDIO_M	= 0x03,
-	STREAM_VEDIO_B  = 0x04,
-	STREAM_FACE  	= 0x05,
-	STREAM_AUDIO_F  = 0x06,
-	STREAM_AUDIO_B  = 0x07,  // Backward
-	// STREAM_AUDIO_R  = 8,  // Backward
-
-	STREAM_STOP  	= 0x7F
-} MINOR_STREAMING;
 
 typedef enum {
 	SET_START  		= 0x00,
 
-	SET_STOP  		= 0x7F
+	SET_LED			= 0x41,
+	SET_BELL_VOL	= 0x42,
+	SET_SPK_VOL		= 0x43,
+	SET_BACK_LIGHT	= 0x44,
+	SET_FLICKER		= 0x45,
+	SET_MOVE_SENSI	= 0x46,
+	SET_EX_ONOF		= 0x47,
+	SET_FACE_MOSAIC = 0x48,
+	SET_DOOR_ONOF	= 0x49,
+	SET_USER_ONOF	= 0x4A,
+	SET_EX_AREA		= 0x4B,
+	SET_DOOR_GRID	= 0x4C,
+	SET_USER_GRID	= 0x4D,
+
+	SET_STOP  		= 0x7F,
 } MINOR_SETTING;
+
+typedef enum {
+	TEST_START  	= 0x01,
+
+	TEST_STOP  		= 0x7F,
+} MINOR_TEST;
+
+
 
 
 
@@ -72,16 +96,7 @@ typedef enum {
 } MINOR_UART_REC;
 
 
-typedef enum {
-	USTREAM_START  	= 0x01,
-	USTREAM_REC_S	= 0x0A,
-	USTREAM_REC_E 	= 0x0B,
-	USTREAM_MIC_VOL	= 0x0C,
-	USTREAM_FACE 	= 0x0D,
-	USTREAM_LIGHT 	= 0x0E,
 
-	USTREAM_STOP  	= 0x7F
-} MINOR_UART_STREAMING;
 
 int spi_init(void);
 void spi_deinit(void);

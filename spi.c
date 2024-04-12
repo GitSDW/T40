@@ -763,19 +763,18 @@ int spi_send_file(uint8_t minor, char *file)
     read_buff[4] = sz_file&0xFF;
     if (minor == REC_CLIP_F || minor == REC_CLIP_B) {
         len = 7;
-        read_buff[5] = 0x01;
-        if (!roaming_person) read_buff[6] = 0x01;
-        else read_buff[6] = 0x02;
+        read_buff[5] = clip_cause_t.Major;
+        read_buff[6] = clip_cause_t.Minor;
     }
     else if (minor == REC_BOX_ALM) {
         len = 7;
-        read_buff[5] = 0x02;
-        read_buff[6] = 0x01;
+        read_buff[5] = CLIP_CAUSE_BOX;
+        read_buff[6] = CLIP_BOX_OCCUR;
     }
     else if (minor == REC_STREAMING_M ||minor == REC_STREAMING_B) {
         len = 7;
-        read_buff[5] = 0x05;
-        read_buff[6] = 0x01;
+        read_buff[5] = CLIP_CAUSE_STREM;
+        read_buff[6] = CLIP_STREAM_REC;
     }
     else {
         len = 5;

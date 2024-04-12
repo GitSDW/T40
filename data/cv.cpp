@@ -608,7 +608,7 @@ int Make_Spi_Packet(Spi_Protocol *attr)
             switch(attr->minor){
                 case REC_START:
                     break;
-                case REC_STREAM_STR:
+                case REC_RESERVED:
                 case REC_CLIP_F:
                     memcpy(&attr->buff[8], attr->data, attr->len);
                     break;
@@ -742,7 +742,7 @@ int main(int argc, char **argv)
     Spi_Ptl_Attr.buff = tx_buf;
     Spi_Ptl_Attr.data = rd_buf;
     Spi_Ptl_Attr.major = REC;
-    Spi_Ptl_Attr.minor = REC_STREAM_STR;
+    Spi_Ptl_Attr.minor = REC_RESERVED;
     Spi_Ptl_Attr.len = 1;
     Make_Spi_Packet(&Spi_Ptl_Attr);
     SPI_RWTEST2(SPI_TEST_WMODE, tx_buf, SPI_SEND_LENGTH); // data start
