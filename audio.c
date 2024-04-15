@@ -584,7 +584,7 @@ void * IMP_Audio_Record_AEC_Thread(void *argv)
 			IMP_LOG_ERR(TAG, "Audio Polling Frame Data error\n");
 		}
 		IMPAudioFrame frm;
-		ret = IMP_AI_GetFrame(ai_devID, ai_chnID, &frm, BLOCK);
+		ret = IMP_AI_GetFrame(ai_devID, ai_chnID, &frm, NOBLOCK);
 		if(ret != 0) {
 			IMP_LOG_ERR(TAG, "Audio Get Frame Data error\n");
 			return NULL;
@@ -867,7 +867,7 @@ void ao_file_play_thread(void *argv)
 		IMPAudioFrame frm;
 		frm.virAddr = (uint32_t *)buf;
 		frm.len = size;
-		ret = IMP_AO_SendFrame(ao_devID, ao_chnID, &frm, BLOCK);
+		ret = IMP_AO_SendFrame(ao_devID, ao_chnID, &frm, NOBLOCK);
 		if (ret != 0) {
 			IMP_LOG_ERR(TAG, "send Frame Data error\n");
 			return;
@@ -935,7 +935,7 @@ void ao_file_play_pcm_thread(void *argv)
 		IMPAudioFrame frm;
 		frm.virAddr = (uint32_t *)buf;
 		frm.len = size;
-		ret = IMP_AO_SendFrame(ao_devID, ao_chnID, &frm, BLOCK);
+		ret = IMP_AO_SendFrame(ao_devID, ao_chnID, &frm, NOBLOCK);
 		if (ret != 0) {
 			IMP_LOG_ERR(TAG, "send Frame Data error\n");
 			return;
@@ -977,7 +977,7 @@ void *IMP_Audio_InOut_AEC_Thread(void *argv)
 			IMP_LOG_ERR(TAG, "Audio Polling Frame Data error\n");
 		}
 		IMPAudioFrame frm;
-		ret = IMP_AI_GetFrame(ai_devID, ai_chnID, &frm, BLOCK);
+		ret = IMP_AI_GetFrame(ai_devID, ai_chnID, &frm, NOBLOCK);
 		if(ret != 0) {
 			IMP_LOG_ERR(TAG, "Audio Get Frame Data error\n");
 			return NULL;

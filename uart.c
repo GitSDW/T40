@@ -372,6 +372,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
     case DTEST_BACK:
 
     case REC_BACK:
+        switch(minor) {
         case UREC_BELL:
             
             if (settings.bell_type == 0) effect_file = "/tmp/mnt/sdcard/effects/ready_16.wav";
@@ -389,7 +390,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 clip_cause_t.Minor = CLIP_BELL_BELL; 
             }
         break;
-
+        }
     break;
     case STREAMING_BACK:
         switch(minor) {
@@ -436,7 +437,9 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             ack_len = 0;
             ack_flag = true;
         break;
-
+        case USTREAM_F_SEND:
+            rec_end = true;
+        break;
         }
     break;
     case SETTING_BACK:

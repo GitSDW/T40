@@ -24,13 +24,18 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
         cerr << image2Path << ends;
         return -2;
     }
+
+    cv::Rect roi(160, 180, 1600, 900-50);
+    img1 = img1(roi);
+    img2 = img2(roi);
+    
     int height = img1.rows;
     int width = img1.cols;
 
-    int borderSize = 100;
-    cv::Rect roi(borderSize, height/4, width - 2 * borderSize, height*3/4 - borderSize);
-    img1 = img1(roi);
-    img2 = img2(roi);
+    // int borderSize = 100;
+    // cv::Rect roi(borderSize, height/4, width - 2 * borderSize, height*3/4 - borderSize);
+    // img1 = img1(roi);
+    // img2 = img2(roi);
     
     cv::Mat gray1, gray2;
     cv::cvtColor(img1, gray1, cv::COLOR_BGR2GRAY);
@@ -65,22 +70,24 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
             cv::Rect boundingRect = cv::boundingRect(contours[i]);
 
             if (boundingRect.width >= 50 && boundingRect.height > 50) {
-                box_cnt++;
+                // box_cnt++;
+
                 // Maximum Scale Box
-                boxscale = boundingRect.width * boundingRect.height;
-                if (boxscale > boxscale2){
-                    boxscale2 = boxscale;
-                    // boundingRect2 = boundingRect;
-                }
+                // boxscale = boundingRect.width * boundingRect.height;
+                // if (boxscale > boxscale2){
+                    // boxscale2 = boxscale;
+                // }
                 // Box Find area
                 // if (boundingRect.x >= width/2 && boundingRect.x <= height/2) {
-                if (boundingRect.y+boundingRect.width >= width/2 && boundingRect.y+boundingRect.height <= height/2) {
+                // if (boundingRect.y+boundingRect.height >= height/3) {
+                if (boundingRect.y >= height/3 && boundingRect.y+boundingRect.height > height/2) {
                         // cv::rectangle(img2, boundingRect, cv::Scalar(0, 255, 0), 2);
                         // NULL;
                     // }
+                    box_cnt++;
+                    cv::rectangle(img2, boundingRect, cv::Scalar(0, 255, 0), 2);
                 }
-                cv::rectangle(img2, boundingRect, cv::Scalar(0, 255, 0), 2);
-
+                // cv::rectangle(img2, boundingRect, cv::Scalar(0, 255, 0), 2);
             }
         }
         // printf("box count:%d\n", ); 

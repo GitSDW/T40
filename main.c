@@ -140,6 +140,7 @@ int global_value_init(void) {
 	dot_En = false;
 	rec_on = false;
 	rec_mem_flag = false;
+	rec_end = false;
 
 	for(i=0;i<10;i++){
 		fdpd_data[i].flag = false;
@@ -1678,6 +1679,7 @@ int clip_total(void) {
 
     		system("cp /tmp/mnt/sdcard/box_before.jpg /tmp/mnt/sdcard/box_before2.jpg");
     		system("cp /vtmp/box0.jpg /tmp/mnt/sdcard/box_before.jpg");
+    		system("cp /vtmp/box_result.jpg /tmp/mnt/sdcard/box_before3.jpg");
 
 			if (face_snap == false) bStrem = true;
 
@@ -2271,7 +2273,48 @@ int stream_total(void) {
 			// break;
 		}
 #else
+		if (rec_end) {
+			printf("cmd 20 streaming end & save file send\n");
+			bExit = 1;
+			bStrem = true;
 
+			if (streaming_rec_state == REC_WAIT) streaming_rec_state = REC_MP4MAKE;
+			else printf("streaming_rec_state Error:%d\n", streaming_rec_state);
+
+			if (streaming_rec_state == REC_MP4MAKE) {
+				for(int i=0; i<rec_cnt; i++) {
+					memset(file_sep, 0, 256);
+					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/rec-0-%d.h265 -c copy /vtmp/rec0_%d.mp4", i+1, i+1);
+					system(file_sep);
+					memset(file_sep, 0, 256);
+					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/rec-3-%d.h265 -c copy /vtmp/rec1_%d.mp4", i+1, i+1);
+					system(file_sep);
+
+					if (Ready_Busy_Check()){
+						printf("rec0_%d.mp4 Start!\n", i+1);
+						memset(file_path, 0, 128);
+						sprintf(file_path, "/vtmp/rec0_%d.mp4", i+1);
+						spi_send_file(REC_STREAMING_M, file_path);
+					}
+					else {
+						printf("Fail to Send rec0_%d.mp4\n", i+1);
+					}
+					
+					if (Ready_Busy_Check()){
+						printf("rec1_%d.mp4 Start!\n", i+1);
+						memset(file_path, 0, 128);
+						sprintf(file_path, "/vtmp/rec1_%d.mp4", i+1);
+						spi_send_file(REC_STREAMING_B, file_path);
+					}
+					else {
+						printf("Fail to Send rec0_%d.mp4\n", i+1);
+					}
+				}
+			}
+			spi_device_off(STREAMING);
+			printf("Streaming Mode End!!\n");
+			return;
+		}
 #endif
 			
 	}while(1);

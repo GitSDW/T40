@@ -10,7 +10,7 @@ extern "C" {
 
 #define MAJOR_VER	"0"
 #define MINOR_VER	"2"	
-#define CAHR_VER	"o"
+#define CAHR_VER	"p"
 
 typedef struct CIRCULAR_BUFF
 {
@@ -189,6 +189,7 @@ bool dot_En;
 bool light_on;
 bool rec_on;
 bool rec_mem_flag;
+bool rec_end;
 
 
 extern int bExit;
@@ -271,7 +272,7 @@ enum CLIP_MOUNT {
 
 
 // #define __TEST_FAKE_VEDIO__
-#define __STREAMING_CMD__
+// #define __STREAMING_CMD__
 
 #ifdef __TEST_FAKE_VEDIO__
 	int led_cnt;
