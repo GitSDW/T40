@@ -16,6 +16,7 @@ int SetTime(int year, int month, int day, int hour, int min, int sec);
 int GetTime(void);
 void record_shutdown_time();
 void set_system_time_from_file();
+int file_ck(const char* filename);
 
 #if __cplusplus
 }

@@ -12,6 +12,7 @@
 #include "audio.h"
 #include "global_value.h"
 #include "video.h"
+#include "c_util.h"
 
 char *mypc_ip = "192.168.0.113";
 const char *dev_ip 	= "192.168.0.113";
@@ -82,13 +83,54 @@ void deinit_udp(uint8_t index) {
 	else printf("Udp Deinit Index Error!!\n");
 }
 
+#ifdef __H265__
 ssize_t udp_vm_send(uint8_t *udp_data, uint16_t len) {
 	ssize_t ret = sendto(send_sock, udp_data, len, 0, (struct sockaddr*)&send_vm_serverAddr, sizeof(send_vm_serverAddr));
 	if (ret <= 0) {
 		perror("Fail to Send Vedio Main UDP\n");
 	}
 	return ret;
+}	
+
+#else
+typedef struct  {
+    uint8_t version_padding_extension_cc;
+    uint8_t marker_payload_type;
+    uint8_t sequence_number[2];
+    uint32_t timestamp;
+    uint32_t ssrc;
+}RTPHeader;
+
+ssize_t udp_vm_send(uint8_t *udp_data, uint16_t len) {
+	static uint16_t seq_num = 0;
+	RTPHeader header;
+	uint8_t *buf;
+
+	buf = malloc(1000);
+
+	header.version_padding_extension_cc = 0x80;
+	header.marker_payload_type = 0x61;
+	header.sequence_number[0] = (seq_num&0xFF00) >> 8;;
+	header.sequence_number[1] = seq_num&0xFF;
+	// header.timestamp = sample_gettimeus();
+	header.timestamp = 4356433;
+	header.ssrc = 123465879;
+
+	memcpy(buf, (uint8_t*)&header, sizeof(RTPHeader));
+	memcpy(buf+sizeof(RTPHeader), udp_data, len);
+
+	// ssize_t ret = sendto(send_sock, udp_data, len, 0, (struct sockaddr*)&send_vm_serverAddr, sizeof(send_vm_serverAddr));
+	ssize_t ret = sendto(send_sock, buf, len+12, 0, (struct sockaddr*)&send_vm_serverAddr, sizeof(send_vm_serverAddr));
+	if (ret <= 0) {
+		perror("Fail to Send Vedio Main UDP\n");
+	}
+
+	seq_num++;
+
+	free(buf);
+	return ret;
 }
+#endif
 
 ssize_t udp_vb_send(uint8_t *udp_data, uint16_t len) {
 	ssize_t ret = sendto(send_sock, udp_data, len, 0, (struct sockaddr*)&send_vb_serverAddr, sizeof(send_vb_serverAddr));

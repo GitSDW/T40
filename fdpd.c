@@ -342,28 +342,28 @@ void *fdpd_thread(void *args)
     printf("faceperson detect\n");
     int ret = 0;
     int i;
-    uint64_t now_time;
+    // uint64_t now_time;
     IMPIVSInterface *inteface = NULL;
     facepersondet_param_output_t *result = NULL;
 
-    int fd = -1, str_p = 0;
+    // int fd = -1, str_p = 0;
     int face_num=0, person_num=0, nodet_cnt=0;
-    char framefilename[64];
-    char *fp_data;
-    char *face[10];
+    // char framefilename[64];
+    // char *fp_data;
+    int face_track[5] = {256};
     int fdpd_en_cnt = 0;
     // int mosaic_cnt[10] = {0};
 
     
-    sprintf(framefilename, "/vtmp/faceperson.data");
-    fd = open(framefilename, O_RDWR | O_CREAT, 0x644);
-    if (fd < 0) {
-        IMP_LOG_ERR(TAG, "open %s failed\n", framefilename);
-    }
-    fp_data = (char*)malloc(1024);
-    for (i=0;i<10;i++){
-        face[i] = (char*)malloc(20);
-    }
+    // sprintf(framefilename, "/vtmp/faceperson.data");
+    // fd = open(framefilename, O_RDWR | O_CREAT, 0x644);
+    // if (fd < 0) {
+    //     IMP_LOG_ERR(TAG, "open %s failed\n", framefilename);
+    // }
+    // fp_data = (char*)malloc(1024);
+    // for (i=0;i<10;i++){
+    //     face[i] = (char*)malloc(20);
+    // }
 
     /* Step.4 Bind */
     // IMPCell framesource_cell = {DEV_ID_FS, FS_SUB_CHN, 0};
@@ -400,8 +400,8 @@ void *fdpd_thread(void *args)
         facepersondet_param_output_t* r = (facepersondet_param_output_t*)result;
         if(r->count > 0) {
             nodet_cnt = 0;
-            memset(fp_data, 0, 1024);
-            now_time = (sample_gettimeus() - start_time)/1000; // msec
+            // memset(fp_data, 0, 1024);
+            // now_time = (sample_gettimeus() - start_time)/1000; // msec
             face_num = 0;
             person_num = 0;
             fdpd_ck = true;
@@ -428,17 +428,24 @@ void *fdpd_thread(void *args)
                         face_num++;
                         // printf("fdpd cnt: %d/%d class : %d track %d confidence : %f x : %d y : %d\n"
                             // , i, r->count, class_id, track_id, confidence, fdpd_data[i].ul_x, fdpd_data[i].ul_y);
+                        // printf("fr:%d confidence:%f thumbnail_snap:%d\n", fr_state, confidence, thumbnail_snap);
                         // if ((fr_state == 1 && track_id > 0 && confidence > 0.85) &&
                         if ((fr_state == FR_START && confidence > 0.90 && !thumbnail_snap) &&
                             (((fdpd_data[i].ul_x+fdpd_data[i].br_x)/2) > 100) &&
                             (((fdpd_data[i].ul_x+fdpd_data[i].br_x)/2) < 1920 - 100) &&
                             (((fdpd_data[i].ul_y+fdpd_data[i].br_y)/2) > 100) &&
-                            (((fdpd_data[i].ul_y+fdpd_data[i].br_y)/2) < 1080 - 100) )
+                            (((fdpd_data[i].ul_y+fdpd_data[i].br_y)/2) < 1080 - 100) &&
+                            (face_track[0] != fdpd_data[i].trackid) &&
+                            (face_track[1] != fdpd_data[i].trackid) &&
+                            (face_track[2] != fdpd_data[i].trackid) &&
+                            (face_track[3] != fdpd_data[i].trackid) &&
+                            (face_track[4] != fdpd_data[i].trackid))
                             {
                             fr_state++;
                             facial_data.flag = fdpd_data[i].flag;
                             facial_data.classid = fdpd_data[i].classid;
                             facial_data.trackid = fdpd_data[i].trackid;
+                            face_track[face_crop_cnt] = facial_data.trackid;
                             facial_data.confidence = fdpd_data[i].confidence;
                             facial_data.ul_x = fdpd_data[i].ul_x;
                             facial_data.ul_y = fdpd_data[i].ul_y;
@@ -461,16 +468,16 @@ void *fdpd_thread(void *args)
             face_cnt = face_num;
             person_cnt = person_num;
 
-            if(face_num > 0) {
-                str_p = sprintf(fp_data, "%06lld/%d", now_time, face_num);
-                for(i=0; i<face_num; i++){
-                    str_p += sprintf(fp_data+str_p, "%s", face[i]);
-                }
-                str_p += sprintf(fp_data+str_p, "\n");
-                // printf("%s", fp_data);
-                if (write(fd, (void *)fp_data, str_p) != str_p)
-                   printf("write Len Err!");
-            }
+            // if(face_num > 0) {
+            //     str_p = sprintf(fp_data, "%06lld/%d", now_time, face_num);
+            //     for(i=0; i<face_num; i++){
+            //         str_p += sprintf(fp_data+str_p, "%s", face[i]);
+            //     }
+            //     str_p += sprintf(fp_data+str_p, "\n");
+            //     // printf("%s", fp_data);
+            //     if (write(fd, (void *)fp_data, str_p) != str_p)
+            //        printf("write Len Err!");
+            // }
         }
         else {
             nodet_cnt++;
@@ -503,11 +510,11 @@ void *fdpd_thread(void *args)
         return NULL;
     }
 
-    close(fd);
-    free(fp_data);
-    for (i=0;i<10;i++){
-        free(face[i]);
-    }
+    // close(fd);
+    // free(fp_data);
+    // for (i=0;i<10;i++){
+    //     free(face[i]);
+    // }
 
     return ((void*) 0);
 }

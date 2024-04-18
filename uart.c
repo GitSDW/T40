@@ -386,8 +386,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         case  UREC_FACE:
             if (rbuff[index+9] == 1) {
                 printf("Streaming Rec Face Detection!\n");
-                clip_cause_t.Major = CLIP_CAUSE_BELL;
-                clip_cause_t.Minor = CLIP_BELL_BELL; 
+                clip_cause_t.Major = CLIP_CAUSE_FACE;
+                clip_cause_t.Minor = CLIP_FACE_DET; 
             }
         break;
         }
@@ -468,7 +468,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
 
                 if (settings.bell_type == 0) effect_file = "/tmp/mnt/sdcard/effects/ready_16.wav";
                 else if (settings.bell_type == 1) effect_file = "/tmp/mnt/sdcard/effects/start2c.wav";
-                else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/end_16.wav";;
+                else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/start3c.wav";;
                 printf("play : %s\n", effect_file);
                 ao_file_play_thread(effect_file);
             }

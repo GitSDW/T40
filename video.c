@@ -53,7 +53,8 @@ static int osd_show(void)
 
 	IMPOSDRgnAttr cover_rAttr;
 	for (i=0; i<GRID_COVER_INDEX; i++) {
-		if (grid_cover_flag[i] == true){
+		if (settings.door_grid[i/8]&(0x01 << i%8)|| settings.user_grid[i/8]&(0x01 << i%8)) {
+		// if (grid_cover_flag[i] == true){
 			IMP_OSD_GetRgnAttr(prHander[2+RECT_INDEX+MOSAIC_INDEX+i], &cover_rAttr);
 			printf("grid[%d] x:%d y:%d \n", i, cover_rAttr.mosaicAttr.x, cover_rAttr.mosaicAttr.y);
 			ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+MOSAIC_INDEX+i], mosdgrp, 1);
@@ -352,7 +353,7 @@ uint8_t BLC_User(void) {
 
 	if (ae_mean > 160) {
 		if ((ae_mean-150) > 200) {
-			AeIntegrationTime -= 20;
+			AeIntegrationTime -= 10;
 		}
 		else if ((ae_mean-120) > 100){
 			AeIntegrationTime -= 5;
@@ -409,6 +410,8 @@ int video_init(void) {
 	osdcell.deviceID = DEV_ID_OSD;
 	osdcell.groupID = mosdgrp;
 	osdcell.outputID = 0;
+
+	printf("HEVC:0x%02x\n", IMP_ENC_PROFILE_AVC_HIGH);
 
 	/* Step.1 System init */
 	ret = sample_system_init();
@@ -650,7 +653,7 @@ int video_init(void) {
 
 	IMPISPHVFLIP hvf;
 	hvf = IMPISP_FLIP_HV_MODE;
-	IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN, &hvf);		// Main Cam Flip
+	// IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN, &hvf);		// Main Cam Flip
 	// hvf = IMPISP_FLIP_SHIV_MODE;
 	// IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN+1, &hvf);	// Box Cam Flip
 
@@ -1284,8 +1287,8 @@ void *OSD_thread(void *args)
 			// isp_integration_time(0, 0);
 			// SceneceSet(0, 0);
 		}
-		if (total_time/150000 != BLC_time && settings.SF.bits.backlight) {
-			BLC_time = total_time/150000;
+		if (total_time/200000 != BLC_time && settings.SF.bits.backlight) {
+			BLC_time = total_time/200000;
 			BLC_User();
 		}
 		if (polling_err_cnt > 6) {

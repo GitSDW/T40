@@ -117,6 +117,7 @@ int global_value_init(void) {
 	polling_err_cnt = 0;
 	rec_cnt = 0;
 	save_pcm = 0;
+	face_crop_cnt = 0;
 
 	// rec_state = REC_READY;
 	clip_rec_state = REC_READY;
@@ -385,6 +386,7 @@ int main(int argc, char **argv) {
     pthread_t tid_uart;
     printf("Ver : %s.%s.%s\n", MAJOR_VER, MINOR_VER, CAHR_VER);
 
+    
  
 
     Set_Vol(100,25,spk_vol_buf,15);
@@ -420,7 +422,7 @@ int main(int argc, char **argv) {
     		return 0;
     	}
     }
-    else if(mode == 0){
+    else if(mode == 3){
     	// printf("Setting Mode!!\n");
     	Setting_Total();
     }
@@ -1382,6 +1384,7 @@ int clip_total(void) {
 	bool start_flag = false;
 	
 	int64_t end_time = 0, total_time = 0;
+	int64_t end_time2 = 0, total_time2 = 0;
 	char file_path[128] = {0};
 	char file_sep[100] = {0};
 
@@ -1458,6 +1461,8 @@ int clip_total(void) {
 				start_flag = true;
 				roaming_person = false;
 				// start_time = sample_gettimeus();
+				clip_cause_t.Major = CLIP_CAUSE_MOVE;
+				clip_cause_t.Minor = CLIP_MOVE_MOVE;
 				end_time = start_time + 5000000;
 			}
 			else if ((sample_gettimeus() - start_time) > START_CHECK_TIME) {
@@ -1473,10 +1478,8 @@ int clip_total(void) {
 			// }
 
 			if((total_time > THUMBNAIL_TIME) && (fr_state == FR_WAIT) &&
-				(thumbnail_state == 0 || thumbnail_state == 3)) {
+				(thumbnail_state == THUMB_WAIT || thumbnail_state == THUMB_END)) {
 				printf("Thumb state : %d\n", thumbnail_state);
-				clip_cause_t.Major = CLIP_CAUSE_MOVE;
-				clip_cause_t.Minor = CLIP_MOVE_MOVE;
 				fr_state++;
 			}
 			else if(fr_state == FR_SNAPSHOT) {
@@ -1486,7 +1489,7 @@ int clip_total(void) {
 				if (ret < 0 && fpdp_cnt < 5) {
 					printf("Facial Fail. Retry.\n");
 					memset(file_sep, 0, 100);
-					sprintf(file_sep, "rm /vtmp/face*");
+					sprintf(file_sep, "rm /vtmp/face.jpg");
 					printf("%s\n", file_sep);
 					system(file_sep);
 					fr_state = FR_WAIT;
@@ -1497,20 +1500,27 @@ int clip_total(void) {
 				}
 			}
 			else if(fr_state == FR_SUCCESS) {
-				// Make File Send
-				if (Ready_Busy_Check()){
-					printf("Face Crop JPG Send!\n");
-					memset(file_path, 0, 64);
-					sprintf(file_path, "/vtmp/face_crop.jpg");
-					spi_send_file(REC_FACESHOT, file_path);
+				if (face_crop_cnt < 5)
+					fr_state = FR_WAIT;
+				else{
+					printf("Face Cnt : %d\n", face_crop_cnt);
+					fr_state = FR_END;
 				}
-				else {
-					printf("Fail to Face Crop JPG Send.\n");
-				}
-				fr_state = FR_END;
 			}
-			else if (total_time > MAX_REC_TIME - 5000000) {
+			else if (fr_state != FR_END && total_time > 30000000) {
 				fr_state = FR_END;	// fr_state 5 / Time out
+				// Make File Send
+				for (int l=0; l<face_crop_cnt; l++) {
+					if (Ready_Busy_Check()){
+						printf("Face Crop %d JPG Send!\n", l);
+						memset(file_path, 0, 64);
+						sprintf(file_path, "/vtmp/face_crop%d.jpg", l);
+						spi_send_file(REC_FACESHOT, file_path);
+					}
+					else {
+						printf("Fail to Face Crop %d JPG Send.\n", l);
+					}
+				}
 			}
 
 			if ((total_time > THUMBNAIL_TIME) && (thumbnail_state == THUMB_WAIT) &&
@@ -1543,7 +1553,7 @@ int clip_total(void) {
 				clip_cause_t.Minor = CLIP_MOVE_PER;
 			}
 
-			if ((total_time > MAX_REC_TIME) && (clip_rec_state == REC_ING)) {	// 60sec REC End
+			if ((total_time > MAX_REC_TIME) && (clip_rec_state == REC_ING)) {	// 60Sec Time Over -> Clip Stop
 				// rec_stop = true;
 				printf("CLIP END:Time Over! %lld\n", total_time);
 				clip_rec_state = REC_STOP;
@@ -1551,7 +1561,7 @@ int clip_total(void) {
 				file_cnt = 3;
 			}
 			
-			if ((file_cnt == 0) && (total_time>FACE_FIND_END_TIME)) {	// File Seperation
+			if ((file_cnt == 0) && (total_time>FACE_FIND_END_TIME)) {	// Face or Motion Not Found -> Clip Stop
 				if ((person_cnt == 0) && (main_motion_detect == 0)) {
 					if ((sample_gettimeus() - end_time) > 3000000) {
 						printf("CLIP END:Move End!\n");
@@ -1578,6 +1588,22 @@ int clip_total(void) {
 					// printf("face:%d, person:%d, move:%d\n", face_cnt, person_cnt, main_motion_detect);
 					end_time = sample_gettimeus();
 				}
+			}
+
+			if ((file_cnt == 0) && (bell_rec_state >= REC_START)) {	// Bell Push -> Clip Stop
+				printf("CLIP END:Move End!\n");
+				clip_rec_state = REC_STOP;
+				box_snap = true;
+				if (total_time < 23000000) {
+					file_cnt = 1;
+				}
+				else if (total_time < 43000000) {
+					file_cnt = 2;
+				}
+				else if (total_time >= 43000000) {
+					file_cnt = 3;
+				}
+				printf("Detection End! REC END. file cnt : %d\n", file_cnt);
 			}
 		}
 
@@ -1684,11 +1710,18 @@ int clip_total(void) {
 			if (face_snap == false) bStrem = true;
 
 			printf("MP4 Make!\n");
-			
+
+		#ifdef __H265__			
 			system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/stream-0.h265 -c copy /vtmp/main.mp4");
 			system("rm /vtmp/stream-0.h265");
 			system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/stream-3.h265 -c copy /vtmp/box.mp4");
 			system("rm /vtmp/stream-3.h265");
+		#else
+			system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/stream-0.h264 -c copy /vtmp/main.mp4");
+			system("rm /vtmp/stream-0.h264");
+			system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/stream-3.h264 -c copy /vtmp/box.mp4");
+			system("rm /vtmp/stream-3.h264");
+		#endif
 			// system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/stream-4.h264 -c copy /vtmp/box.mkv");
 			for (int i=0; i<file_cnt; i++){
 				if (i == 0) {
@@ -1731,7 +1764,13 @@ int clip_total(void) {
 				// sprintf(file_path, "/vtmp/faceperson.data");
 				// spi_send_file(REC_FACE, file_path);
 
-				system("ubi_mount");
+				if (file_ck("/tmp/mnt/sdcard/nandformat")) {
+					system("ubi_mount");
+				}
+				else {
+					system("ubi_mk");
+					system("echo ubiformat > /tmp/mnt/sdcard/nandformat");
+				}
 
 				for (int i=0; i<file_cnt; i++) {
 					send_fail = false;
@@ -1815,18 +1854,19 @@ int stream_total(void) {
 	// int64_t total_time = 0;
 	// int64_t oldt_time = 0;
 	// char file_path[64] = {0};
-	int64_t rec_time_s = 0, rec_time_e = 0;
+	// int64_t rec_time_s = 0, rec_time_e = 0;
 
-	bool up_streming_flag = false;
-    bool dn_streming_flag = false;
-    bool adc_flag = false;
-    bool led_flag = false;
+	// bool up_streming_flag = false;
+    // bool dn_streming_flag = false;
+
+    // bool adc_flag = false;
+    // bool led_flag = false;
     char file_sep[256] = {0};
     char file_path[128] = {0};
-    int gval = 0;
+    // int gval = 0;
 
 	pthread_t tid_ao, tid_ai;
-    pthread_t tid_stream, tid_clip, tid_snap, tid_move, tim_osd, tid_fdpd, adc_thread_id;
+    pthread_t tid_stream, tid_snap, tid_move, tim_osd, tid_fdpd;//, adc_thread_id, tid_clip;
     pthread_t tid_uart;
 
 
@@ -2232,12 +2272,21 @@ int stream_total(void) {
 
 			if (streaming_rec_state == REC_MP4MAKE) {
 				for(int i=0; i<rec_cnt; i++) {
+				#ifdef __H265__		
 					memset(file_sep, 0, 256);
 					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/rec-0-%d.h265 -c copy /vtmp/rec0_%d.mp4", i+1, i+1);
 					system(file_sep);
 					memset(file_sep, 0, 256);
 					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/rec-3-%d.h265 -c copy /vtmp/rec1_%d.mp4", i+1, i+1);
 					system(file_sep);
+				#else
+					memset(file_sep, 0, 256);
+					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/rec-0-%d.h264 -c copy /vtmp/rec0_%d.mp4", i+1, i+1);
+					system(file_sep);
+					memset(file_sep, 0, 256);
+					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/rec-3-%d.h264 -c copy /vtmp/rec1_%d.mp4", i+1, i+1);
+					system(file_sep);
+				#endif
 
 					if (Ready_Busy_Check()){
 						printf("rec0_%d.mp4 Start!\n", i+1);
@@ -2313,7 +2362,7 @@ int stream_total(void) {
 			}
 			spi_device_off(STREAMING);
 			printf("Streaming Mode End!!\n");
-			return;
+			break;
 		}
 #endif
 			
@@ -2323,18 +2372,13 @@ int stream_total(void) {
 
 	pthread_join(tim_osd, NULL);
 	pthread_join(tid_stream, NULL);
-	pthread_join(tid_clip, NULL);
+	// pthread_join(tid_clip, NULL);
 	pthread_join(tid_move, NULL);
 	pthread_join(tid_fdpd, NULL);
 	pthread_join(tid_snap, NULL);
 
-	if (up_streming_flag) {
-		pthread_join(tid_ai, NULL);
-	}
-	if (dn_streming_flag) {
-		pthread_join(tid_ao, NULL);
-		// pthread_join(tid_udp_in, NULL);
-	}
+	pthread_join(tid_ai, NULL);
+	pthread_join(tid_ao, NULL);
 #ifdef STREAMING_SPI
 	pthread_join(tid_spi, NULL);
 #else
@@ -2350,7 +2394,7 @@ int stream_total(void) {
 int Setting_Total(void) {
 	int ret = 0;
 
-	pthread_t tid_ao, tid_ai;
+	pthread_t tid_ao;//, tid_ai;
     // pthread_t tid_stream, tid_clip, tid_snap, tid_move, tim_osd, tid_fdpd, adc_thread_id;
     pthread_t tid_uart;
 

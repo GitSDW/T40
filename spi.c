@@ -778,8 +778,6 @@ int spi_send_file(uint8_t minor, char *file)
     }
     else {
         len = 5;
-        read_buff[5] = (sz_file>>8)&0xFF;
-        read_buff[6] = sz_file&0xFF;
     }
     printf("start len : 0x%02x size : 0x%02x 0x%02x 0x%02x 0x%02x type : 0x%02x 0x%02x\n", len, 
                                                                     read_buff[1], read_buff[2], read_buff[3], read_buff[4],

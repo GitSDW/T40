@@ -252,3 +252,16 @@ void set_system_time_from_file() {
 
     printf("System time has been set from file.\n");
 }
+
+int file_ck(const char* filename) {
+
+    // access 함수를 사용하여 파일이 존재하는지 확인
+    if (access(filename, F_OK) != -1) {
+        printf("File Exist.\n");
+        return 1;
+    } else {
+        printf("Not Found File.\n");
+        return 0;
+    }
+
+}

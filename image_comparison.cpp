@@ -1,5 +1,5 @@
 #include <opencv2/opencv.hpp>
-// #include <iostream>
+#include <iostream>
 // #include <unistd.h>
 
 #include "image_comparison.h"
@@ -8,7 +8,7 @@ using namespace cv;
 using namespace std;
 
 int package_find(char *imgpath1, char *imgpath2, int thhold) {
-    int boxscale=0, boxscale2=0;
+    // int boxscale=0, boxscale2=0;
     int box_cnt=0;
 
     // 이미지 파일 경로 설정
@@ -30,42 +30,51 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
     img2 = img2(roi);
     
     int height = img1.rows;
-    int width = img1.cols;
+    // int width = img1.cols;
 
     // int borderSize = 100;
     // cv::Rect roi(borderSize, height/4, width - 2 * borderSize, height*3/4 - borderSize);
     // img1 = img1(roi);
     // img2 = img2(roi);
-    
-    cv::Mat gray1, gray2;
-    cv::cvtColor(img1, gray1, cv::COLOR_BGR2GRAY);
-    cv::cvtColor(img2, gray2, cv::COLOR_BGR2GRAY);
-
-    cv::equalizeHist(gray1, gray1);
-    cv::equalizeHist(gray2, gray2);
-
-    // printf("box1\n");
-    cerr << "find gray!" << endl;
-    cv::Mat diff_image;
-    cv::absdiff(gray1, gray2, diff_image);
-
-    cerr << "find set threshold!" << endl;
-    cv::Mat bin_img;
-    cv::threshold(diff_image, bin_img, thhold, 255, cv::THRESH_BINARY);
-
-    // imwrite("bin.jpg", bin_img);
-
-    // printf("box2\n");
-    cerr << "find contours!" << endl;
-    vector<vector<cv::Point>> contours;
-    cv::findContours(bin_img, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
-
-    cv::Rect boundingRect2;
-
-
     // printf("box3\n");
     cerr << "find try!" << endl;
     try {
+        cv::Mat gray1, gray2;
+        cv::cvtColor(img1, gray1, cv::COLOR_BGR2GRAY);
+        cv::cvtColor(img2, gray2, cv::COLOR_BGR2GRAY);
+
+         // 각 이미지의 평균 밝기 계산
+        Scalar mean_intensity_img1 = mean(gray1);
+        Scalar mean_intensity_img2 = mean(gray2);
+
+         // 조명 보정을 위해 이미지의 밝기 정규화
+        Mat normalized_img1, normalized_img2;
+        convertScaleAbs(gray1, normalized_img1, 127.0 / mean_intensity_img1[0], 0);
+        convertScaleAbs(gray2, normalized_img2, 127.0 / mean_intensity_img2[0], 0);
+
+        cv::equalizeHist(gray1, gray1);
+        cv::equalizeHist(gray2, gray2);
+
+        // printf("box1\n");
+        cerr << "find gray!" << endl;
+        cv::Mat diff_image;
+        cv::absdiff(gray1, gray2, diff_image);
+
+        cerr << "find set threshold!"<< thhold << endl;
+        cv::Mat bin_img;
+        cv::threshold(diff_image, bin_img, thhold, 255, cv::THRESH_BINARY);
+
+        // imwrite("bin.jpg", bin_img);
+
+        // printf("box2\n");
+        cerr << "find contours!" << endl;
+        vector<vector<cv::Point>> contours;
+        cv::findContours(bin_img, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+
+        cv::Rect boundingRect2;
+
+
+  
         for(size_t i = 0; i< contours.size(); i++) {
             cv::Rect boundingRect = cv::boundingRect(contours[i]);
 
@@ -497,7 +506,7 @@ int facecrop_make(Fdpd_Data_t cont) {
     int cx, cy, size, x, y;
     // 이미지 파일 경로
     std::string inputImagePath = "/vtmp/face.jpg";
-    std::string outputImagePath = "/vtmp/face_crop.jpg";
+    std::string outputImagePath = "/vtmp/face_crop" + std::to_string(face_crop_cnt) + ".jpg";
 
     cx = (cont.ul_x + cont.br_x)/2;
     cy = (cont.ul_y + cont.br_y)/2;
@@ -529,7 +538,7 @@ int facecrop_make(Fdpd_Data_t cont) {
 
         // 크롭된 이미지 저장
         imwrite(outputImagePath, croppedImage, compression_params);
-
+        face_crop_cnt++;
         return 0;
 
     } catch (Exception& e) {

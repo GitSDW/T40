@@ -52,8 +52,11 @@ struct chn_conf chn[FS_CHN_NUM] = {
 	{
 		.index = CH0_INDEX,
 		.enable = CHN0_EN,
+	#ifdef __H265__
 		.payloadType = IMP_ENC_PROFILE_HEVC_MAIN,
-		// .payloadType = IMP_ENC_PROFILE_AVC_HIGH,
+	#else
+		.payloadType = IMP_ENC_PROFILE_AVC_HIGH,
+	#endif
 		.fs_chn_attr = {
             .i2dattr.i2d_enable = 0, // 0:disable 1:enable
             .i2dattr.flip_enable = 0,
@@ -152,8 +155,11 @@ struct chn_conf chn[FS_CHN_NUM] = {
 	{
 		.index = CH3_INDEX,
 		.enable = CHN3_EN,
-        .payloadType = IMP_ENC_PROFILE_HEVC_MAIN,
-        // .payloadType = IMP_ENC_PROFILE_AVC_HIGH,
+    #ifdef __H265__
+		.payloadType = IMP_ENC_PROFILE_HEVC_MAIN,
+	#else
+		.payloadType = IMP_ENC_PROFILE_AVC_HIGH,
+	#endif
 		.fs_chn_attr = {
             .i2dattr.i2d_enable = 0,
             .i2dattr.flip_enable = 0,
@@ -1967,13 +1973,18 @@ static int save_stream1(int fd, IMPEncoderStream *stream, int ch)
 
 	if (!start_flag) {
 		// printf("nr_pack:%d\n", nr_pack);
+	#ifdef __H265__
 		if (nr_pack > 3) {
+	#else
+		if (nr_pack > 2) {
+	#endif
 			start_flag = true;
 		}
 		else {
 			return 0;
 		}
 	}
+
 
   	//IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u start----------\n", stream->packCount, stream->seq);
 	for (i = 0; i < nr_pack; i++) {
@@ -2004,6 +2015,7 @@ static int save_stream1(int fd, IMPEncoderStream *stream, int ch)
 		total[ch] += pack->length;
 		// printf("nr_pack:%d/%d len:%d\n", i, nr_pack, pack->length);
 	}
+	// printf("nr_pack:%d frame[%d]:%d\n", nr_pack, ch, total[ch]);
 
   //IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u end----------\n", stream->packCount, stream->seq);
 	return 0;
@@ -2023,7 +2035,11 @@ static int save_stream2(int fd, IMPEncoderStream *stream, int ch)
 
 	if (!start_flag) {
 		// printf("nr_pack:%d\n", nr_pack);
+	#ifdef __H265__
 		if (nr_pack > 3) {
+	#else
+		if (nr_pack > 2) {
+	#endif
 			start_flag = true;
 		}
 		else {
@@ -2162,6 +2178,8 @@ int Send_Frame_Main_UDP(IMPEncoderStream *stream) {
 	VM_Frame_Buff.index = (VM_Frame_Buff.index+1)%10;
 	VM_Frame_Buff.cnt++;
 	pthread_mutex_unlock(&buffMutex_vm);
+
+	// printf("nr_pack:%d frame[Main]:%d\n", nr_pack, len);
 
 	return 0;
 }	
@@ -2396,6 +2414,8 @@ static void *get_video_stream(void *args)
 
 bool clip_0_s = false, clip_3_s = false;
 bool clip_0_e = false, clip_3_e = false;
+bool bell_0_s = false, bell_3_s = false;
+bool bell_0_e = false, bell_3_e = false;
 bool rec_0_e = false, rec_3_e = false;
 
 static void *get_video_stream_user(void *args)
@@ -2519,6 +2539,68 @@ static void *get_video_stream_user(void *args)
 				if (clip_rec_state == REC_STOP && clip_0_e && clip_3_e){
 					printf("clip rec state:%d\n", clip_rec_state);
 					clip_rec_state = REC_WAIT;
+				}
+			}
+		}
+		
+
+		if (bell_rec_state >= REC_START && bell_rec_state <= REC_STOP) {
+			// printf("state:%d 0_s:%d 3_s%d\n", bell_rec_state, bell_0_s, bell_3_s);
+			if (!bell_0_s && chnNum == 0) {
+				sprintf(stream_path, "%s/stream-%d.%s", STREAM_FILE_PATH_PREFIX, chnNum,
+				(encType == IMP_ENC_TYPE_AVC) ? "h264" : ((encType == IMP_ENC_TYPE_HEVC) ? "h265" : "jpeg"));
+				clip_fd = open(stream_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
+				if (clip_fd < 0) {
+					IMP_LOG_ERR(TAG, "failed: %s\n", strerror(errno));
+					return ((void *)-1);
+				}
+				bell_0_s = true;
+				bell_0_e = false;
+			}
+			if (!bell_3_s && chnNum == 3) {
+				sprintf(stream_path, "%s/stream-%d.%s", STREAM_FILE_PATH_PREFIX, chnNum,
+				(encType == IMP_ENC_TYPE_AVC) ? "h264" : ((encType == IMP_ENC_TYPE_HEVC) ? "h265" : "jpeg"));
+				clip_fd = open(stream_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
+				if (clip_fd < 0) {
+					IMP_LOG_ERR(TAG, "failed: %s\n", strerror(errno));
+					return ((void *)-1);
+				}
+				bell_3_s = true;
+				bell_3_e = false;
+			}
+
+			if (bell_rec_state == REC_START && bell_0_s &&bell_3_s) 
+					bell_rec_state = REC_ING;
+			
+			if (bell_rec_state == REC_START || bell_rec_state == REC_ING) {
+				if (chnNum == 0) {
+					ret = save_stream1(clip_fd, &stream, chnNum);
+					if (ret < 0) {
+						IMP_LOG_ERR(TAG, "Clip Save Err : %d!\n", chnNum);
+					}
+				}
+				if (chnNum == 3) {
+					ret = save_stream2(clip_fd, &stream, chnNum);
+					if (ret < 0) {
+						IMP_LOG_ERR(TAG, "Clip Save Err : %d!\n", chnNum);
+					}
+				}
+			}
+			else if (bell_rec_state == REC_STOP) {
+				if (!bell_0_e && chnNum == 0) {
+					printf("CLIP CH:%d Close\n", chnNum);
+					close(clip_fd);
+					bell_0_e = true;
+				}
+				if (!bell_3_e && chnNum == 3) {
+					printf("CLIP CH:%d Close\n", chnNum);
+					close(clip_fd);
+					bell_3_e = true;
+				}
+
+				if (bell_rec_state == REC_STOP && bell_0_e && bell_3_e){
+					printf("clip rec state:%d\n", bell_rec_state);
+					bell_rec_state = REC_WAIT;
 				}
 			}
 		}
