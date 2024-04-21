@@ -1507,7 +1507,7 @@ int clip_total(void) {
 					fr_state = FR_END;
 				}
 			}
-			else if (fr_state != FR_END && total_time > 30000000) {
+			else if (fr_state != FR_END && total_time > 5000000) {
 				fr_state = FR_END;	// fr_state 5 / Time out
 				// Make File Send
 				for (int l=0; l<face_crop_cnt; l++) {
@@ -1854,20 +1854,23 @@ int stream_total(void) {
 	// int64_t total_time = 0;
 	// int64_t oldt_time = 0;
 	// char file_path[64] = {0};
-	// int64_t rec_time_s = 0, rec_time_e = 0;
+	int64_t rec_time_s = 0, rec_time_e = 0;
 
-	// bool up_streming_flag = false;
-    // bool dn_streming_flag = false;
+	bool up_streming_flag = false;
+    bool dn_streming_flag = false;
 
-    // bool adc_flag = false;
-    // bool led_flag = false;
+    bool adc_flag = false;
+    bool led_flag = false;
+
     char file_sep[256] = {0};
     char file_path[128] = {0};
-    // int gval = 0;
+    int gval = 0;
 
 	pthread_t tid_ao, tid_ai;
-    pthread_t tid_stream, tid_snap, tid_move, tim_osd, tid_fdpd;//, adc_thread_id, tid_clip;
+    pthread_t tid_stream, tid_snap, tid_move, tim_osd, tid_fdpd;
     pthread_t tid_uart;
+
+    pthread_t adc_thread_id, tid_clip;
 
 
 #ifdef STREAMING_SPI
@@ -2309,6 +2312,10 @@ int stream_total(void) {
 					}
 				}
 			}
+			device_end(STREAMING);
+			printf("Streaming Mode End!!\n");
+			bUart = true;
+			
 		}
 		else if (cmd == 90) {
 			printf("cmd 90 Reset Test\n");
@@ -2323,10 +2330,10 @@ int stream_total(void) {
 		}
 #else
 		if (rec_end) {
+			rec_end = false;
 			printf("cmd 20 streaming end & save file send\n");
 			bExit = 1;
 			bStrem = true;
-
 			if (streaming_rec_state == REC_WAIT) streaming_rec_state = REC_MP4MAKE;
 			else printf("streaming_rec_state Error:%d\n", streaming_rec_state);
 
@@ -2344,6 +2351,7 @@ int stream_total(void) {
 						memset(file_path, 0, 128);
 						sprintf(file_path, "/vtmp/rec0_%d.mp4", i+1);
 						spi_send_file(REC_STREAMING_M, file_path);
+						// spi_send_fake_file(REC_STREAMING_M);
 					}
 					else {
 						printf("Fail to Send rec0_%d.mp4\n", i+1);
@@ -2354,21 +2362,24 @@ int stream_total(void) {
 						memset(file_path, 0, 128);
 						sprintf(file_path, "/vtmp/rec1_%d.mp4", i+1);
 						spi_send_file(REC_STREAMING_B, file_path);
+						// spi_send_fake_file(REC_STREAMING_B);
 					}
 					else {
 						printf("Fail to Send rec0_%d.mp4\n", i+1);
 					}
 				}
 			}
-			spi_device_off(STREAMING);
+			// spi_device_off(STREAMING);
+			device_end(STREAMING);
 			printf("Streaming Mode End!!\n");
+			bUart = true;
+			sleep(2);
 			break;
 		}
+
 #endif
 			
 	}while(1);
-
-	bExit = true;
 
 	pthread_join(tim_osd, NULL);
 	pthread_join(tid_stream, NULL);
@@ -2479,11 +2490,11 @@ int Setting_Total(void) {
 // 	}
 // #endif			
 
-	ret = pthread_create(&tid_ao, NULL, IMP_Audio_Play_Thread, NULL);
-	if(ret != 0) {
-		IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Play_Thread failed\n", __func__);
-		return -1;
-	}
+	// ret = pthread_create(&tid_ao, NULL, IMP_Audio_Play_Thread, NULL);
+	// if(ret != 0) {
+	// 	IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Play_Thread failed\n", __func__);
+	// 	return -1;
+	// }
 
 	// ret = pthread_create(&tid_ai, NULL, IMP_Audio_Record_AEC_Thread, NULL);
 	// if(ret != 0) {

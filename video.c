@@ -653,7 +653,7 @@ int video_init(void) {
 
 	IMPISPHVFLIP hvf;
 	hvf = IMPISP_FLIP_HV_MODE;
-	// IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN, &hvf);		// Main Cam Flip
+	IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN, &hvf);		// Main Cam Flip
 	// hvf = IMPISP_FLIP_SHIV_MODE;
 	// IMP_ISP_Tuning_SetHVFLIP(IMPVI_MAIN+1, &hvf);	// Box Cam Flip
 
@@ -1294,7 +1294,7 @@ void *OSD_thread(void *args)
 		if (polling_err_cnt > 6) {
 			func_reboot();
 		}
-	} while(!bExit);
+	} while(!bStrem);
 
 	return ((void*) 0);
 }

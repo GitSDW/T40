@@ -581,7 +581,7 @@ static Spi_Protocol Spi_Ptl_Attr;
 #define SPI_SEND_LENGTH 1033
 #define FILE_READ_LENGTH 1024
 
-int Make_Spi_Packet(Spi_Protocol *attr)
+int M21231ake_Spi_Packet(Spi_Protocol *attr)
 {
     memset(attr->buff, 0, SPI_SEND_LENGTH);
     attr->buff[0] = 0x02;

@@ -233,6 +233,8 @@ int Make_Uart_Ack(uint8_t *tbuff, int len, uint8_t *data, uint8_t major, uint8_t
     return 10+len;
 }
 
+
+
 int Make_Packet_uart(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t major, uint8_t minor)
 {
     memset(tbuff, 0, len+10);
@@ -377,11 +379,13 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             
             if (settings.bell_type == 0) effect_file = "/tmp/mnt/sdcard/effects/ready_16.wav";
             else if (settings.bell_type == 1) effect_file = "/tmp/mnt/sdcard/effects/start2c.wav";
-            else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/end_16.wav";;
+            else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/start3c.wav";;
             printf("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
             clip_cause_t.Major = CLIP_CAUSE_BOX;
             clip_cause_t.Minor = CLIP_BOX_OCCUR;
+            ack_len = 0;
+            ack_flag = true;
         break;
         case  UREC_FACE:
             if (rbuff[index+9] == 1) {
@@ -389,6 +393,17 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 clip_cause_t.Major = CLIP_CAUSE_FACE;
                 clip_cause_t.Minor = CLIP_FACE_DET; 
             }
+            ack_len = 0;
+            ack_flag = true;
+        break;
+        case UREC_TEMPER:
+            effect_file = "/tmp/mnt/sdcard/effects/end1c.wav";
+            printf("play : %s\n", effect_file);
+            ao_file_play_thread(effect_file);
+            clip_cause_t.Major = CLIP_CAUSE_MOUNT;
+            clip_cause_t.Minor = CLIP_MOUNT_DISMT;
+            ack_len = 0;
+            ack_flag = true;
         break;
         }
     break;
@@ -439,6 +454,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         break;
         case USTREAM_F_SEND:
             rec_end = true;
+            ack_len = 0;
+            ack_flag = true;
         break;
         }
     break;
@@ -592,6 +609,30 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
     return 0;
 }
 
+int device_end(uint8_t major) {
+    uint8_t *uart_tx;
+
+    uart_tx = malloc(10);
+
+    memset(uart_tx, 0, 10);
+    uart_tx[0] = 0x02;
+    uart_tx[1] = (major & 0x7F) & 0xFF;
+    uart_tx[2] = 0x7F;
+    uart_tx[3] = 0;
+    uart_tx[4] = 0;
+    uart_tx[5] = 0x00;
+    uart_tx[6] = 0x00;
+    uart_tx[7] = 0x00;
+    uart_tx[8] = 0x00;
+    uart_tx[9] = 0x03;
+
+    uart_send(fd_uart, uart_tx, 10);
+    
+    printf("Device End Major:0x%02x\n", uart_tx[1]);
+    
+    free(uart_tx);
+}
+
 /*
  * 串口接收函数
  *
@@ -648,14 +689,14 @@ void *uart_thread(void *argc)
     uint8_t start_data[10] = {0};
 
     uart_tx = malloc(11);
-    if (boot_mode == 0) mode = SETTING;
+    if (boot_mode == 0) mode = DTEST;
     else if (boot_mode == 1) mode = REC;
     else if (boot_mode == 2) mode = STREAMING;
-    else if (boot_mode == 3) mode = DTEST;
+    else if (boot_mode == 3) mode = SETTING;
     res = Make_Packet_uart(uart_tx, start_data, 0, mode, SET_START);
     uart_send(fd_uart, uart_tx, res);
     printf("Start Major:0x%02x Minor0x%02x\n", uart_tx[1], uart_tx[2]);
-    free(uart_tx);
+    // free(uart_tx);
 
 
     /*
@@ -676,10 +717,15 @@ void *uart_thread(void *argc)
 
         
 
-    }while (!bExit);
+    }while (!bUart);
+
+    // res = Make_Packet_uart(uart_tx, start_data, 0, mode, SET_STOP);
+    // uart_send(fd_uart, uart_tx, res);
+    // printf("Start Major:0x%02x Minor0x%02x\n", uart_tx[1], uart_tx[2]);
 
     free(uart_rx);
 
     close(fd_uart);
+    printf("Uart FD Close\n");
     return 0;
 }

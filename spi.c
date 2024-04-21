@@ -275,6 +275,10 @@ int Make_Spi_Packet(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t major, 
                     break;
                 case REC_DEV_STOP:
                     break;
+                case REC_STREAMING_M:
+                case REC_STREAMING_B:
+                    memcpy(&tbuff[9+V_SEND_RESERV], data, len);
+                    break;
                 default:
                     return -1;
                     break;
@@ -316,22 +320,57 @@ int Make_Spi_Packet(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t major, 
 
 int Make_Spi_Packet_live(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t major, uint8_t minor)
 {
+    int reserv_cnt = V_SEND_RESERV;   
+
     if (len > FILE_READ_LENGTH_LIVE) {
         printf("File Length Over!! %d>1014\n", len);
         return -1;
     }
     memset(tbuff, 0xFF, SPI_SEND_LENGTH);
-    tbuff[0+V_SEND_RESERV] = 0x02;
-    tbuff[1+V_SEND_RESERV] = major & 0xFF;
-    tbuff[2+V_SEND_RESERV] = minor & 0xFF;
-    tbuff[3+V_SEND_RESERV] = (len>>8) & 0xFF;
-    tbuff[4+V_SEND_RESERV] = len & 0xFF;
-    tbuff[5+V_SEND_RESERV] = 0x00;
-    tbuff[6+V_SEND_RESERV] = 0x00;
-    tbuff[7+V_SEND_RESERV] = 0x00;
-    // tbuff[8+V_SEND_RESERV] = 0x00;
-    tbuff[8+V_SEND_RESERV] = a_pkt_cnt;
-    
+
+#ifndef __H265__
+    RTPHeader header;
+    static uint16_t seq_num = 0;
+
+    header.version_padding_extension_cc = 0x80;
+    header.marker_payload_type = 0x60;
+    header.sequence_number[0] = (seq_num&0xFF00) >> 8;;
+    header.sequence_number[1] = seq_num&0xFF;
+    // header.timestamp = sample_gettimeus();
+    // header.timestamp[0] = (time_buf&0xFF000000) >> 24;
+    // header.timestamp[1] = (time_buf&0x00FF0000) >> 16;
+    // header.timestamp[2] = (time_buf&0x0000FF00) >> 8;
+    // header.timestamp[3] = (time_buf&0x000000FF);
+    header.timestamp[0] = 0x3d;
+    header.timestamp[1] = 0xf1;
+    header.timestamp[2] = 0x21;
+    header.timestamp[3] = 0x55;
+    header.ssrc = 123465879;
+
+    // memcpy(&tbuff[reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
+
+    seq_num++;
+
+
+    // printf("tbuf:\n0x%02x 0x%02x 0x%02x 0x%02x \n 0x%02x 0x%02x 0x%02x 0x%02x \n 0x%02x 0x%02x 0x%02x 0x%02x \n", 
+    //              tbuff[0+reserv_cnt], tbuff[1+reserv_cnt], tbuff[2+reserv_cnt],tbuff[3+reserv_cnt],
+    //              tbuff[4+reserv_cnt], tbuff[5+reserv_cnt], tbuff[6+reserv_cnt],tbuff[7+reserv_cnt],
+    //              tbuff[8+reserv_cnt], tbuff[9+reserv_cnt], tbuff[10+reserv_cnt],tbuff[11+reserv_cnt]);
+
+    len += sizeof(RTPHeader);
+
+#endif
+
+    tbuff[0+reserv_cnt] = 0x02;
+    tbuff[1+reserv_cnt] = major & 0xFF;
+    tbuff[2+reserv_cnt] = minor & 0xFF;
+    tbuff[3+reserv_cnt] = (len>>8) & 0xFF;
+    tbuff[4+reserv_cnt] = len & 0xFF;
+    tbuff[5+reserv_cnt] = 0x00;
+    tbuff[6+reserv_cnt] = 0x00;
+    tbuff[7+reserv_cnt] = 0x00;
+    // tbuff[8+reserv_cnt] = 0x00;
+    tbuff[8+reserv_cnt] = a_pkt_cnt;
 
     switch(major){
         case DTEST:
@@ -350,11 +389,11 @@ int Make_Spi_Packet_live(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t ma
                 case REC_DEV_START:
                     break;
                 case REC_STREAM_STR:
-                    memcpy(&tbuff[9+V_SEND_RESERV], data, len);
+                    memcpy(&tbuff[9+reserv_cnt], data, len);
                     break;
                 case REC_CLIP_F:
                 case REC_CLIP_B:
-                	memcpy(&tbuff[9+V_SEND_RESERV], data, len);
+                	memcpy(&tbuff[9+reserv_cnt], data, len);
                     break;
                 case REC_FACE:
                     break;
@@ -378,15 +417,24 @@ int Make_Spi_Packet_live(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t ma
                 case STREAM_REV:
                     break;
                 case STREAM_VEDIO_M:
-                    memcpy(&tbuff[9+V_SEND_RESERV], data, len);
+            #ifndef __H265__
+                    memcpy(&tbuff[9+reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
+                    reserv_cnt += sizeof(RTPHeader);
+            #endif
+                    memcpy(&tbuff[9+reserv_cnt], data, len);
+
                     break;
                 case STREAM_VEDIO_B:
-                	memcpy(&tbuff[9+V_SEND_RESERV], data, len);
+            #ifndef __H265__
+                    memcpy(&tbuff[9+reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
+                    reserv_cnt += sizeof(RTPHeader);
+            #endif
+                	memcpy(&tbuff[9+reserv_cnt], data, len);
                     break;
                 case STREAM_FACE:
                     break;
                 case STREAM_AUDIO_F:
-                	memcpy(&tbuff[9+V_SEND_RESERV], data, len);
+                	memcpy(&tbuff[9+reserv_cnt], data, len);
                     break;
                 case STREAM_STOP:
                     break;
@@ -779,9 +827,6 @@ int spi_send_file(uint8_t minor, char *file)
     else {
         len = 5;
     }
-    printf("start len : 0x%02x size : 0x%02x 0x%02x 0x%02x 0x%02x type : 0x%02x 0x%02x\n", len, 
-                                                                    read_buff[1], read_buff[2], read_buff[3], read_buff[4],
-                                                                    read_buff[5], read_buff[6]);
     Make_Spi_Packet(tx_buff, read_buff, len, REC, REC_STREAM_STR);
     // memset(tx_buff, 0, 1033);
     // memcpy(&tx_buff[6], read_buff,1);
@@ -809,8 +854,12 @@ int spi_send_file(uint8_t minor, char *file)
             // memset(tx_buff, 0, 1024);
             // memcpy(&tx_buff[6], read_buff, ret);
             spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
-            // printf("STX:0x%02x CMD:0x%02x%02x LEN:0x%02x%02x ETX:0x%02x\n", 
-                        // tx_buff[0+5], tx_buff[1+5], tx_buff[2+5], tx_buff[3+5], tx_buff[4+5], tx_buff[1023-5]);
+            printf("STX:0x%02x CMD:0x%02x%02x LEN:0x%02x%02x ETX:0x%02x\n", 
+                        tx_buff[0+5], tx_buff[1+5], tx_buff[2+5], tx_buff[3+5], tx_buff[4+5], tx_buff[1023-5]);
+            // for (int i=0; i<1024; i++) {
+                // printf(" 0x%02x", tx_buff[i]);
+                // if (i%16 == 0) printf("\n");
+            // }
         }
         usleep(dly*1000);
     } while(ret != 0);
@@ -832,7 +881,7 @@ int spi_send_fake_file(uint8_t minor)
     
     
     
-    sz_file = 900*600;
+    sz_file = 1024*600;
     // sz_file = 900*20 + 450;
     printf("**********SPI FILE SEND************\n");
     printf("d %s,s %d,d %d,b %d,m %d\n",device,speed,delay,bits,mode);
@@ -849,17 +898,19 @@ int spi_send_fake_file(uint8_t minor)
     spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
     usleep(500*1000);
     for(int j=0; j<600; j++) {
-        for (int i=0; i<900; i++) {
-            tx_tbuff[i] = ((i/20)%10) + 0x30;
+        for (int i=0; i<1024; i++) {
+            // tx_tbuff[i] = ((i/20)%10) + 0x30;
+            tx_buff[i] = i%0xFF;
         }
         // Make_Spi_Packet(tx_buff, read_buff, ret, REC, minor);
-        Make_Spi_Packet(tx_buff, tx_tbuff, FILE_READ_LENGTH, REC, minor);
+        // Make_Spi_Packet(tx_buff, tx_tbuff, 900, REC, minor);
         // memset(tx_buff, 0, 1024);
         // memcpy(&tx_buff[6], read_buff, ret);
         spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
-        printf("STX:0x%02x CMD:0x%02x%02x LEN:0x%02x%02x ETX:0x%02x\n", 
-                    tx_buff[0], tx_buff[1], tx_buff[2], tx_buff[3], tx_buff[4], tx_buff[1023]);
-        printf("data:0x%02x 0x%02x 0x%02x\n", tx_tbuff[9], tx_tbuff[9+20], tx_tbuff[9+40]);
+        // printf("STX:0x%02x CMD:0x%02x%02x LEN:0x%02x%02x ETX:0x%02x 0x%02x 0x%02x 0x%02x\n", 
+                    // tx_buff[0+5], tx_buff[1+5], tx_buff[2+5], tx_buff[3+5], tx_buff[4+5], tx_buff[1023-2], tx_buff[1023-3], tx_buff[1023-4], tx_buff[1023-5]);
+        // printf("data:0x%02x 0x%02x 0x%02x\n", tx_buff[9], tx_buff[9+20], tx_buff[9+40]);
+        printf("Data PKT : %d\n", j);
         usleep(dly*1000);
     }
     
@@ -944,6 +995,8 @@ void *spi_send_stream (void *arg)
             		}
 	            	else {
    	         		    // printf("cnt:%d total:%d dsize%d\n", i, framesize, datasize);
+                        // printf("STX:0x%02x CMD:0x%02x%02x LEN:0x%02x%02x ETX:0x%02x\n", 
+                            // tx_buff[0+5], tx_buff[1+5], tx_buff[2+5], tx_buff[3+5], tx_buff[4+5], tx_buff[1023-5]);
     	        		usleep(1*1000);
         	    	}
             	}
@@ -1022,7 +1075,7 @@ void *spi_send_stream (void *arg)
 		//////////////////////////////////////////////////////////////////////////////
         Recv_Spi_Packet_live(rx_buff);
 		
-    } while(!bExit);
+    } while(!bStrem);
     
     return ((void*)0);
 }
@@ -1111,7 +1164,7 @@ void *spi_test_send_stream (void *arg)
                         printf("Fail Send SPI Data!\n");
                     }
                     else {
-                    printf("d:0x%02X%02X\n", tx_buff[3], tx_buff[4]);
+                        // printf("d:0x%02X%02X\n", tx_buff[3], tx_buff[4]);
                         usleep(1*1000);
                     }
                 }
@@ -1227,7 +1280,7 @@ void *spi_test_send_stream (void *arg)
         }
         //////////////////////////////////////////////////////////////////////////////
         Recv_Spi_Packet_test(rx_buff);
-    } while(!bExit);
+    } while(!bStrem);
     
     return ((void*)0);
 }

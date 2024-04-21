@@ -27,6 +27,7 @@ char *path;
 
 void *uart_thread(void *argc);
 void uart_tx_test (void);
+int device_end(uint8_t major);
 
 
 #if __cplusplus

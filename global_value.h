@@ -10,7 +10,7 @@ extern "C" {
 
 #define MAJOR_VER	"0"
 #define MINOR_VER	"2"	
-#define CAHR_VER	"s"
+#define CAHR_VER	"y"
 
 typedef struct CIRCULAR_BUFF
 {
@@ -56,13 +56,20 @@ Buff2_t VB_Frame_Buff;
 bool move_flag;
 int move_det_xs, move_det_ys, move_det_xe, move_det_ye;
 
+#define __H265__
+
 // #define V_SEND_SIZE 1004 // 1014 -> 1004
-#define V_SEND_SIZE 992
+#ifdef __H265__
+	#define V_SEND_SIZE 992
+#else
+	// #define V_SEND_SIZE 992-12
+	#define V_SEND_SIZE 868
+#endif
 #define V_SEND_RESERV 5
 #define V_BUFF_SIZE 256*1024
 #define MAX_REC_TIME 60000000	// 60 * 1000 * 1000 usec
 #define ROAMING_PER_TIME 30000000	// 60 * 1000 * 1000 usec
-#define THUMBNAIL_TIME 5000000
+#define THUMBNAIL_TIME 1000000
 #define FACE_FIND_END_TIME 10000000
 
 int data_sel;
@@ -145,6 +152,14 @@ typedef struct CLIP_CAUSE
 	uint8_t Minor;
 } Clip_Cause_t;
 
+typedef struct  {
+    uint8_t version_padding_extension_cc;
+    uint8_t marker_payload_type;
+    uint8_t sequence_number[2];
+    uint8_t timestamp[4];
+    uint32_t ssrc;
+}RTPHeader;
+
 Clip_Cause_t clip_cause_t;
 
 #define START_CHECK_TIME 5000000
@@ -179,6 +194,8 @@ bool face_snap;
 bool roaming_person;
 
 bool bStrem;
+
+bool bUart;
 
 // pcm test
 int save_pcm;
@@ -274,7 +291,6 @@ enum CLIP_MOUNT {
 
 // #define __TEST_FAKE_VEDIO__
 // #define __STREAMING_CMD__
-#define __H265__
 
 #ifdef __TEST_FAKE_VEDIO__
 	int led_cnt;

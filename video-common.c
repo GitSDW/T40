@@ -55,7 +55,7 @@ struct chn_conf chn[FS_CHN_NUM] = {
 	#ifdef __H265__
 		.payloadType = IMP_ENC_PROFILE_HEVC_MAIN,
 	#else
-		.payloadType = IMP_ENC_PROFILE_AVC_HIGH,
+		.payloadType = IMP_ENC_AVC_PROFILE_IDC_HIGH,
 	#endif
 		.fs_chn_attr = {
             .i2dattr.i2d_enable = 0, // 0:disable 1:enable
@@ -158,7 +158,7 @@ struct chn_conf chn[FS_CHN_NUM] = {
     #ifdef __H265__
 		.payloadType = IMP_ENC_PROFILE_HEVC_MAIN,
 	#else
-		.payloadType = IMP_ENC_PROFILE_AVC_HIGH,
+		.payloadType = IMP_ENC_AVC_PROFILE_IDC_HIGH,
 	#endif
 		.fs_chn_attr = {
             .i2dattr.i2d_enable = 0,

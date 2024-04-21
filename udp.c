@@ -99,11 +99,11 @@ typedef struct  {
     uint8_t sequence_number[2];
     uint32_t timestamp;
     uint32_t ssrc;
-}RTPHeader;
+}RTPHeader2;
 
 ssize_t udp_vm_send(uint8_t *udp_data, uint16_t len) {
 	static uint16_t seq_num = 0;
-	RTPHeader header;
+	RTPHeader2 header;
 	uint8_t *buf;
 
 	buf = malloc(1000);
@@ -116,8 +116,8 @@ ssize_t udp_vm_send(uint8_t *udp_data, uint16_t len) {
 	header.timestamp = 4356433;
 	header.ssrc = 123465879;
 
-	memcpy(buf, (uint8_t*)&header, sizeof(RTPHeader));
-	memcpy(buf+sizeof(RTPHeader), udp_data, len);
+	memcpy(buf, (uint8_t*)&header, sizeof(RTPHeader2));
+	memcpy(buf+sizeof(RTPHeader2), udp_data, len);
 
 	// ssize_t ret = sendto(send_sock, udp_data, len, 0, (struct sockaddr*)&send_vm_serverAddr, sizeof(send_vm_serverAddr));
 	ssize_t ret = sendto(send_sock, buf, len+12, 0, (struct sockaddr*)&send_vm_serverAddr, sizeof(send_vm_serverAddr));
@@ -219,7 +219,7 @@ void *udp_recv_pthread(void *arg) {
 				// pthread_mutex_unlock(&buffMutex_ao);
 			}
 		}
-	}while(!bExit);
+	}while(!bStrem);
 	printf("[UDP] AO Thread END!\n");
 	deinit_udp(RECV_INDEX);
 	
@@ -327,7 +327,7 @@ void *udp_send_pthread(void *arg) {
 		}
 
 		//////////////////////////////////////////////////////////////////////////
-	} while(!bExit);
+	} while(!bStrem);
 
 	// close(mfd);
 	// close(bfd);

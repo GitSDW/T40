@@ -836,6 +836,7 @@ void ao_file_play_thread(void *argv)
 	int size = 0;
 	int ret = -1;
 	int old_chnbusy=0, old_busy_cnt=0;
+	int total = 0;
 
 	buf = (unsigned char *)malloc(AUDIO_SAMPLE_BUF_SIZE);
 	if (buf == NULL) {
@@ -849,8 +850,8 @@ void ao_file_play_thread(void *argv)
 		return;
 	}
 
-	size = fread(buf, 1, 44, play_file);
-	if (size < 44)
+	size = fread(buf, 1, 80, play_file);
+	if (size < 80)
 		return;
 	else printf("wav header read!!\n");
 
@@ -858,8 +859,8 @@ void ao_file_play_thread(void *argv)
 		if (bExit) break;
 
 		size = fread(buf, 1, AUDIO_SAMPLE_BUF_SIZE, play_file);
-		if (size < AUDIO_SAMPLE_BUF_SIZE)
-			break;
+		// if (size < AUDIO_SAMPLE_BUF_SIZE)
+			// break;
 		if (size == 0)
 			break;
 
@@ -892,6 +893,8 @@ void ao_file_play_thread(void *argv)
 				}
 			}
 		}
+
+		usleep(18*1000);
 
 		IMP_LOG_INFO(TAG, "Play: TotalNum %d, FreeNum %d, BusyNum %d\n",
 				play_status.chnTotalNum, play_status.chnFreeNum, play_status.chnBusyNum);
