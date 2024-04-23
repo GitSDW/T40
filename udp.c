@@ -90,7 +90,15 @@ ssize_t udp_vm_send(uint8_t *udp_data, uint16_t len) {
 		perror("Fail to Send Vedio Main UDP\n");
 	}
 	return ret;
-}	
+}
+
+ssize_t udp_vb_send(uint8_t *udp_data, uint16_t len) {
+	ssize_t ret = sendto(send_sock, udp_data, len, 0, (struct sockaddr*)&send_vb_serverAddr, sizeof(send_vb_serverAddr));
+	if (ret <= 0) {
+		perror("Fail to Send Vedio Box UDP\n");
+	}
+	return ret;
+}
 
 #else
 typedef struct  {
@@ -130,15 +138,39 @@ ssize_t udp_vm_send(uint8_t *udp_data, uint16_t len) {
 	free(buf);
 	return ret;
 }
-#endif
 
 ssize_t udp_vb_send(uint8_t *udp_data, uint16_t len) {
-	ssize_t ret = sendto(send_sock, udp_data, len, 0, (struct sockaddr*)&send_vb_serverAddr, sizeof(send_vb_serverAddr));
+	static uint16_t seq_num = 0;
+	RTPHeader2 header;
+	uint8_t *buf;
+
+	buf = malloc(1000);
+
+	header.version_padding_extension_cc = 0x80;
+	header.marker_payload_type = 0x61;
+	header.sequence_number[0] = (seq_num&0xFF00) >> 8;;
+	header.sequence_number[1] = seq_num&0xFF;
+	// header.timestamp = sample_gettimeus();
+	header.timestamp = 5356433;
+	header.ssrc = 123465879;
+
+	memcpy(buf, (uint8_t*)&header, sizeof(RTPHeader2));
+	memcpy(buf+sizeof(RTPHeader2), udp_data, len);
+
+	// ssize_t ret = sendto(send_sock, udp_data, len, 0, (struct sockaddr*)&send_vm_serverAddr, sizeof(send_vm_serverAddr));
+	ssize_t ret = sendto(send_sock, buf, len+12, 0, (struct sockaddr*)&send_vb_serverAddr, sizeof(send_vb_serverAddr));
 	if (ret <= 0) {
-		perror("Fail to Send Vedio Box UDP\n");
+		perror("Fail to Send Vedio Main UDP\n");
 	}
+
+	seq_num++;
+
+	free(buf);
 	return ret;
 }
+#endif
+
+
 
 ssize_t udp_ai_send(uint8_t *udp_data, uint16_t len) {
 	ssize_t ret = sendto(send_sock, udp_data, len, 0, (struct sockaddr*)&send_ai_serverAddr, sizeof(send_ai_serverAddr));

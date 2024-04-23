@@ -836,7 +836,7 @@ void ao_file_play_thread(void *argv)
 	int size = 0;
 	int ret = -1;
 	int old_chnbusy=0, old_busy_cnt=0;
-	int total = 0;
+	// int total = 0;
 
 	buf = (unsigned char *)malloc(AUDIO_SAMPLE_BUF_SIZE);
 	if (buf == NULL) {

@@ -2857,25 +2857,64 @@ static void *sample_get_jpeg_snap(void *args)
 
 		// printf("snap Shot Thread %d!!\n", chnNum);
 
-		if ((main_snap && chnNum == 2)||(box_snap && chnNum == 5) ||
-			(thumbnail_snap && chnNum == 2) || (face_snap && chnNum == 2)) {
+		if (main_snap && chnNum == 2) {
 			memset(snap_path, 0, 64);
 			if (main_snap) {
 				sprintf(snap_path, "%s/main%d.jpg",SNAP_FILE_PATH_PREFIX, main_cnt);
 				main_cnt++;
 				printf("Main JPG Start!\n");
 			}
-			else if(box_snap) {
+
+			IMP_LOG_ERR(TAG, "Open Snap file %s ", snap_path);
+			int snap_fd = open(snap_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
+			if (snap_fd < 0) {
+				IMP_LOG_ERR(TAG, "failed: %s\n", strerror(errno));
+				printf("open\n");
+				return (void*)-1;
+			}
+
+			ret = save_stream(snap_fd, &stream);
+			if (ret < 0) {
+				printf("save Error!\n");
+			}
+
+			close(snap_fd);
+
+			main_snap = false;
+		}
+
+		if (box_snap && chnNum == 5) {
+			memset(snap_path, 0, 64);
+			if(box_snap) {
 				sprintf(snap_path, "%s/box%d.jpg",SNAP_FILE_PATH_PREFIX, box_cnt);
 				box_cnt++;
 				printf("Box JPG Start!\n");
 			}
-			else if(thumbnail_snap) {
+
+			IMP_LOG_ERR(TAG, "Open Snap file %s ", snap_path);
+			int snap_fd = open(snap_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
+			if (snap_fd < 0) {
+				IMP_LOG_ERR(TAG, "failed: %s\n", strerror(errno));
+				printf("open\n");
+				return (void*)-1;
+			}
+
+			ret = save_stream(snap_fd, &stream);
+			if (ret < 0) {
+				printf("save Error!\n");
+			}
+
+			close(snap_fd);
+			printf("BOX END!\n");
+			box_snap = false;
+		}
+
+		if (thumbnail_snap && chnNum == 2) {
+			memset(snap_path, 0, 64);
+			if(thumbnail_snap) {
 				sprintf(snap_path, "%s/thumbnail.jpg",SNAP_FILE_PATH_PREFIX);
 			}
-			else if(face_snap && !thumbnail_snap) {
-				sprintf(snap_path, "%s/face.jpg",SNAP_FILE_PATH_PREFIX);
-			}
+
 			IMP_LOG_ERR(TAG, "Open Snap file %s ", snap_path);
 			int snap_fd = open(snap_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
 			if (snap_fd < 0) {
@@ -2902,25 +2941,98 @@ static void *sample_get_jpeg_snap(void *args)
 			}
 
 			close(snap_fd);
-			if (face_snap && !thumbnail_snap) {
-				face_snap = false;
-				fr_state++;
-			}
-
+			thumbnail_snap = false;
 			if(thumbnail_state == 1) 
 				thumbnail_state = 2;
-
-			if (chnNum == 2){
-				main_snap = false;
-				thumbnail_snap = false;
-			}
-
-			if (chnNum == 5){
-				printf("BOX END!\n");
-				box_snap = false;
-			}
-			
 		}
+
+		if (face_snap && chnNum == 2) {
+			memset(snap_path, 0, 64);
+			if(face_snap) {
+				sprintf(snap_path, "%s/face.jpg",SNAP_FILE_PATH_PREFIX);
+			}
+			IMP_LOG_ERR(TAG, "Open Snap file %s ", snap_path);
+			int snap_fd = open(snap_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
+			if (snap_fd < 0) {
+				IMP_LOG_ERR(TAG, "failed: %s\n", strerror(errno));
+				printf("open\n");
+				return (void*)-1;
+			}
+
+			ret = save_stream(snap_fd, &stream);
+			if (ret < 0) {
+				printf("save Error!\n");
+			}
+
+			close(snap_fd);
+			face_snap = false;
+			fr_state++;
+		}
+
+		// if ((main_snap && chnNum == 2)||(box_snap && chnNum == 5) ||
+		// 	(thumbnail_snap && chnNum == 2) || (face_snap && chnNum == 2)) {
+		// 	memset(snap_path, 0, 64);
+		// 	if (main_snap) {
+		// 		sprintf(snap_path, "%s/main%d.jpg",SNAP_FILE_PATH_PREFIX, main_cnt);
+		// 		main_cnt++;
+		// 		printf("Main JPG Start!\n");
+		// 	}
+		// 	else if(box_snap) {
+		// 		sprintf(snap_path, "%s/box%d.jpg",SNAP_FILE_PATH_PREFIX, box_cnt);
+		// 		box_cnt++;
+		// 		printf("Box JPG Start!\n");
+		// 	}
+		// 	else if(thumbnail_snap) {
+		// 		sprintf(snap_path, "%s/thumbnail.jpg",SNAP_FILE_PATH_PREFIX);
+		// 	}
+		// 	else if(face_snap && !thumbnail_snap) {
+		// 		sprintf(snap_path, "%s/face.jpg",SNAP_FILE_PATH_PREFIX);
+		// 	}
+		// 	IMP_LOG_ERR(TAG, "Open Snap file %s ", snap_path);
+		// 	int snap_fd = open(snap_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
+		// 	if (snap_fd < 0) {
+		// 		IMP_LOG_ERR(TAG, "failed: %s\n", strerror(errno));
+		// 		printf("open\n");
+		// 		return (void*)-1;
+		// 	}
+
+		// 	ret = save_stream(snap_fd, &stream);
+		// 	if (ret < 0) {
+		// 		printf("save Error!\n");
+		// 	}
+
+		// 	if (thumbnail_snap) {
+		// 		for (i=0;i<10;i++){
+		// 			if (fdpd_data[i].flag && fdpd_data[i].classid == 0 && fdpd_data[i].trackid >= 0)
+		// 				thum_face_data.flag[i] = fdpd_data[i].flag;
+		// 			thum_face_data.flag[i] = false;
+		// 			thum_face_data.x[i] = fdpd_data[i].ul_x;
+		// 			thum_face_data.y[i] = fdpd_data[i].ul_y;
+		// 			thum_face_data.ex[i] = fdpd_data[i].br_x;
+		// 			thum_face_data.ey[i] = fdpd_data[i].br_y;
+		// 		}
+		// 	}
+
+		// 	close(snap_fd);
+		// 	if (face_snap && !thumbnail_snap) {
+		// 		face_snap = false;
+		// 		fr_state++;
+		// 	}
+
+		// 	if(thumbnail_state == 1) 
+		// 		thumbnail_state = 2;
+
+		// 	if (chnNum == 2){
+		// 		main_snap = false;
+		// 		thumbnail_snap = false;
+		// 	}
+
+		// 	if (chnNum == 5){
+		// 		printf("BOX END!\n");
+		// 		box_snap = false;
+		// 	}
+			
+		// }
 
 		IMP_Encoder_ReleaseStream(chnNum, &stream);
 		

@@ -3,6 +3,6 @@
 make clean
 make -j4
 sync
-mv isc isc$1
-zip isc$1.zip isc$1
+rm isc*.zip
+zip isc$1.zip isc
 sudo cp isc$1.zip /media/sf_Share/

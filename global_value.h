@@ -9,8 +9,8 @@ extern "C" {
 #endif
 
 #define MAJOR_VER	"0"
-#define MINOR_VER	"2"	
-#define CAHR_VER	"y"
+#define MINOR_VER	"3"	
+#define CAHR_VER	"i"
 
 typedef struct CIRCULAR_BUFF
 {
@@ -70,7 +70,7 @@ int move_det_xs, move_det_ys, move_det_xe, move_det_ye;
 #define MAX_REC_TIME 60000000	// 60 * 1000 * 1000 usec
 #define ROAMING_PER_TIME 30000000	// 60 * 1000 * 1000 usec
 #define THUMBNAIL_TIME 1000000
-#define FACE_FIND_END_TIME 10000000
+#define FACE_FIND_END_TIME 5000000
 
 int data_sel;
 char ip[30];
@@ -138,13 +138,13 @@ typedef struct THUM_SNAP
 // Thum_Data_t mosaic_data;
 Thum_Data_t thum_face_data;
 
-typedef struct STREAMING_REC
-{
-	int64_t rec_time[20];
-	int rec_fcnt[20];
-} Streaming_Rec_t;
+// typedef struct STREAMING_REC
+// {
+// 	int64_t rec_time[20];
+// 	int rec_fcnt[20];
+// } Streaming_Rec_t;
 
-Streaming_Rec_t str_rec_t;
+// Streaming_Rec_t str_rec_t;
 
 typedef struct CLIP_CAUSE
 {
@@ -167,6 +167,7 @@ Clip_Cause_t clip_cause_t;
 
 int64_t start_time;
 uint32_t ExpVal;
+int64_t rec_total;
 
 int stream_state;
 int thumbnail_state;
@@ -287,7 +288,6 @@ enum CLIP_MOUNT {
 	CLIP_MOUNT_MOUNT = 1,  // 1
 	CLIP_MOUNT_DISMT = 2,  // 2
 };
-
 
 // #define __TEST_FAKE_VEDIO__
 // #define __STREAMING_CMD__

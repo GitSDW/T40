@@ -384,6 +384,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             ao_file_play_thread(effect_file);
             clip_cause_t.Major = CLIP_CAUSE_BOX;
             clip_cause_t.Minor = CLIP_BOX_OCCUR;
+            bell_rec_state = REC_START;
             ack_len = 0;
             ack_flag = true;
         break;
@@ -393,6 +394,17 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 clip_cause_t.Major = CLIP_CAUSE_FACE;
                 clip_cause_t.Minor = CLIP_FACE_DET; 
             }
+            ack_len = 0;
+            ack_flag = true;
+        break;
+        case UREC_STREAM:
+            stream_state = 1;
+            ack_len = 0;
+            ack_flag = true;
+        break;
+
+        case UREC_STREAM_END:
+            stream_state = 0;
             ack_len = 0;
             ack_flag = true;
         break;
@@ -445,8 +457,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         case USTREAM_REC_E:
             printf("Streaming Rec End!\n");
             rec_time_e = sample_gettimeus()-rec_time_s;
-            printf("Rec Time : %lld\n", rec_time_e);
-            str_rec_t.rec_time[rec_cnt-1] = rec_time_e;
+            printf("Rec Time : %lld total : %lld\n", rec_time_e, rec_total);
+            rec_total += rec_time_e;
             streaming_rec_state = REC_STOP;
             rec_on = false;
             ack_len = 0;

@@ -118,6 +118,7 @@ int global_value_init(void) {
 	rec_cnt = 0;
 	save_pcm = 0;
 	face_crop_cnt = 0;
+	rec_total = 0;
 
 	// rec_state = REC_READY;
 	clip_rec_state = REC_READY;
@@ -1382,9 +1383,11 @@ int clip_total(void) {
 	int file_cnt = 0;
 	int fpdp_cnt = 0;
 	bool start_flag = false;
+	bool ubi_flag = false;
+	bool spi_th_flag = false;
 	
 	int64_t end_time = 0, total_time = 0;
-	int64_t end_time2 = 0, total_time2 = 0;
+	// int64_t end_time2 = 0, total_time2 = 0;
 	char file_path[128] = {0};
 	char file_sep[100] = {0};
 
@@ -1397,11 +1400,18 @@ int clip_total(void) {
     // Init_Audio_Out();
 	// Init_Audio_In();
 	// Set_Vol(100, 20, 80, 15);
+
+    pthread_t tid_spi;
+	//////////////// SPI Init ////////////////////////////////////////////////////////////////
 	ret = spi_init();
     if(ret < 0){
         printf("spi init error\n");
         return 0;
     }
+
+    
+	//////////////////////////////////////////////////////////////////////////////////////////
+
 
     thumbnail_state = 0;
     stream_state = 0;
@@ -1466,6 +1476,7 @@ int clip_total(void) {
 				end_time = start_time + 5000000;
 			}
 			else if ((sample_gettimeus() - start_time) > START_CHECK_TIME) {
+				device_end(STREAMING);
 				printf("Not Detection!! Device Turn Off.\n");
 				break;
 			}
@@ -1543,6 +1554,20 @@ int clip_total(void) {
 				// }
 			}
 
+			if (!spi_th_flag && (total_time > FACE_FIND_END_TIME) && (stream_state == 1)) {
+				spi_th_flag = true;
+				data_sel = 4;
+				if (data_sel <= 0 || data_sel > 4) {
+					printf("Invalid Type!\n");
+					return -1;
+				}
+				ret = pthread_create(&tid_spi, NULL, spi_send_stream, NULL);
+				if(ret != 0) {
+					IMP_LOG_ERR("[Udp]", "[ERROR] %s: pthread_create spi_send_stream failed\n", __func__);
+					return -1;
+				}
+			}
+
 			if (start_flag && (person_cnt != 0) && !roaming_person) {
 				printf("roaming_person Check!\n");
 				roaming_person = true;
@@ -1561,22 +1586,22 @@ int clip_total(void) {
 				file_cnt = 3;
 			}
 			
-			if ((file_cnt == 0) && (total_time>FACE_FIND_END_TIME)) {	// Face or Motion Not Found -> Clip Stop
+			if ((file_cnt == 0) && (total_time>FACE_FIND_END_TIME) && (clip_rec_state < REC_STOP)) {	// Face or Motion Not Found -> Clip Stop
 				if ((person_cnt == 0) && (main_motion_detect == 0)) {
 					if ((sample_gettimeus() - end_time) > 3000000) {
 						printf("CLIP END:Move End!\n");
 						// rec_stop = true;
 						clip_rec_state = REC_STOP;
 						box_snap = true;
-						if (total_time < 23000000) {
-							file_cnt = 1;
-						}
-						else if (total_time < 43000000) {
-							file_cnt = 2;
-						}
-						else if (total_time >= 43000000) {
-							file_cnt = 3;
-						}
+						// if (total_time < 23000000) {
+						// 	file_cnt = 1;
+						// }
+						// else if (total_time < 43000000) {
+						// 	file_cnt = 2;
+						// }
+						// else if (total_time >= 43000000) {
+						// 	file_cnt = 3;
+						// }
 						// else {
 							// printf("file Count Error!\n");
 							// file_cnt = 3;
@@ -1593,18 +1618,40 @@ int clip_total(void) {
 			if ((file_cnt == 0) && (bell_rec_state >= REC_START)) {	// Bell Push -> Clip Stop
 				printf("CLIP END:Move End!\n");
 				clip_rec_state = REC_STOP;
-				box_snap = true;
-				if (total_time < 23000000) {
-					file_cnt = 1;
-				}
-				else if (total_time < 43000000) {
-					file_cnt = 2;
-				}
-				else if (total_time >= 43000000) {
-					file_cnt = 3;
-				}
-				printf("Detection End! REC END. file cnt : %d\n", file_cnt);
+				
 			}
+		}
+
+		// while (stream_state == 1) {
+		// 	total_time = sample_gettimeus() - start_time;
+		// 	if ((total_time > MAX_REC_TIME) && (clip_rec_state == REC_ING)) {	// 60Sec Time Over -> Clip Stop
+		// 		// rec_stop = true;
+		// 		printf("CLIP END:Time Over! %lld\n", total_time);
+		// 		clip_rec_state = REC_STOP;
+		// 		box_snap = true;
+		// 		file_cnt = 3;
+		// 	}
+		// }
+
+		// printf("Clip clip_rec_state : %d  bell_rec_state : %d stream_state : %d\n", clip_rec_state, bell_rec_state, stream_state);
+
+		if (stream_state == 1) {
+			continue;
+		}
+
+		if (spi_th_flag) {
+			spi_th_flag = false;
+			if (clip_rec_state < REC_STOP){
+				clip_rec_state = REC_STOP;
+				box_snap = true;
+			}
+			// bExit = true;
+			// pthread_join(tid_spi, NULL);
+			ret = pthread_kill(tid_spi, 0);
+			if (ret == 0) {
+				pthread_cancel(tid_spi);
+			}
+			printf("Clip Rec Mode : %d\n", clip_rec_state);
 		}
 
 		if ((clip_rec_state == REC_WAIT && bell_rec_state == REC_WAIT) ||
@@ -1612,7 +1659,19 @@ int clip_total(void) {
 		{
 			if (clip_rec_state == REC_WAIT) clip_rec_state = REC_MP4MAKE;
 			if (bell_rec_state == REC_WAIT) bell_rec_state = REC_MP4MAKE;
+
+			if (total_time < 23000000) {
+				file_cnt = 1;
+			}
+			else if (total_time < 43000000) {
+				file_cnt = 2;
+			}
+			else if (total_time >= 43000000) {
+				file_cnt = 3;
+			}
+			printf("Detection End! REC END. file cnt : %d\n", file_cnt);
 		}
+		else continue;
 
 		while(box_snap);
 
@@ -1748,11 +1807,7 @@ int clip_total(void) {
 				}
 				
 			}
-			
-			
 
-			
-			
 			////// Fine Spi Send /////////
 			if (file_cnt > 0) { 
 				bool send_fail = false;
@@ -1764,13 +1819,7 @@ int clip_total(void) {
 				// sprintf(file_path, "/vtmp/faceperson.data");
 				// spi_send_file(REC_FACE, file_path);
 
-				if (file_ck("/tmp/mnt/sdcard/nandformat")) {
-					system("ubi_mount");
-				}
-				else {
-					system("ubi_mk");
-					system("echo ubiformat > /tmp/mnt/sdcard/nandformat");
-				}
+				
 
 				for (int i=0; i<file_cnt; i++) {
 					send_fail = false;
@@ -1801,6 +1850,16 @@ int clip_total(void) {
 					}
 					if (send_fail) {
 						// nowtime = sample_gettimeus();
+						if (!ubi_flag) {
+							ubi_flag = true;
+							if (file_ck("/tmp/mnt/sdcard/nandformat")) {
+								system("ubi_mount");
+							}
+							else {
+								system("ubi_mk");
+								system("echo ubiformat > /tmp/mnt/sdcard/nandformat");
+							}
+						}
 						save_cnt++;
 						memset(file_path, 0, 128);
 						sprintf(file_path, "cp /vtmp/main%d.mp4 /maincam/main%d_%d.mp4", i, i, save_cnt);
@@ -1854,7 +1913,7 @@ int stream_total(void) {
 	// int64_t total_time = 0;
 	// int64_t oldt_time = 0;
 	// char file_path[64] = {0};
-	int64_t rec_time_s = 0, rec_time_e = 0;
+#ifdef __STREAMING_CMD__
 
 	bool up_streming_flag = false;
     bool dn_streming_flag = false;
@@ -1862,15 +1921,25 @@ int stream_total(void) {
     bool adc_flag = false;
     bool led_flag = false;
 
+    
+    int gval = 0;
+
+    
+
+#endif
+    int64_t rec_time_s = 0, rec_time_e = 0;
+    int64_t rec_now = 0;
+
     char file_sep[256] = {0};
     char file_path[128] = {0};
-    int gval = 0;
 
 	pthread_t tid_ao, tid_ai;
     pthread_t tid_stream, tid_snap, tid_move, tim_osd, tid_fdpd;
     pthread_t tid_uart;
 
     pthread_t adc_thread_id, tid_clip;
+
+    
 
 
 #ifdef STREAMING_SPI
@@ -2329,6 +2398,15 @@ int stream_total(void) {
 			// break;
 		}
 #else
+		if (streaming_rec_state >= REC_START && streaming_rec_state < REC_STOP) {
+			rec_now = sample_gettimeus() - rec_time_s;
+			if (rec_total + rec_time_s >= 60000000) {
+				streaming_rec_state = REC_STOP;
+            	rec_on = false;
+            	rec_total += rec_time_s;
+            	rec_mem_flag = true;
+			}
+		}
 		if (rec_end) {
 			rec_end = false;
 			printf("cmd 20 streaming end & save file send\n");
