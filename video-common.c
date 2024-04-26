@@ -1962,6 +1962,7 @@ static int save_stream(int fd, IMPEncoderStream *stream)
 static int save_stream1(int fd, IMPEncoderStream *stream, int ch)
 {
 	int ret, i, nr_pack = stream->packCount;
+	
 	static bool start_flag = false;
 	static int old_cnt = -1;
 
@@ -1972,13 +1973,15 @@ static int save_stream1(int fd, IMPEncoderStream *stream, int ch)
 	}
 
 	if (!start_flag) {
-		// printf("nr_pack:%d\n", nr_pack);
-	#ifdef __H265__
-		if (nr_pack > 3) {
-	#else
-		if (nr_pack > 2) {
-	#endif
-			start_flag = true;
+		// printf("1 nr_pack:%d\n", nr_pack);
+		if ((nr_pack > 1)) {
+			if (stream->pack[nr_pack-1].sliceType == IMP_ENC_SLICE_I) {
+				printf("1 Save Start:%d %d\n", nr_pack, stream->pack[nr_pack-1].sliceType);
+				start_flag = true;
+			}
+			else {
+				return 0;
+			}
 		}
 		else {
 			return 0;
@@ -2013,7 +2016,7 @@ static int save_stream1(int fd, IMPEncoderStream *stream, int ch)
 			
 		}
 		total[ch] += pack->length;
-		// printf("nr_pack:%d/%d len:%d\n", i, nr_pack, pack->length);
+		// printf("nr_pack:%d/%d len:%d type:%d\n", i, nr_pack, pack->length, pack->sliceType);
 	}
 	// printf("nr_pack:%d frame[%d]:%d\n", nr_pack, ch, total[ch]);
 
@@ -2034,19 +2037,145 @@ static int save_stream2(int fd, IMPEncoderStream *stream, int ch)
 	}
 
 	if (!start_flag) {
-		// printf("nr_pack:%d\n", nr_pack);
-	#ifdef __H265__
-		if (nr_pack > 3) {
-	#else
-		if (nr_pack > 2) {
-	#endif
-			start_flag = true;
+		// printf("2 nr_pack:%d\n", nr_pack);
+		if ((nr_pack > 1)) {
+			if (stream->pack[nr_pack-1].sliceType == IMP_ENC_SLICE_I) {
+				printf("2 Save Start:%d %d\n", nr_pack, stream->pack[nr_pack-1].sliceType);
+				start_flag = true;
+			}
+			else {
+				return 0;
+			}
 		}
 		else {
 			return 0;
 		}
 	}
+ 
+  //IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u start----------\n", stream->packCount, stream->seq);
+	for (i = 0; i < nr_pack; i++) {
+	//IMP_LOG_DBG(TAG, "[%d]:%10u,%10lld,%10u,%10u,%10u\n", i, stream->pack[i].length, stream->pack[i].timestamp, stream->pack[i].frameEnd, *((uint32_t *)(&stream->pack[i].nalType)), stream->pack[i].sliceType);
+		IMPEncoderPack *pack = &stream->pack[i];
+		if(pack->length){
+			uint32_t remSize = stream->streamSize - pack->offset;
+			if(remSize < pack->length){
+				ret = write(fd, (void *)(stream->virAddr + pack->offset), remSize);
+				if (ret != remSize) {
+					IMP_LOG_ERR(TAG, "stream write ret(%d) != pack[%d].remSize(%d) error:%s\n", ret, i, remSize, strerror(errno));
+					return -1;
+				}
+				ret = write(fd, (void *)stream->virAddr, pack->length - remSize);
+				if (ret != (pack->length - remSize)) {
+					IMP_LOG_ERR(TAG, "stream write ret(%d) != pack[%d].(length-remSize)(%d) error:%s\n", ret, i, (pack->length - remSize), strerror(errno));
+					return -1;
+				}
+			}else {
+				ret = write(fd, (void *)(stream->virAddr + pack->offset), pack->length);
+				if (ret != pack->length) {
+					IMP_LOG_ERR(TAG, "stream write ret(%d) != pack[%d].length(%d) error:%s\n", ret, i, pack->length, strerror(errno));
+					return -1;
+				}
+			}
+			
+		}
+		total[ch] += pack->length;
+		// printf("nr_pack:%d/%d len:%d\n", i, nr_pack, pack->length);
+	}
 
+  //IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u end----------\n", stream->packCount, stream->seq);
+	return 0;
+}
+
+static int save_stream3(int fd, IMPEncoderStream *stream, int ch)
+{
+	int ret, i, nr_pack = stream->packCount;
+	static bool start_flag = false;
+	static int old_cnt = -1;
+
+	if (old_cnt != rec_cnt) {
+		// printf("3 new file!\n");
+		old_cnt = rec_cnt;
+		start_flag = false;
+	}
+
+	if (!start_flag) {
+		// printf("3 nr_pack:%d\n", nr_pack);
+		if ((nr_pack > 1)) {
+			if (stream->pack[nr_pack-1].sliceType == IMP_ENC_SLICE_I) {
+				printf("3 Save Start:%d %d\n", nr_pack, stream->pack[nr_pack-1].sliceType);
+				start_flag = true;
+			}
+			else {
+				return 0;
+			}
+		}
+		else {
+			return 0;
+		}
+	}
+ 
+  //IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u start----------\n", stream->packCount, stream->seq);
+	for (i = 0; i < nr_pack; i++) {
+	//IMP_LOG_DBG(TAG, "[%d]:%10u,%10lld,%10u,%10u,%10u\n", i, stream->pack[i].length, stream->pack[i].timestamp, stream->pack[i].frameEnd, *((uint32_t *)(&stream->pack[i].nalType)), stream->pack[i].sliceType);
+		IMPEncoderPack *pack = &stream->pack[i];
+		if(pack->length){
+			uint32_t remSize = stream->streamSize - pack->offset;
+			if(remSize < pack->length){
+				ret = write(fd, (void *)(stream->virAddr + pack->offset), remSize);
+				if (ret != remSize) {
+					IMP_LOG_ERR(TAG, "stream write ret(%d) != pack[%d].remSize(%d) error:%s\n", ret, i, remSize, strerror(errno));
+					return -1;
+				}
+				ret = write(fd, (void *)stream->virAddr, pack->length - remSize);
+				if (ret != (pack->length - remSize)) {
+					IMP_LOG_ERR(TAG, "stream write ret(%d) != pack[%d].(length-remSize)(%d) error:%s\n", ret, i, (pack->length - remSize), strerror(errno));
+					return -1;
+				}
+			}else {
+				ret = write(fd, (void *)(stream->virAddr + pack->offset), pack->length);
+				if (ret != pack->length) {
+					IMP_LOG_ERR(TAG, "stream write ret(%d) != pack[%d].length(%d) error:%s\n", ret, i, pack->length, strerror(errno));
+					return -1;
+				}
+			}
+			
+		}
+		total[ch] += pack->length;
+		// printf("nr_pack:%d/%d len:%d\n", i, nr_pack, pack->length);
+	}
+
+  //IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u end----------\n", stream->packCount, stream->seq);
+	return 0;
+}
+
+static int save_stream4(int fd, IMPEncoderStream *stream, int ch)
+{
+	int ret, i, nr_pack = stream->packCount;
+	static bool start_flag = false;
+	static int old_cnt = -1;
+
+	if (old_cnt != rec_cnt) {
+		printf("2 new file!\n");
+		old_cnt = rec_cnt;
+		start_flag = false;
+	}
+
+	if (!start_flag) {
+		// printf("4 nr_pack:%d\n", nr_pack);
+		if ((nr_pack > 1)) {
+			if (stream->pack[nr_pack-1].sliceType == IMP_ENC_SLICE_I) {
+				printf("4 Save Start:%d %d\n", nr_pack, stream->pack[nr_pack-1].sliceType);
+				start_flag = true;
+			}
+			else {
+				return 0;
+			}
+		}
+		else {
+			return 0;
+		}
+	}
+ 
   //IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u start----------\n", stream->packCount, stream->seq);
 	for (i = 0; i < nr_pack; i++) {
 	//IMP_LOG_DBG(TAG, "[%d]:%10u,%10lld,%10u,%10u,%10u\n", i, stream->pack[i].length, stream->pack[i].timestamp, stream->pack[i].frameEnd, *((uint32_t *)(&stream->pack[i].nalType)), stream->pack[i].sliceType);
@@ -2157,7 +2286,31 @@ int Send_Frame_Main_UDP(IMPEncoderStream *stream) {
 	// }
 
 	int len = 0;
-	int i, nr_pack = stream->packCount;;
+	int i, nr_pack = stream->packCount;
+	static bool start_flag = false;
+	
+	if (!start_flag) {
+		printf("m nr_pack:%d\n", nr_pack);
+		if ((nr_pack > 1)) {
+			if (stream->pack[nr_pack-1].sliceType == IMP_ENC_SLICE_I) {
+				printf("m Stream Start:%d %d\n", nr_pack, stream->pack[nr_pack-1].sliceType);
+				start_flag = true;
+				VM_Frame_Buff.len[VM_Frame_Buff.index] = 1;
+				VM_Frame_Buff.index = (VM_Frame_Buff.index+1)%10;
+				VM_Frame_Buff.cnt++;
+				VM_Frame_Buff.len[VM_Frame_Buff.index] = 1;
+				VM_Frame_Buff.index = (VM_Frame_Buff.index+1)%10;
+				VM_Frame_Buff.cnt++;
+				// return 0;
+			}
+			else {
+				return 0;
+			}
+		}
+		else {
+			return 0;
+		}
+	}
 
 	// printf("nr_pack:%d\n", nr_pack);
 
@@ -2173,13 +2326,15 @@ int Send_Frame_Main_UDP(IMPEncoderStream *stream) {
 			memcpy(VM_Frame_Buff.tx[VM_Frame_Buff.index]+len, (void *)(stream->virAddr + pack->offset), pack->length);
 			len += pack->length;
 		}
+		// printf("[%d/%d]fram time:%lld\n", i+1, nr_pack, pack->timestamp);
+		VM_Frame_Buff.ftime[VM_Frame_Buff.index] = pack->timestamp;
 	}
 	VM_Frame_Buff.len[VM_Frame_Buff.index] = len;
 	VM_Frame_Buff.index = (VM_Frame_Buff.index+1)%10;
 	VM_Frame_Buff.cnt++;
 	pthread_mutex_unlock(&buffMutex_vm);
 
-	// printf("nr_pack:%d frame[Main]:%d\n", nr_pack, len);
+	// printf("nr_pack:%d frame[Main]:%d time:%lld\n", nr_pack, len, );
 
 	return 0;
 }	
@@ -2218,6 +2373,30 @@ int Send_Frame_Box_UDP(IMPEncoderStream *stream) {
 
 	int len = 0;
 	int i, nr_pack = stream->packCount;;
+	static bool start_flag = false;
+	
+	if (!start_flag) {
+		// printf("b nr_pack:%d\n", nr_pack);
+		if ((nr_pack > 1)) {
+			if (stream->pack[nr_pack-1].sliceType == IMP_ENC_SLICE_I) {
+				printf("b Stream Start:%d %d\n", nr_pack, stream->pack[nr_pack-1].sliceType);
+				start_flag = true;
+				VB_Frame_Buff.len[VB_Frame_Buff.index] = 1;
+				VB_Frame_Buff.index = (VB_Frame_Buff.index+1)%10;
+				VB_Frame_Buff.cnt++;
+				VB_Frame_Buff.len[VB_Frame_Buff.index] = 1;
+				VB_Frame_Buff.index = (VB_Frame_Buff.index+1)%10;
+				VB_Frame_Buff.cnt++;
+				// return 0;
+			}
+			else {
+				return 0;
+			}
+		}
+		else {
+			return 0;
+		}
+	}
 
 	if(VB_Frame_Buff.cnt >= 10){
 		printf("VB Frame Buffer Full!\n");
@@ -2231,13 +2410,13 @@ int Send_Frame_Box_UDP(IMPEncoderStream *stream) {
 			memcpy(VB_Frame_Buff.tx[VB_Frame_Buff.index]+len, (void *)(stream->virAddr + pack->offset), pack->length);
 			len += pack->length;
 		}
+		VB_Frame_Buff.ftime[VB_Frame_Buff.index] = pack->timestamp;
 	}
 	VB_Frame_Buff.len[VB_Frame_Buff.index] = len;
 	VB_Frame_Buff.index = (VB_Frame_Buff.index+1)%10;
 	VB_Frame_Buff.cnt++;
 	pthread_mutex_unlock(&buffMutex_vb);
 
-	return 0;
 	return 0;
 }
 
@@ -2547,7 +2726,7 @@ static void *get_video_stream_user(void *args)
 		if (bell_rec_state >= REC_START && bell_rec_state <= REC_STOP) {
 			// printf("state:%d 0_s:%d 3_s%d\n", bell_rec_state, bell_0_s, bell_3_s);
 			if (!bell_0_s && chnNum == 0) {
-				sprintf(stream_path, "%s/stream-%d.%s", STREAM_FILE_PATH_PREFIX, chnNum,
+				sprintf(stream_path, "%s/bell-%d.%s", STREAM_FILE_PATH_PREFIX, chnNum,
 				(encType == IMP_ENC_TYPE_AVC) ? "h264" : ((encType == IMP_ENC_TYPE_HEVC) ? "h265" : "jpeg"));
 				clip_fd = open(stream_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
 				if (clip_fd < 0) {
@@ -2558,7 +2737,7 @@ static void *get_video_stream_user(void *args)
 				bell_0_e = false;
 			}
 			if (!bell_3_s && chnNum == 3) {
-				sprintf(stream_path, "%s/stream-%d.%s", STREAM_FILE_PATH_PREFIX, chnNum,
+				sprintf(stream_path, "%s/bell-%d.%s", STREAM_FILE_PATH_PREFIX, chnNum,
 				(encType == IMP_ENC_TYPE_AVC) ? "h264" : ((encType == IMP_ENC_TYPE_HEVC) ? "h265" : "jpeg"));
 				clip_fd = open(stream_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
 				if (clip_fd < 0) {
@@ -2574,13 +2753,13 @@ static void *get_video_stream_user(void *args)
 			
 			if (bell_rec_state == REC_START || bell_rec_state == REC_ING) {
 				if (chnNum == 0) {
-					ret = save_stream1(clip_fd, &stream, chnNum);
+					ret = save_stream3(clip_fd, &stream, chnNum);
 					if (ret < 0) {
 						IMP_LOG_ERR(TAG, "Clip Save Err : %d!\n", chnNum);
 					}
 				}
 				if (chnNum == 3) {
-					ret = save_stream2(clip_fd, &stream, chnNum);
+					ret = save_stream4(clip_fd, &stream, chnNum);
 					if (ret < 0) {
 						IMP_LOG_ERR(TAG, "Clip Save Err : %d!\n", chnNum);
 					}
@@ -2653,8 +2832,12 @@ static void *get_video_stream_user(void *args)
 					return ((void *)-1);
 				}
 				printf("File Make : %s\n", stream_path);
-				if (chnNum == 0) rec_0_e = false;
-				else if (chnNum == 3) rec_3_e = false;
+				if (chnNum == 0) {
+					rec_0_e = false;
+				}
+				else if (chnNum == 3) {
+					rec_3_e = false;
+				}
 				rec_old_cnt = rec_cnt;
 				if (streaming_rec_state == REC_START)
 					streaming_rec_state = REC_ING;
@@ -2769,6 +2952,8 @@ int sample_get_video_stream_user()
 	unsigned int i;
 	int ret;
 	pthread_t strem_tid[FS_CHN_NUM];
+
+	// while (!move_end);
 
 	for (i = 0; i < FS_CHN_NUM; i++) {
 		if (i == CH0_INDEX || i == CH3_INDEX) {
@@ -2967,6 +3152,50 @@ static void *sample_get_jpeg_snap(void *args)
 			close(snap_fd);
 			face_snap = false;
 			fr_state++;
+		}
+
+		if (bell_snap_m && chnNum == 2) {
+			memset(snap_path, 0, 64);
+			if(bell_snap_m) {
+				sprintf(snap_path, "%s/bell_m.jpg",SNAP_FILE_PATH_PREFIX);
+			}
+			IMP_LOG_ERR(TAG, "Open Snap file %s ", snap_path);
+			int snap_fd = open(snap_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
+			if (snap_fd < 0) {
+				IMP_LOG_ERR(TAG, "failed: %s\n", strerror(errno));
+				printf("open\n");
+				return (void*)-1;
+			}
+
+			ret = save_stream(snap_fd, &stream);
+			if (ret < 0) {
+				printf("save Error!\n");
+			}
+
+			close(snap_fd);
+			bell_snap_m = false;
+		}
+
+		if (bell_snap_b && chnNum == 5) {
+			memset(snap_path, 0, 64);
+			if(bell_snap_b) {
+				sprintf(snap_path, "%s/bell_b.jpg",SNAP_FILE_PATH_PREFIX);
+			}
+			IMP_LOG_ERR(TAG, "Open Snap file %s ", snap_path);
+			int snap_fd = open(snap_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
+			if (snap_fd < 0) {
+				IMP_LOG_ERR(TAG, "failed: %s\n", strerror(errno));
+				printf("open\n");
+				return (void*)-1;
+			}
+
+			ret = save_stream(snap_fd, &stream);
+			if (ret < 0) {
+				printf("save Error!\n");
+			}
+
+			close(snap_fd);
+			bell_snap_b = false;
 		}
 
 		// if ((main_snap && chnNum == 2)||(box_snap && chnNum == 5) ||

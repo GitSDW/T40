@@ -6,37 +6,6 @@
 #include <cstring> // For strlen()
 #include <cstdint> // For uint8_t and uint32_t
 
-#include <opencv2/opencv.hpp>
-#include "cxx_util.h"
-
-using namespace cv;
-using namespace std;
-
-int scanf_cmd(void)
-{
-    int buf;
-    std::cout << "Insert Commend : ";
-    std::scanf("%d", &buf);
-
-    return buf;
-}
-
-int scanf_index(void)
-{
-    int buf;
-    std::scanf("%d", &buf);
-
-    return buf;
-}
-
-int scanf_string(char *buf)
-{
-    // char buf[30];
-    std::scanf("%s", buf);
-
-    return 1;
-}
-
 // MD5 해시를 계산하기 위한 보조 함수들
 constexpr uint32_t leftRotate(uint32_t x, uint32_t c) {
     return (x << c) | (x >> (32 - c));
@@ -192,10 +161,27 @@ bool verify_md5(const std::string& file_path, const std::string& expected_md5) {
     return actual_md5 == expected_md5;
 }
 
-int test_hash222(char *filepath) {
-    std::string file_path = filepath;
-    std::string make_md5 = calculate_md5(file_path);
-    std::cout << file_path << " HASH : " << make_md5 << std::endl;
+int test_hash222(char *path) {
+    // std::string file_path = "/tmp/mnt/sdcard/main_265.mp4";
+    // std::string make_md5 = calculate_md5(file_path);
+    // std::cout << "main_265.mp4 HASH : " << make_md5 << std::endl;
 
     return 0;
 }
+
+// int main() {
+//     std::string file_path = "example_file.txt"; // 파일 경로
+//     std::string expected_md5 = "4e1243bd22c66e76c2ba9eddc1f91394"; // 기대하는 MD5 해시 값
+
+//     // MD5 검증 수행
+//     bool verification_result = verify_md5(file_path, expected_md5);
+
+//     // 결과 출력
+//     if (verification_result) {
+//         std::cout << "파일의 MD5 검증이 성공했습니다. 파일이 변경되지 않았습니다." << std::endl;
+//     } else {
+//         std::cout << "파일의 MD5 검증이 실패했습니다. 파일이 변경되었거나 손상되었습니다." << std::endl;
+//     }
+
+//     return 0;
+// }

@@ -279,7 +279,14 @@ int Make_Spi_Packet(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t major, 
                 case REC_STREAMING_B:
                     memcpy(&tbuff[9+V_SEND_RESERV], data, len);
                     break;
+                case REC_BELL_SNAP_M:
+                case REC_BELL_SNAP_B:
+                case REC_TEMP_SNAP_M:
+                case REC_TEMP_SNAM_B:
+                    memcpy(&tbuff[9+V_SEND_RESERV], data, len);
+                    break;
                 default:
+                    printf("Protocol Make Fail!!\n");
                     return -1;
                     break;
             }
@@ -414,7 +421,7 @@ int Make_Spi_Packet_live(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t ma
     return 0;
 }
 
-int Make_Spi_Packet_live_rtp(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t major, uint8_t minor)
+int Make_Spi_Packet_live_rtp(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t major, uint8_t minor, int64_t time)
 {
     int reserv_cnt = V_SEND_RESERV;   
 
@@ -424,13 +431,12 @@ int Make_Spi_Packet_live_rtp(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_
     }
     memset(tbuff, 0xFF, SPI_SEND_LENGTH);
 
-#ifndef __H265__
     RTPHeader header;
     static uint16_t seq_num0 = 0;
     static uint16_t seq_num3 = 0;
 
     header.version_padding_extension_cc = 0x80;
-    header.marker_payload_type = 0x60;
+    header.marker_payload_type = 0x61;
     if (minor == STREAM_VEDIO_M) {
         header.sequence_number[0] = (seq_num0&0xFF00) >> 8;;
         header.sequence_number[1] = seq_num0&0xFF;
@@ -440,26 +446,29 @@ int Make_Spi_Packet_live_rtp(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_
         header.sequence_number[1] = seq_num3&0xFF;
     }
     // header.timestamp = sample_gettimeus();
-    // header.timestamp[0] = (time_buf&0xFF000000) >> 24;
-    // header.timestamp[1] = (time_buf&0x00FF0000) >> 16;
-    // header.timestamp[2] = (time_buf&0x0000FF00) >> 8;
-    // header.timestamp[3] = (time_buf&0x000000FF);
-    header.timestamp[0] = 0x3d;
-    header.timestamp[1] = 0xf1;
-    header.timestamp[2] = major;
-    header.timestamp[3] = minor;
+    header.timestamp[0] = (time&0xFF000000) >> 24;
+    header.timestamp[1] = (time&0x00FF0000) >> 16;
+    header.timestamp[2] = (time&0x0000FF00) >> 8;
+    header.timestamp[3] = (time&0x000000FF);
+    // if (minor == STREAM_VEDIO_M) {
+    //     header.timestamp[0] = 0x51;
+    //     header.timestamp[1] = 0x79;
+    //     header.timestamp[2] = 0x42;
+    //     header.timestamp[3] = 0x00;
+    // }
+    // else if (minor == STREAM_VEDIO_B) {
+    //     header.timestamp[0] = 0x51;
+    //     header.timestamp[1] = 0x79;
+    //     header.timestamp[2] = 0x42;
+    //     header.timestamp[3] = 0x01;
+    // }
     header.ssrc = 123465879;
 
     // memcpy(&tbuff[reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
     if (minor == STREAM_VEDIO_M) seq_num0++;
     else if (minor == STREAM_VEDIO_B) seq_num3++;
 
-
-    
-
     len += sizeof(RTPHeader);
-
-#endif
 
     tbuff[0+reserv_cnt] = 0x02;
     tbuff[1+reserv_cnt] = major & 0xFF;
@@ -517,22 +526,18 @@ int Make_Spi_Packet_live_rtp(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_
                 case STREAM_REV:
                     break;
                 case STREAM_VEDIO_M:
-            #ifndef __H265__
                     memcpy(&tbuff[9+reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
                     // printf("tbuf:\n0x%02x 0x%02x 0x%02x 0x%02x \n 0x%02x 0x%02x 0x%02x 0x%02x \n 0x%02x 0x%02x 0x%02x 0x%02x \n", 
                     //          tbuff[0+reserv_cnt+9], tbuff[1+reserv_cnt+9], tbuff[2+reserv_cnt+9],tbuff[3+reserv_cnt+9],
                     //          tbuff[4+reserv_cnt+9], tbuff[5+reserv_cnt+9], tbuff[6+reserv_cnt+9],tbuff[7+reserv_cnt+9],
                     //          tbuff[8+reserv_cnt+9], tbuff[9+reserv_cnt+9], tbuff[10+reserv_cnt+9],tbuff[11+reserv_cnt+9]);
                     reserv_cnt += sizeof(RTPHeader);
-            #endif
                     memcpy(&tbuff[9+reserv_cnt], data, len);
-
+                    // printf("tbuf len:%d\n", len);
                     break;
                 case STREAM_VEDIO_B:
-            #ifndef __H265__
                     memcpy(&tbuff[9+reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
                     reserv_cnt += sizeof(RTPHeader);
-            #endif
                 	memcpy(&tbuff[9+reserv_cnt], data, len);
                     break;
                 case STREAM_FACE:
@@ -1094,44 +1099,47 @@ void *spi_send_stream (void *arg)
 	buf = (uint8_t*)malloc(2000);
   
     do {
-		if (VM_Frame_Buff.cnt > 0) {
-			framesize = VM_Frame_Buff.len[VM_Frame_Buff.Rindex];
-			for(int i=0; framesize > 0; i++){
-				pthread_mutex_lock(&buffMutex_vm);
-				datasize = (framesize > V_SEND_SIZE) ? V_SEND_SIZE : framesize;
-				// udp_vm_send(VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize);
-				framesize -= datasize;
-				// printf("cnt:%d, total:%d, dsize:%d\n", i, framesize, datasize);
-				pthread_mutex_unlock(&buffMutex_vm);
-				// printf("[CIR_BUFF_VM]datasize:%d WIndex:%d RIndex%d\n", datasize, VM_Cir_Buff.WIndex, VM_Cir_Buff.RIndex);
+        /////////// Vedio Main IN -> UDP Out //////////////////////////////////////////
+        if (VM_Frame_Buff.cnt > 0) {
+            framesize = VM_Frame_Buff.len[VM_Frame_Buff.Rindex];
+            for(int i=0; framesize > 0; i++){
+                pthread_mutex_lock(&buffMutex_vm);
+                datasize = (framesize > V_SEND_SIZE) ? V_SEND_SIZE : framesize;
+                // udp_vm_send(VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize);
+                framesize -= datasize;
+                // printf("cnt:%d, total:%d, dsize:%d\n", i, framesize, datasize);
+                pthread_mutex_unlock(&buffMutex_vm);
+                // printf("[CIR_BUFF_VM]datasize:%d WIndex:%d RIndex%d\n", datasize, VM_Cir_Buff.WIndex, VM_Cir_Buff.RIndex);
             #ifdef __H265__
-                Make_Spi_Packet_live_rtp(tx_buff, VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize, STREAMING, STREAM_VEDIO_M);
+                Make_Spi_Packet_live(tx_buff, VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize, STREAMING, STREAM_VEDIO_M);
             #else
-				Make_Spi_Packet_live(tx_buff, VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize, STREAMING, STREAM_VEDIO_M);
+                Make_Spi_Packet_live_rtp(tx_buff, VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*i), 
+                                            datasize, STREAMING, STREAM_VEDIO_M, VM_Frame_Buff.ftime[VM_Frame_Buff.Rindex]);
             #endif
                 
-    	        // memset(tx_buff, 0, 1024);
-        	    // memcpy(&tx_buff[6], read_buff, ret);
-            	///////////////// SPI Send //////////////////////////
-	            if (data_sel == 1 || data_sel == 4) {
-    	        	// ret = spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
+                // memset(tx_buff, 0, 1024);
+                // memcpy(&tx_buff[6], read_buff, ret);
+                ///////////////// SPI Send //////////////////////////
+                if (data_sel == 1 || data_sel == 4) {
+                    // ret = spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
                     ret = spi_rw_bytes(fd,tx_buff,rx_buff,SPI_SEND_LENGTH);
-        	    	if (ret != 0) {
-            			printf("Fail Send SPI Data!\n");
-            		}
-	            	else {
-   	         		    // printf("cnt:%d total:%d dsize%d\n", i, framesize, datasize);
+                    if (ret != 0) {
+                        printf("Fail Send SPI Data!\n");
+                    }
+                    else {
+                        // printf("cnt:%d total:%d dsize%d\n", i, framesize, datasize);
                         // printf("STX:0x%02x CMD:0x%02x%02x LEN:0x%02x%02x ETX:0x%02x\n", 
                             // tx_buff[0+5], tx_buff[1+5], tx_buff[2+5], tx_buff[3+5], tx_buff[4+5], tx_buff[1023-5]);
-    	        		usleep(1*1000);
-        	    	}
-            	}
-			}
-			VM_Frame_Buff.Rindex = (VM_Frame_Buff.Rindex+1)%10;
-			VM_Frame_Buff.cnt--;
-		}
-		//////////////////////////////////////////////////////////////////////////////
-        Recv_Spi_Packet_live(rx_buff);
+                        usleep(1*1000);
+                    }
+                }
+            }
+            VM_Frame_Buff.Rindex = (VM_Frame_Buff.Rindex+1)%10;
+            VM_Frame_Buff.cnt--;
+        }
+        //////////////////////////////////////////////////////////////////////////////
+        Recv_Spi_Packet_live(rx_buff); 
+
 		/////////// Vedio Box IN -> UDP Out //////////////////////////////////////////
 		if (VB_Frame_Buff.cnt > 0) {
 			framesize = VB_Frame_Buff.len[VB_Frame_Buff.Rindex];
@@ -1144,9 +1152,10 @@ void *spi_send_stream (void *arg)
 				pthread_mutex_unlock(&buffMutex_vb);
                 // printf("[CIR_BUFF_VM]datasize:%d WIndex:%d RIndex%d\n", datasize, VM_Cir_Buff.WIndex, VM_Cir_Buff.RIndex);
             #ifdef __H265__
-                Make_Spi_Packet_live_rtp(tx_buff, VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize, STREAMING, STREAM_VEDIO_B);
-            #else
                 Make_Spi_Packet_live(tx_buff, VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize, STREAMING, STREAM_VEDIO_B);
+            #else
+                Make_Spi_Packet_live_rtp(tx_buff, VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*i), 
+                                            datasize, STREAMING, STREAM_VEDIO_B, VB_Frame_Buff.ftime[VB_Frame_Buff.Rindex]);
             #endif
 				
     	        // memset(tx_buff, 0, 1024);
@@ -1170,6 +1179,7 @@ void *spi_send_stream (void *arg)
 		}
 		//////////////////////////////////////////////////////////////////////////////
         Recv_Spi_Packet_live(rx_buff);
+       
 		/////////// Audio IN -> UDP Out //////////////////////////////////////////////
 		if (AI_Cir_Buff.RIndex != AI_Cir_Buff.WIndex) {
 			pthread_mutex_lock(&buffMutex_ai);
@@ -1207,6 +1217,9 @@ void *spi_send_stream (void *arg)
 		}
 		//////////////////////////////////////////////////////////////////////////////
         Recv_Spi_Packet_live(rx_buff);
+
+        
+
 		
     } while(!bStrem);
     
@@ -1229,119 +1242,7 @@ void *spi_test_send_stream (void *arg)
     }
 
     do {
-        // ret = read(filed, read_buff, FILE_READ_LENGTH);
-        // if(ret != 0) {
-        //     Make_Spi_Packet(tx_buff, read_buff, ret, REC, REC_CLIP_F);
-        //     // memset(tx_buff, 0, 1024);
-        //     // memcpy(&tx_buff[6], read_buff, ret);
-        //     spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
-        //     // printf("STX:0x%02x CMD:0x%02x%02x LEN:0x%02x%02x ETX:0x%02x\n", 
-        //                 // tx_buff[0], tx_buff[1], tx_buff[2], tx_buff[3], tx_buff[4], tx_buff[1023]);
-        // }
-        // usleep(dly*1000);
-
-        /////////// Vedio Main IN -> UDP Out //////////////////////////////////////////
-        // if (VM_Cir_Buff.RIndex != VM_Cir_Buff.WIndex) {
-        //  pthread_mutex_lock(&buffMutex_vm);
-        //  datasize = (VM_Cir_Buff.WIndex - VM_Cir_Buff.RIndex + V_BUFF_SIZE) % (1024*1024);
-        //  datasize = (datasize > V_SEND_SIZE) ? V_SEND_SIZE : datasize;
-        //  for (int i = 0; i < datasize; ++i) {
-        //      buf[i] = VM_Cir_Buff.tx[VM_Cir_Buff.RIndex];
-        //      VM_Cir_Buff.RIndex = (VM_Cir_Buff.RIndex+1) % (1024*1024);
-        //      if (VM_Cir_Buff.RIndex == VM_Cir_Buff.GIndex){
-        //          printf("[CIR_BUFF_VM]datasize:%d WIndex:%d RIndex%d GIndex%d\n", datasize, VM_Cir_Buff.WIndex, VM_Cir_Buff.RIndex, VM_Cir_Buff.GIndex);
-        //          datasize = i+1;
-        //          break;
-        //      }
-        //  }
-        //  // printf("[CIR_BUFF_VM]datasize:%d WIndex:%d RIndex%d\n", datasize, VM_Cir_Buff.WIndex, VM_Cir_Buff.RIndex);
-        //  pthread_mutex_unlock(&buffMutex_vm);
-        //  // udp_vm_send(buf, datasize);
-        //  Make_Spi_Packet_live(tx_buff, buf, datasize, STREAMING, STREAM_VEDIO_M);
-        //     // memset(tx_buff, 0, 1024);
-        //     // memcpy(&tx_buff[6], read_buff, ret);
-        //     ///////////////// SPI Send //////////////////////////
-        //     if (data_sel == 1 || data_sel == 4) {
-        //      ret = spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
-        //      if (ret != 0) {
-        //          printf("Fail Send SPI Data!\n");
-        //      }
-        //      else {
-        //          printf("MAIN Send Data : 0x%02X%02X\n", tx_buff[3], tx_buff[4]);
-        //          usleep(1*1000);
-        //      }
-        //     }
-        //     /////////////////////////////////////////////////////
-        // }
-
-        if (VM_Frame_Buff.cnt > 0) {
-            framesize = VM_Frame_Buff.len[VM_Frame_Buff.Rindex];
-            for(int i=0; framesize > 0; i++){
-                pthread_mutex_lock(&buffMutex_vm);
-                datasize = (framesize > V_SEND_SIZE) ? V_SEND_SIZE : framesize;
-                // udp_vm_send(VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize);
-                framesize -= datasize;
-                // printf("cnt:%d, total:%d, dsize:%d\n", i, framesize, datasize);
-                pthread_mutex_unlock(&buffMutex_vm);
-                // printf("[CIR_BUFF_VM]datasize:%d WIndex:%d RIndex%d\n", datasize, VM_Cir_Buff.WIndex, VM_Cir_Buff.RIndex);
-                Make_Spi_Packet_live(tx_buff, VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize, STREAMING, STREAM_VEDIO_M);
-                // memset(tx_buff, 0, 1024);
-                // memcpy(&tx_buff[6], read_buff, ret);
-                ///////////////// SPI Send //////////////////////////
-                if (data_sel == 1 || data_sel == 4) {
-                    // ret = spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
-                    // ret = spi_rw_bytes(fd,tx_buff,rx_buff,SPI_SEND_LENGTH);
-                    // ret = spi_write_bytes(fd,tx_tbuff, SPI_SEND_LENGTH);
-                    ret = spi_rw_bytes(fd,tx_tbuff,rx_buff,SPI_SEND_LENGTH);
-                    if (ret != 0) {
-                        printf("Fail Send SPI Data!\n");
-                    }
-                    else {
-                        // printf("d:0x%02X%02X\n", tx_buff[3], tx_buff[4]);
-                        usleep(1*1000);
-                    }
-                }
-            }
-            VM_Frame_Buff.Rindex = (VM_Frame_Buff.Rindex+1)%5;
-            VM_Frame_Buff.cnt--;
-        }
-        
-        //////////////////////////////////////////////////////////////////////////////
-        Recv_Spi_Packet_test(rx_buff);
         /////////// Vedio Box IN -> UDP Out //////////////////////////////////////////
-        // if (VB_Cir_Buff.RIndex != VB_Cir_Buff.WIndex) {
-        //  pthread_mutex_lock(&buffMutex_vb);
-        //  datasize = (VB_Cir_Buff.WIndex - VB_Cir_Buff.RIndex + V_BUFF_SIZE) % (1024*1024);
-        //  datasize = (datasize > V_SEND_SIZE) ? V_SEND_SIZE : datasize;
-        //  for (int i = 0; i < datasize; ++i) {
-        //      buf[i] = VB_Cir_Buff.tx[VB_Cir_Buff.RIndex];
-        //      VB_Cir_Buff.RIndex = (VB_Cir_Buff.RIndex+1) % (1024*1024);
-        //      if (VB_Cir_Buff.RIndex == VB_Cir_Buff.GIndex){
-        //          printf("[CIR_BUFF_VB]datasize:%d WIndex:%d RIndex%d GIndex%d\n", datasize, VM_Cir_Buff.WIndex, VM_Cir_Buff.RIndex, VM_Cir_Buff.GIndex);
-        //          datasize = i+1;
-        //          break;
-        //      }
-        //  }
-        //  // printf("[CIR_BUFF_VM]datasize:%d WIndex:%d RIndex%d\n", datasize, VM_Cir_Buff.WIndex, VM_Cir_Buff.RIndex);
-        //  pthread_mutex_unlock(&buffMutex_vb);
-        //  // udp_vm_send(buf, datasize);
-        //  Make_Spi_Packet_live(tx_buff, buf, datasize, STREAMING, STREAM_VEDIO_B);
-        //     // memset(tx_buff, 0, 1024);
-        //     // memcpy(&tx_buff[6], read_buff, ret);
-        //     ///////////////// SPI Send //////////////////////////
-        //     if (data_sel == 2 || data_sel == 4) {
-        //      ret = spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
-        //      if (ret != 0) {
-        //          printf("Fail Send SPI Data!\n");
-        //      }
-        //      else {
-        //          // printf("BOX Send Data : 0x%02X%02X\n", tx_buff[3], tx_buff[4]);
-        //          usleep(1*1000);
-        //         }
-        //     }
-        //     /////////////////////////////////////////////////////
-        // }
-
         if (VB_Frame_Buff.cnt > 0) {
             framesize = VB_Frame_Buff.len[VB_Frame_Buff.Rindex];
             for(int i=0; framesize > 0; i++){
@@ -1375,6 +1276,41 @@ void *spi_test_send_stream (void *arg)
         }
         //////////////////////////////////////////////////////////////////////////////
         Recv_Spi_Packet_test(rx_buff);
+
+        if (VM_Frame_Buff.cnt > 0) {
+            framesize = VM_Frame_Buff.len[VM_Frame_Buff.Rindex];
+            for(int i=0; framesize > 0; i++){
+                pthread_mutex_lock(&buffMutex_vm);
+                datasize = (framesize > V_SEND_SIZE) ? V_SEND_SIZE : framesize;
+                // udp_vm_send(VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize);
+                framesize -= datasize;
+                // printf("cnt:%d, total:%d, dsize:%d\n", i, framesize, datasize);
+                pthread_mutex_unlock(&buffMutex_vm);
+                // printf("[CIR_BUFF_VM]datasize:%d WIndex:%d RIndex%d\n", datasize, VM_Cir_Buff.WIndex, VM_Cir_Buff.RIndex);
+                Make_Spi_Packet_live(tx_buff, VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize, STREAMING, STREAM_VEDIO_M);
+                // memset(tx_buff, 0, 1024);
+                // memcpy(&tx_buff[6], read_buff, ret);
+                ///////////////// SPI Send //////////////////////////
+                if (data_sel == 1 || data_sel == 4) {
+                    // ret = spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
+                    // ret = spi_rw_bytes(fd,tx_buff,rx_buff,SPI_SEND_LENGTH);
+                    // ret = spi_write_bytes(fd,tx_tbuff, SPI_SEND_LENGTH);
+                    ret = spi_rw_bytes(fd,tx_tbuff,rx_buff,SPI_SEND_LENGTH);
+                    if (ret != 0) {
+                        printf("Fail Send SPI Data!\n");
+                    }
+                    else {
+                        // printf("d:0x%02X%02X\n", tx_buff[3], tx_buff[4]);
+                        usleep(1*1000);
+                    }
+                }
+            }
+            VM_Frame_Buff.Rindex = (VM_Frame_Buff.Rindex+1)%5;
+            VM_Frame_Buff.cnt--;
+        }
+        //////////////////////////////////////////////////////////////////////////////
+        Recv_Spi_Packet_test(rx_buff);
+        
         /////////// Audio IN -> UDP Out //////////////////////////////////////////////
         if (AI_Cir_Buff.RIndex != AI_Cir_Buff.WIndex) {
             pthread_mutex_lock(&buffMutex_ai);

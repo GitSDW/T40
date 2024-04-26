@@ -33,7 +33,7 @@ LDFLAG = -Wall -Wl,-gc-sections -lpthread -lm -lrt -lstdc++
 LDFLAG += -muclibc
 
 C_SRCS = main.c video-common.c video.c c_util.c udp.c audio.c spi.c move.c fdpd.c gpio.c adc.c uart.c setting.c# fdpd-common.c move-common.c
-CPP_SRCS = cxx_util.cpp image_comparison.cpp 
+CPP_SRCS = cxx_util.cpp image_comparison.cpp
 
 C_OBJS = $(C_SRCS:.c=.o)
 CPP_OBJS = $(CPP_SRCS:.cpp=.o)	

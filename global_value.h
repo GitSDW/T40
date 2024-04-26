@@ -9,8 +9,8 @@ extern "C" {
 #endif
 
 #define MAJOR_VER	"0"
-#define MINOR_VER	"3"	
-#define CAHR_VER	"i"
+#define MINOR_VER	"4"	
+#define CAHR_VER	"f"
 
 typedef struct CIRCULAR_BUFF
 {
@@ -31,6 +31,7 @@ typedef struct CIRCULAR_BUFF2
 	int index;
 	int Rindex;
 	int cnt;
+	int64_t ftime[10];
 	// unsigned char *buff;
 	// int blen;
 } Buff2_t;
@@ -56,21 +57,22 @@ Buff2_t VB_Frame_Buff;
 bool move_flag;
 int move_det_xs, move_det_ys, move_det_xe, move_det_ye;
 
-#define __H265__
+// #define __H265__
 
 // #define V_SEND_SIZE 1004 // 1014 -> 1004
 #ifdef __H265__
-	#define V_SEND_SIZE 992
+	#define V_SEND_SIZE 					992
 #else
 	// #define V_SEND_SIZE 992-12
-	#define V_SEND_SIZE 868
+	#define V_SEND_SIZE 					868
 #endif
-#define V_SEND_RESERV 5
-#define V_BUFF_SIZE 256*1024
-#define MAX_REC_TIME 60000000	// 60 * 1000 * 1000 usec
-#define ROAMING_PER_TIME 30000000	// 60 * 1000 * 1000 usec
-#define THUMBNAIL_TIME 1000000
-#define FACE_FIND_END_TIME 5000000
+#define V_SEND_RESERV 					5
+#define V_BUFF_SIZE 						256*1024
+#define MAX_REC_TIME 						60000000	// 60 * 1000 * 1000 usec
+#define ROAMING_PER_TIME 				30000000	// 60 * 1000 * 1000 usec
+#define THUMBNAIL_TIME 					1000000
+#define FACE_FIND_END_TIME 			5000000
+#define CLIP_CLOSE_TIME  				3000000
 
 int data_sel;
 char ip[30];
@@ -184,6 +186,8 @@ int bell_rec_state;
 
 int boot_mode;
 int face_crop_cnt;
+int Rec_type;
+int bl_state;
 
 // bool rec_stop;
 // bool main_rec_end;
@@ -209,6 +213,10 @@ bool light_on;
 bool rec_on;
 bool rec_mem_flag;
 bool rec_end;
+bool bell_flag;
+bool bell_snap_m;
+bool bell_snap_b;
+// bool move_end;
 
 
 extern int bExit;
@@ -228,6 +236,14 @@ enum THUMB_STATE {
   THUMB_SNAPSHOT,  	// 2
   // THUMB_SUCCESS,	// 3
   THUMB_END,		// 3
+};
+
+enum BELL_SNAP_STATE {
+  BSS_WAIT 			= 0,	// 0
+  BSS_START,   				// 1
+  BSS_SEND,  					// 2
+  // THUMB_SUCCESS,		// 3
+  BSS_END,					// 3
 };
 
 enum REC_STATE {
@@ -287,6 +303,12 @@ enum CLIP_MOUNT {
 	CLIP_MOUNT_REV   = 0,	// 0
 	CLIP_MOUNT_MOUNT = 1,  // 1
 	CLIP_MOUNT_DISMT = 2,  // 2
+};
+
+enum REC_TYPE {
+	CLIP_REC   	= 0,	// 0
+	BELL_REC 		= 1,  // 1
+	MAKE_FILE		= 5,
 };
 
 // #define __TEST_FAKE_VEDIO__

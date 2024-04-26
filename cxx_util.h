@@ -9,6 +9,7 @@ extern "C" {
 int scanf_cmd(void);
 int scanf_index(void);
 int scanf_string(char *buf);
+int test_hash222(char *filepath);
 
 #if __cplusplus
 }

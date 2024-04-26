@@ -49,6 +49,10 @@ typedef enum {
 	REC_FACESHOT  	= 0x08,
 	REC_STREAMING_M = 0x09,
 	REC_STREAMING_B = 0x0A,
+	REC_BELL_SNAP_M	= 0x0B,
+	REC_BELL_SNAP_B	= 0x0C,
+	REC_TEMP_SNAP_M = 0x0D,
+	REC_TEMP_SNAM_B = 0x0E,
  	REC_STREAM_END	= 0x0F,  // Not Used, Backward
 
 	UREC_BELL 		= 0x41,
@@ -62,7 +66,7 @@ typedef enum {
 } MINOR_REC;
 
 typedef enum {
-	SET_START  		= 0x00,
+	SET_START  		= 0x01,
 
 	SET_LED			= 0x41,
 	SET_BELL_VOL	= 0x42,

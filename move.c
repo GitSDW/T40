@@ -195,6 +195,10 @@ static void *sample_ivs_move_get_result_process(void *arg)
 		return (void *)-1;
 	}
 
+	printf("Move Start!!\n");
+
+	// move_end = true;
+
 	// for (i = 0; i < 1000/*NR_FRAMES_TO_SAVE*/; i++) {
 	do {
 		ret = IMP_IVS_PollingResult(chn_num, IMP_IVS_DEFAULT_TIMEOUTMS);

@@ -382,11 +382,12 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/start3c.wav";;
             printf("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
-            clip_cause_t.Major = CLIP_CAUSE_BOX;
-            clip_cause_t.Minor = CLIP_BOX_OCCUR;
-            bell_rec_state = REC_START;
-            ack_len = 0;
-            ack_flag = true;
+            // clip_cause_t.Major = CLIP_CAUSE_BOX;
+            // clip_cause_t.Minor = CLIP_BOX_OCCUR;
+            // bell_rec_state = REC_START;
+            bell_flag = true;
+            // ack_len = 0;
+            // ack_flag = true;
         break;
         case  UREC_FACE:
             if (rbuff[index+9] == 1) {
@@ -643,6 +644,8 @@ int device_end(uint8_t major) {
     printf("Device End Major:0x%02x\n", uart_tx[1]);
     
     free(uart_tx);
+
+    return 0;
 }
 
 /*
@@ -705,7 +708,7 @@ void *uart_thread(void *argc)
     else if (boot_mode == 1) mode = REC;
     else if (boot_mode == 2) mode = STREAMING;
     else if (boot_mode == 3) mode = SETTING;
-    res = Make_Packet_uart(uart_tx, start_data, 0, mode, SET_START);
+    res = Make_Packet_uart(uart_tx, start_data, 0, mode, 1);
     uart_send(fd_uart, uart_tx, res);
     printf("Start Major:0x%02x Minor0x%02x\n", uart_tx[1], uart_tx[2]);
     // free(uart_tx);

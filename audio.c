@@ -676,7 +676,7 @@ void * IMP_Audio_Record_AEC_Thread(void *argv)
 			return NULL;
 		}
 
-	}while(1);
+	}while(!bStrem);
 
 	// ret = IMP_AI_DisableAec(devID, chnID);
 	// if(ret != 0) {
@@ -823,7 +823,7 @@ void *IMP_Audio_Play_Thread(void *argv)
 					play_status.chnTotalNum, play_status.chnFreeNum, play_status.chnBusyNum);
 
 		}
-	}while(1);
+	}while(!bStrem);
 
 	printf("[Audio] AO Thread END!\n");
 	free(buf);

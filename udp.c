@@ -117,7 +117,7 @@ ssize_t udp_vm_send(uint8_t *udp_data, uint16_t len) {
 	buf = malloc(1000);
 
 	header.version_padding_extension_cc = 0x80;
-	header.marker_payload_type = 0x61;
+	header.marker_payload_type = 0x60;
 	header.sequence_number[0] = (seq_num&0xFF00) >> 8;;
 	header.sequence_number[1] = seq_num&0xFF;
 	// header.timestamp = sample_gettimeus();

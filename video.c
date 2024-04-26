@@ -777,9 +777,9 @@ int video_init(void) {
 		printf("ScenceAttr Set Fail!\n");
 	}
 
-	IMPEncoderAttrRcMode encecmode;
+	// IMPEncoderAttrRcMode encecmode;
 
-	IMP_Encoder_GetChnAttrRcMode(CH0_INDEX, &encecmode);
+	// IMP_Encoder_GetChnAttrRcMode(CH0_INDEX, &encecmode);
 	// printf("enc rc mode:%d\n", encecmode.rcMode);
 	// printf("enc rc CBR uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
 	// printf("enc rc CBR iInitialQP:%d\n", encecmode.attrCbr.iInitialQP);
