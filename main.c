@@ -1481,7 +1481,7 @@ int clip_total(void) {
 
 	do {
 		if (start_flag == false) {
-			// if ((face_cnt > 0) || (person_cnt > 0) || (main_motion_detect > 1)) {
+			if ((face_cnt > 0) || (person_cnt > 0) || (main_motion_detect > 1)) {
 				printf("Start REC!!\n");
 				start_flag = true;
 				roaming_person = false;
@@ -1490,12 +1490,12 @@ int clip_total(void) {
 				clip_cause_t.Minor = CLIP_MOVE_MOVE;
 				Rec_type = CLIP_REC;
 				end_time = start_time + 5000000;
-			// }
-			// else if ((sample_gettimeus() - start_time) > START_CHECK_TIME) {
-				// device_end(STREAMING);
-				// printf("Not Detection!! Device Turn Off.\n");
-				// break;
-			// }
+			}
+			else if ((sample_gettimeus() - start_time) > START_CHECK_TIME) {
+				device_end(STREAMING);
+				printf("Not Detection!! Device Turn Off.\n");
+				break;
+			}
 		}
 		else {
 			if (Rec_type == CLIP_REC){
@@ -1616,35 +1616,35 @@ int clip_total(void) {
 					file_cnt = 3;
 				}
 				
-				// if ((file_cnt == 0) && (total_time>FACE_FIND_END_TIME) && (clip_rec_state < REC_STOP)) {	// Face or Motion Not Found -> Clip Stop
-				// 	if ((person_cnt == 0) && (main_motion_detect == 0)) {
-				// 		if ((sample_gettimeus() - end_time) > CLIP_CLOSE_TIME) {
-				// 			printf("CLIP END:Move End!\n");
-				// 			// rec_stop = true;
-				// 			clip_rec_state = REC_STOP;
-				// 			box_snap = true;
-				// 			Rec_type = MAKE_FILE;
-				// 			// if (total_time < 23000000) {
-				// 			// 	file_cnt = 1;
-				// 			// }
-				// 			// else if (total_time < 43000000) {
-				// 			// 	file_cnt = 2;
-				// 			// }
-				// 			// else if (total_time >= 43000000) {
-				// 			// 	file_cnt = 3;
-				// 			// }
-				// 			// else {
-				// 				// printf("file Count Error!\n");
-				// 				// file_cnt = 3;
-				// 			// }
-				// 			printf("Detection End! REC END. file cnt : %d\n", file_cnt);
-				// 		}
-				// 	}
-				// 	else {
-				// 		// printf("face:%d, person:%d, move:%d\n", face_cnt, person_cnt, main_motion_detect);
-				// 		end_time = sample_gettimeus();
-				// 	}
-				// }
+				if ((file_cnt == 0) && (total_time>FACE_FIND_END_TIME) && (clip_rec_state < REC_STOP)) {	// Face or Motion Not Found -> Clip Stop
+					if ((person_cnt == 0) && (main_motion_detect == 0)) {
+						if ((sample_gettimeus() - end_time) > CLIP_CLOSE_TIME) {
+							printf("CLIP END:Move End!\n");
+							// rec_stop = true;
+							clip_rec_state = REC_STOP;
+							box_snap = true;
+							Rec_type = MAKE_FILE;
+							// if (total_time < 23000000) {
+							// 	file_cnt = 1;
+							// }
+							// else if (total_time < 43000000) {
+							// 	file_cnt = 2;
+							// }
+							// else if (total_time >= 43000000) {
+							// 	file_cnt = 3;
+							// }
+							// else {
+								// printf("file Count Error!\n");
+								// file_cnt = 3;
+							// }
+							printf("Detection End! REC END. file cnt : %d\n", file_cnt);
+						}
+					}
+					else {
+						// printf("face:%d, person:%d, move:%d\n", face_cnt, person_cnt, main_motion_detect);
+						end_time = sample_gettimeus();
+					}
+				}
 
 				if ((file_cnt == 0) && (fr_state == FR_END) && (bell_flag)) {	// Bell Push -> Clip Stop
 					printf("CLIP END:Bell!\n");
