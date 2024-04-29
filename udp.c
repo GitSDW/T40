@@ -65,7 +65,7 @@ int init_udp(uint8_t index, uint16_t host) {
 
 		memset(&send_ai_serverAddr, 0, sizeof(send_ai_serverAddr));
 		send_ai_serverAddr.sin_family = AF_INET;
-		send_ai_serverAddr.sin_port = htons(host+1);
+		send_ai_serverAddr.sin_port = htons(host);
 		inet_pton(AF_INET, mypc_ip, &(send_ai_serverAddr.sin_addr));
 
 		
@@ -100,32 +100,50 @@ ssize_t udp_vb_send(uint8_t *udp_data, uint16_t len) {
 	return ret;
 }
 
-#else
-typedef struct  {
-    uint8_t version_padding_extension_cc;
-    uint8_t marker_payload_type;
-    uint8_t sequence_number[2];
-    uint32_t timestamp;
-    uint32_t ssrc;
-}RTPHeader2;
+ssize_t udp_ai_send(uint8_t *udp_data, uint16_t len) {
+	ssize_t ret = sendto(send_sock, udp_data, len, 0, (struct sockaddr*)&send_ai_serverAddr, sizeof(send_ai_serverAddr));
+	if (ret <= 0) {
+		perror("Fail to Send Audio In UDP\n");
+	}
+	return ret;
+}
 
-ssize_t udp_vm_send(uint8_t *udp_data, uint16_t len) {
+#else
+// typedef struct  {
+//     uint8_t version_padding_extension_cc;
+//     uint8_t marker_payload_type;
+//     uint8_t sequence_number[2];
+//     uint32_t timestamp;
+//     uint32_t ssrc;
+// }RTPHeader2;
+
+ssize_t udp_vm_send(uint8_t *udp_data, uint16_t len, int64_t time) {
 	static uint16_t seq_num = 0;
-	RTPHeader2 header;
+	RTPHeader header;
 	uint8_t *buf;
 
-	buf = malloc(1000);
+	buf = malloc(2000);
 
 	header.version_padding_extension_cc = 0x80;
 	header.marker_payload_type = 0x60;
 	header.sequence_number[0] = (seq_num&0xFF00) >> 8;;
 	header.sequence_number[1] = seq_num&0xFF;
 	// header.timestamp = sample_gettimeus();
-	header.timestamp = 4356433;
-	header.ssrc = 123465879;
+	// header.timestamp[0] = (time&0xFF000000) >> 24;
+    // header.timestamp[1] = (time&0x00FF0000) >> 16;
+    // header.timestamp[2] = (time&0x0000FF00) >> 8;
+    // header.timestamp[3] = (time&0x000000FF);
+    header.timestamp[0] = 24;
+    header.timestamp[1] = 16;
+    header.timestamp[2] = 8;
+    header.timestamp[3] = 0;
+	header.ssrc[0] = 0x20;
+    header.ssrc[1] = 0x24;
+    header.ssrc[2] = 0x02;
+    header.ssrc[3] = 0x02;
 
-	memcpy(buf, (uint8_t*)&header, sizeof(RTPHeader2));
-	memcpy(buf+sizeof(RTPHeader2), udp_data, len);
+	memcpy(buf, (uint8_t*)&header, sizeof(RTPHeader));
+	memcpy(buf+sizeof(RTPHeader), udp_data, len);
 
 	// ssize_t ret = sendto(send_sock, udp_data, len, 0, (struct sockaddr*)&send_vm_serverAddr, sizeof(send_vm_serverAddr));
 	ssize_t ret = sendto(send_sock, buf, len+12, 0, (struct sockaddr*)&send_vm_serverAddr, sizeof(send_vm_serverAddr));
@@ -139,23 +157,29 @@ ssize_t udp_vm_send(uint8_t *udp_data, uint16_t len) {
 	return ret;
 }
 
-ssize_t udp_vb_send(uint8_t *udp_data, uint16_t len) {
+ssize_t udp_vb_send(uint8_t *udp_data, uint16_t len, int64_t time) {
 	static uint16_t seq_num = 0;
-	RTPHeader2 header;
+	RTPHeader header;
 	uint8_t *buf;
 
-	buf = malloc(1000);
+	buf = malloc(2000);
 
 	header.version_padding_extension_cc = 0x80;
 	header.marker_payload_type = 0x61;
 	header.sequence_number[0] = (seq_num&0xFF00) >> 8;;
 	header.sequence_number[1] = seq_num&0xFF;
 	// header.timestamp = sample_gettimeus();
-	header.timestamp = 5356433;
-	header.ssrc = 123465879;
+	header.timestamp[0] = (time&0xFF000000) >> 24;
+    header.timestamp[1] = (time&0x00FF0000) >> 16;
+    header.timestamp[2] = (time&0x0000FF00) >> 8;
+    header.timestamp[3] = (time&0x000000FF);
+	header.ssrc[0] = 0x20;
+    header.ssrc[1] = 0x24;
+    header.ssrc[2] = 0x02;
+    header.ssrc[3] = 0x03;
 
-	memcpy(buf, (uint8_t*)&header, sizeof(RTPHeader2));
-	memcpy(buf+sizeof(RTPHeader2), udp_data, len);
+	memcpy(buf, (uint8_t*)&header, sizeof(RTPHeader));
+	memcpy(buf+sizeof(RTPHeader), udp_data, len);
 
 	// ssize_t ret = sendto(send_sock, udp_data, len, 0, (struct sockaddr*)&send_vm_serverAddr, sizeof(send_vm_serverAddr));
 	ssize_t ret = sendto(send_sock, buf, len+12, 0, (struct sockaddr*)&send_vb_serverAddr, sizeof(send_vb_serverAddr));
@@ -168,17 +192,46 @@ ssize_t udp_vb_send(uint8_t *udp_data, uint16_t len) {
 	free(buf);
 	return ret;
 }
+
+ssize_t udp_ai_send(uint8_t *udp_data, uint16_t len) {
+	static uint16_t seq_num = 0;
+	RTPHeader header;
+	uint8_t *buf;
+	int64_t time = sample_gettimeus();
+
+	buf = malloc(2000);
+
+	header.version_padding_extension_cc = 0x80;
+	header.marker_payload_type = 0x08;
+	header.sequence_number[0] = (seq_num&0xFF00) >> 8;;
+	header.sequence_number[1] = seq_num&0xFF;
+	// header.timestamp = sample_gettimeus();
+	header.timestamp[0] = (time&0xFF000000) >> 24;
+    header.timestamp[1] = (time&0x00FF0000) >> 16;
+    header.timestamp[2] = (time&0x0000FF00) >> 8;
+    header.timestamp[3] = (time&0x000000FF);
+	header.ssrc[0] = 0x20;
+    header.ssrc[1] = 0x24;
+    header.ssrc[2] = 0x02;
+    header.ssrc[3] = 0x04;
+
+	memcpy(buf, (uint8_t*)&header, sizeof(RTPHeader));
+	memcpy(buf+sizeof(RTPHeader), udp_data, len);
+
+	ssize_t ret = sendto(send_sock, buf, len, 0, (struct sockaddr*)&send_ai_serverAddr, sizeof(send_ai_serverAddr));
+	if (ret <= 0) {
+		perror("Fail to Send Audio In UDP\n");
+	}
+	seq_num++;
+
+	free(buf);
+	return ret;
+}
 #endif
 
 
 
-ssize_t udp_ai_send(uint8_t *udp_data, uint16_t len) {
-	ssize_t ret = sendto(send_sock, udp_data, len, 0, (struct sockaddr*)&send_ai_serverAddr, sizeof(send_ai_serverAddr));
-	if (ret <= 0) {
-		perror("Fail to Send Audio In UDP\n");
-	}
-	return ret;
-}
+
 
 ssize_t udp_recv(uint8_t *data_buf) {
 	ssize_t recv_len = recvfrom(recv_sock, data_buf, 1000, 0, (struct sockaddr*)&client_addr, &client_len);
@@ -285,11 +338,15 @@ void *udp_send_pthread(void *arg) {
 			for(int i=0; framesize > 0; i++){
 				pthread_mutex_lock(&buffMutex_vm);
 				datasize = (framesize > V_SEND_SIZE) ? V_SEND_SIZE : framesize;
+			#ifndef __H265__
+				udp_vm_send(VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize, VM_Frame_Buff.ftime[VM_Frame_Buff.Rindex]);
+			#else
 				udp_vm_send(VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize);
+			#endif
 				framesize -= datasize;
 				// printf("cnt:%d, total:%d, dsize:%d\n", i, framesize, datasize);
 				pthread_mutex_unlock(&buffMutex_vm);
-				usleep(1*1000);
+				// usleep(1*1000);
 			}
 			VM_Frame_Buff.Rindex = (VM_Frame_Buff.Rindex+1)%10;
 			VM_Frame_Buff.cnt--;
@@ -318,11 +375,15 @@ void *udp_send_pthread(void *arg) {
 			for(int i=0; framesize > 0; i++){
 				pthread_mutex_lock(&buffMutex_vm);
 				datasize = (framesize > V_SEND_SIZE) ? V_SEND_SIZE : framesize;
+			#ifndef __H265__
+				udp_vb_send(VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize, VB_Frame_Buff.ftime[VB_Frame_Buff.Rindex]);
+			#else
 				udp_vb_send(VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize);
+			#endif
 				framesize -= datasize;
 				// printf("cnt:%d, total:%d, dsize:%d\n", i, framesize, datasize);
 				pthread_mutex_unlock(&buffMutex_vm);
-				usleep(1*1000);
+				// usleep(1*1000);
 			}
 			VB_Frame_Buff.Rindex = (VB_Frame_Buff.Rindex+1)%10;
 			VB_Frame_Buff.cnt--;

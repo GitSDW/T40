@@ -10,7 +10,7 @@ extern "C" {
 
 #define MAJOR_VER	"0"
 #define MINOR_VER	"4"	
-#define CAHR_VER	"f"
+#define CAHR_VER	"l"
 
 typedef struct CIRCULAR_BUFF
 {
@@ -65,6 +65,7 @@ int move_det_xs, move_det_ys, move_det_xe, move_det_ye;
 #else
 	// #define V_SEND_SIZE 992-12
 	#define V_SEND_SIZE 					868
+	// #define V_SEND_SIZE 					1800
 #endif
 #define V_SEND_RESERV 					5
 #define V_BUFF_SIZE 						256*1024
@@ -159,7 +160,7 @@ typedef struct  {
     uint8_t marker_payload_type;
     uint8_t sequence_number[2];
     uint8_t timestamp[4];
-    uint32_t ssrc;
+    uint8_t ssrc[4];
 }RTPHeader;
 
 Clip_Cause_t clip_cause_t;
@@ -216,6 +217,11 @@ bool rec_end;
 bool bell_flag;
 bool bell_snap_m;
 bool bell_snap_b;
+bool door_cap_flag;
+bool temp_flag;
+bool bell_call_flag;
+bool temp_unmount_flag;
+bool bell_stream_flag;
 // bool move_end;
 
 
@@ -244,6 +250,14 @@ enum BELL_SNAP_STATE {
   BSS_SEND,  					// 2
   // THUMB_SUCCESS,		// 3
   BSS_END,					// 3
+};
+
+enum TEMP_SNAP_STATE {
+  TSS_WAIT 			= 0,	// 0
+  TSS_START,   				// 1
+  TSS_SEND,  					// 2
+  // THUMB_SUCCESS,		// 3
+  TSS_END,					// 3
 };
 
 enum REC_STATE {
@@ -308,6 +322,7 @@ enum CLIP_MOUNT {
 enum REC_TYPE {
 	CLIP_REC   	= 0,	// 0
 	BELL_REC 		= 1,  // 1
+	TEMP_REC    = 2,
 	MAKE_FILE		= 5,
 };
 

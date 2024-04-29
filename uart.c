@@ -386,8 +386,9 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             // clip_cause_t.Minor = CLIP_BOX_OCCUR;
             // bell_rec_state = REC_START;
             bell_flag = true;
-            // ack_len = 0;
-            // ack_flag = true;
+            bell_call_flag = false;
+            ack_len = 0;
+            ack_flag = true;
         break;
         case  UREC_FACE:
             if (rbuff[index+9] == 1) {
@@ -399,13 +400,18 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             ack_flag = true;
         break;
         case UREC_STREAM:
-            stream_state = 1;
+            // stream_state = 1;
+            bell_stream_flag = true;
+            if (Rec_type == BELL_REC) {
+                bell_call_flag = true;
+            }
             ack_len = 0;
             ack_flag = true;
         break;
 
         case UREC_STREAM_END:
-            stream_state = 0;
+            // stream_state = 0;
+            bell_stream_flag = false;
             ack_len = 0;
             ack_flag = true;
         break;
@@ -413,10 +419,16 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             effect_file = "/tmp/mnt/sdcard/effects/end1c.wav";
             printf("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
-            clip_cause_t.Major = CLIP_CAUSE_MOUNT;
-            clip_cause_t.Minor = CLIP_MOUNT_DISMT;
+            // clip_cause_t.Major = CLIP_CAUSE_MOUNT;
+            // clip_cause_t.Minor = CLIP_MOUNT_DISMT;
+            if (Rec_type != BELL_REC)
+                bell_flag = true;
+            temp_flag = true;
+            if (rbuff[index+9] > 0)     temp_unmount_flag = true;
+            else                        temp_unmount_flag = 0;
             ack_len = 0;
             ack_flag = true;
+        break;
         break;
         }
     break;
@@ -603,6 +615,11 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         break;
         case SET_USER_GRID:
         break;
+        case SET_DOOR_CAP:
+            door_cap_flag = true;
+            ack_len = 0;
+            ack_flag = true;
+        break;
         }
     break;
     default:
@@ -611,6 +628,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
     }
 
     if (ack_flag) {
+        usleep(50*1000);
         uart_tx = malloc(ack_len+10);
         res = Make_Uart_Ack(uart_tx, ack_len, ack_data, ack_major, ack_minor);
         uart_send(fd_uart, uart_tx, res);

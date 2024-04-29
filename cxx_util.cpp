@@ -193,9 +193,13 @@ bool verify_md5(const std::string& file_path, const std::string& expected_md5) {
 }
 
 int test_hash222(char *filepath) {
-    std::string file_path = filepath;
-    std::string make_md5 = calculate_md5(file_path);
-    std::cout << file_path << " HASH : " << make_md5 << std::endl;
+    try {
+        std::string file_path = filepath;
+        std::string make_md5 = calculate_md5(file_path);
+        std::cout << file_path << " HASH : " << make_md5 << std::endl;
+    } catch (Exception& e) {
+        std::cout << "Fail to Get Hash!" << std::endl;
+    }
 
     return 0;
 }

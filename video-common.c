@@ -2328,6 +2328,8 @@ int Send_Frame_Main_UDP(IMPEncoderStream *stream) {
 		}
 		// printf("[%d/%d]fram time:%lld\n", i+1, nr_pack, pack->timestamp);
 		VM_Frame_Buff.ftime[VM_Frame_Buff.index] = pack->timestamp;
+		if (pack->sliceType == IMP_ENC_SLICE_I)
+			printf("Main I Frame Find!!\n");
 	}
 	VM_Frame_Buff.len[VM_Frame_Buff.index] = len;
 	VM_Frame_Buff.index = (VM_Frame_Buff.index+1)%10;
@@ -2411,6 +2413,8 @@ int Send_Frame_Box_UDP(IMPEncoderStream *stream) {
 			len += pack->length;
 		}
 		VB_Frame_Buff.ftime[VB_Frame_Buff.index] = pack->timestamp;
+		if (pack->sliceType == IMP_ENC_SLICE_I)
+			printf("Box I Frame Find!!\n");
 	}
 	VB_Frame_Buff.len[VB_Frame_Buff.index] = len;
 	VB_Frame_Buff.index = (VB_Frame_Buff.index+1)%10;
@@ -3064,7 +3068,7 @@ static void *sample_get_jpeg_snap(void *args)
 			}
 
 			close(snap_fd);
-
+			printf("MAIN END!\n");
 			main_snap = false;
 		}
 

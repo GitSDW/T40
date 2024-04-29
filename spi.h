@@ -52,7 +52,9 @@ typedef enum {
 	REC_BELL_SNAP_M	= 0x0B,
 	REC_BELL_SNAP_B	= 0x0C,
 	REC_TEMP_SNAP_M = 0x0D,
-	REC_TEMP_SNAM_B = 0x0E,
+	REC_TEMP_SNAP_B = 0x0E,
+	REC_DOOR_SNAP  	= 0x10,
+
  	REC_STREAM_END	= 0x0F,  // Not Used, Backward
 
 	UREC_BELL 		= 0x41,
@@ -81,6 +83,7 @@ typedef enum {
 	SET_EX_AREA		= 0x4B,
 	SET_DOOR_GRID	= 0x4C,
 	SET_USER_GRID	= 0x4D,
+	SET_DOOR_CAP 	= 0x4E,
 
 	SET_STOP  		= 0x7F,
 } MINOR_SETTING;
@@ -117,6 +120,7 @@ int spi_device_off(uint8_t minor);
 void test_spi_rw(void);
 void test_spi_onekbytes(int dly);
 int Ready_Busy_Check(void);
+int spi_send_file_dual(uint8_t minor1, uint8_t minor2, char *file1, char *file2);
 
 #ifdef __cplusplus
 }

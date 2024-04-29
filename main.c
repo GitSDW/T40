@@ -146,6 +146,11 @@ int global_value_init(void) {
 	bell_flag = false;
 	bell_snap_m = false;
 	bell_snap_b = false;
+	door_cap_flag = false;
+	temp_flag = false;
+	bell_call_flag = false;
+	temp_unmount_flag = false;
+	bell_stream_flag = false;
 	// move_end = false;
 
 	for(i=0;i<10;i++){
@@ -1255,7 +1260,7 @@ int main(int argc, char **argv) {
 			Set_Target_Bit(targetbit);
 		}
 		else if (cmd == 34) {
-			test_hash222("/tmp/mnt/sdcard/main_265.mp4");
+			test_hash222("/tmp/mnt/sdcard/isc");
 		}
 		else if (cmd == 90) {
 			printf("cmd 90 Reset Test\n");
@@ -1398,6 +1403,9 @@ int clip_total(void) {
 	char file_path[128] = {0};
 	char file_sep[100] = {0};
 
+	uint8_t major_buf1, major_buf2;
+
+
 	pthread_t tid_ao, tid_ai;
     // pthread_t tid_udp_in, tid_udp_out, tid_spi;
     pthread_t tid_stream, tid_snap, tid_move, tim_osd, tid_fdpd;
@@ -1473,7 +1481,7 @@ int clip_total(void) {
 
 	do {
 		if (start_flag == false) {
-			if ((face_cnt > 0) || (person_cnt > 0) || (main_motion_detect > 1)) {
+			// if ((face_cnt > 0) || (person_cnt > 0) || (main_motion_detect > 1)) {
 				printf("Start REC!!\n");
 				start_flag = true;
 				roaming_person = false;
@@ -1482,12 +1490,12 @@ int clip_total(void) {
 				clip_cause_t.Minor = CLIP_MOVE_MOVE;
 				Rec_type = CLIP_REC;
 				end_time = start_time + 5000000;
-			}
-			else if ((sample_gettimeus() - start_time) > START_CHECK_TIME) {
-				device_end(STREAMING);
-				printf("Not Detection!! Device Turn Off.\n");
-				break;
-			}
+			// }
+			// else if ((sample_gettimeus() - start_time) > START_CHECK_TIME) {
+				// device_end(STREAMING);
+				// printf("Not Detection!! Device Turn Off.\n");
+				// break;
+			// }
 		}
 		else {
 			if (Rec_type == CLIP_REC){
@@ -1564,6 +1572,7 @@ int clip_total(void) {
 				}
 
 				if (!spi_th_flag && (total_time > FACE_FIND_END_TIME) && (stream_state == 1)) {
+					printf("Clip Streaming Start!!\n");
 					spi_th_flag = true;
 					data_sel = 4;
 					if (data_sel <= 0 || data_sel > 4) {
@@ -1607,35 +1616,35 @@ int clip_total(void) {
 					file_cnt = 3;
 				}
 				
-				if ((file_cnt == 0) && (total_time>FACE_FIND_END_TIME) && (clip_rec_state < REC_STOP)) {	// Face or Motion Not Found -> Clip Stop
-					if ((person_cnt == 0) && (main_motion_detect == 0)) {
-						if ((sample_gettimeus() - end_time) > CLIP_CLOSE_TIME) {
-							printf("CLIP END:Move End!\n");
-							// rec_stop = true;
-							clip_rec_state = REC_STOP;
-							box_snap = true;
-							Rec_type = MAKE_FILE;
-							// if (total_time < 23000000) {
-							// 	file_cnt = 1;
-							// }
-							// else if (total_time < 43000000) {
-							// 	file_cnt = 2;
-							// }
-							// else if (total_time >= 43000000) {
-							// 	file_cnt = 3;
-							// }
-							// else {
-								// printf("file Count Error!\n");
-								// file_cnt = 3;
-							// }
-							printf("Detection End! REC END. file cnt : %d\n", file_cnt);
-						}
-					}
-					else {
-						// printf("face:%d, person:%d, move:%d\n", face_cnt, person_cnt, main_motion_detect);
-						end_time = sample_gettimeus();
-					}
-				}
+				// if ((file_cnt == 0) && (total_time>FACE_FIND_END_TIME) && (clip_rec_state < REC_STOP)) {	// Face or Motion Not Found -> Clip Stop
+				// 	if ((person_cnt == 0) && (main_motion_detect == 0)) {
+				// 		if ((sample_gettimeus() - end_time) > CLIP_CLOSE_TIME) {
+				// 			printf("CLIP END:Move End!\n");
+				// 			// rec_stop = true;
+				// 			clip_rec_state = REC_STOP;
+				// 			box_snap = true;
+				// 			Rec_type = MAKE_FILE;
+				// 			// if (total_time < 23000000) {
+				// 			// 	file_cnt = 1;
+				// 			// }
+				// 			// else if (total_time < 43000000) {
+				// 			// 	file_cnt = 2;
+				// 			// }
+				// 			// else if (total_time >= 43000000) {
+				// 			// 	file_cnt = 3;
+				// 			// }
+				// 			// else {
+				// 				// printf("file Count Error!\n");
+				// 				// file_cnt = 3;
+				// 			// }
+				// 			printf("Detection End! REC END. file cnt : %d\n", file_cnt);
+				// 		}
+				// 	}
+				// 	else {
+				// 		// printf("face:%d, person:%d, move:%d\n", face_cnt, person_cnt, main_motion_detect);
+				// 		end_time = sample_gettimeus();
+				// 	}
+				// }
 
 				if ((file_cnt == 0) && (fr_state == FR_END) && (bell_flag)) {	// Bell Push -> Clip Stop
 					printf("CLIP END:Bell!\n");
@@ -1647,11 +1656,11 @@ int clip_total(void) {
 					bell_snap_m = true;
 					bell_snap_b = true;
 					start_time2 = end_time2 = sample_gettimeus();
-
-					
 				}
 			}
 			else if (Rec_type == BELL_REC){
+				
+
 				total_time2 = sample_gettimeus() - start_time2;
 				if (total_time2%10000000 == 0){
 					printf("Rec T:%d time : %lld\n", Rec_type, total_time2);
@@ -1660,29 +1669,54 @@ int clip_total(void) {
 				if (!bell_snap_m && !bell_snap_b && bl_state < BSS_SEND) bl_state = BSS_SEND;
 
 				if (bl_state == BSS_SEND) {
-					if (Ready_Busy_Check()){
-						printf("Bell Main JPG Send!\n");
-						memset(file_path, 0, 64);
-						sprintf(file_path, "/vtmp/bell_m.jpg");
-						spi_send_file(REC_BELL_SNAP_M, file_path);
+					// if (Ready_Busy_Check()){
+					// 	printf("Bell Main JPG Send!\n");
+					// 	memset(file_path, 0, 64);
+					// 	sprintf(file_path, "/vtmp/bell_m.jpg");
+					// 	spi_send_file(REC_BELL_SNAP_M, file_path);
+					// }
+					// else {
+					// 	printf("Fail to BELL Main JPG Send.\n");
+					// }
+
+					// if (Ready_Busy_Check()){
+					// 	printf("Bell Box JPG Send!\n");
+					// 	memset(file_path, 0, 64);
+					// 	sprintf(file_path, "/vtmp/bell_b.jpg");
+					// 	spi_send_file(REC_BELL_SNAP_B, file_path);
+					// }
+					// else {
+					// 	printf("Fail to BELL Box JPG Send.\n");
+					// }
+
+					if (temp_flag) {
+						major_buf1 = REC_TEMP_SNAP_M;
+						major_buf2 = REC_TEMP_SNAP_B;
 					}
 					else {
-						printf("Fail to BELL Main JPG Send.\n");
+						major_buf1 = REC_BELL_SNAP_M;
+						major_buf2 = REC_BELL_SNAP_B;
 					}
 
 					if (Ready_Busy_Check()){
-						printf("Bell Box JPG Send!\n");
+						printf("Bell/Temp Dual JPG Send!\n");
 						memset(file_path, 0, 64);
-						sprintf(file_path, "/vtmp/bell_b.jpg");
-						spi_send_file(REC_BELL_SNAP_B, file_path);
+						sprintf(file_path, "/vtmp/bell_m.jpg");
+						memset(file_sep, 0, 64);
+						sprintf(file_sep, "/vtmp/bell_b.jpg");
+						spi_send_file_dual(major_buf1, major_buf2, file_path, file_sep);
 					}
 					else {
-						printf("Fail to BELL Box JPG Send.\n");
+						printf("Fail to Dual Bell JPG Send.\n");
 					}
+
+					stream_state = 1;
+
 					bl_state = BSS_END;
 				}
 
 				if (!spi_th_flag && (stream_state == 1)) {
+					printf("Bell Streaming Start!!\n");
 					spi_th_flag = true;
 					data_sel = 4;
 					if (data_sel <= 0 || data_sel > 4) {
@@ -1707,24 +1741,34 @@ int clip_total(void) {
 					}
 				}
 
-				if ((total_time2 > MAX_REC_TIME) && (bell_rec_state == REC_ING)) {	// 60Sec Time Over -> Clip Stop
+				if ((total_time2 > MAX_REC_TIME) && (bell_rec_state == REC_ING) && (bell_rec_state < REC_STOP)) {	// 60Sec Time Over -> Clip Stop
 					// rec_stop = true;
 					printf("BELL END:Time Over! %lld\n", total_time);
 					bell_rec_state = REC_STOP;
-					Rec_type = MAKE_FILE;
-					box_snap = true;
+					if (bell_stream_flag == false){
+						Rec_type = MAKE_FILE;
+						// box_snap = true;
+					}
 				}
 
-				if ((person_cnt == 0) && (main_motion_detect == 0)) {
+				if ((person_cnt == 0) && (main_motion_detect == 0) && (bell_rec_state < REC_STOP)) {
 					if ((sample_gettimeus() - end_time2) > CLIP_CLOSE_TIME) {
 						printf("BELL END:Move End! %lld\n", total_time);
 						bell_rec_state = REC_STOP;
-						Rec_type = MAKE_FILE;
-						box_snap = true;
+						if (bell_stream_flag == false) {
+							Rec_type = MAKE_FILE;
+							// box_snap = true;
+						}
 					}
 				}
 				else {
 					end_time2 = sample_gettimeus();
+				}
+
+				if ((bell_rec_state == REC_STOP) && (bell_stream_flag == false)) {
+					stream_state = 0;
+					Rec_type = MAKE_FILE;
+					// box_snap = true;
 				}
 			}
 		}
@@ -2037,6 +2081,21 @@ int clip_total(void) {
 					bool send_fail = false;
 					int save_cnt=0;
 					char file_name[20];
+
+					if (temp_flag) {
+						clip_cause_t.Major = CLIP_CAUSE_MOUNT;
+						if (temp_unmount_flag)
+							clip_cause_t.Minor = CLIP_MOUNT_DISMT;
+						else
+							clip_cause_t.Minor = CLIP_MOUNT_MOUNT;
+					}
+					else {
+						clip_cause_t.Major = CLIP_CAUSE_BELL;
+						if (bell_call_flag)
+							clip_cause_t.Minor = CLIP_BELL_CALL;
+						else
+							clip_cause_t.Minor = CLIP_BELL_BELL;
+					}
 
 					for (int i=0; i<file_cnt; i++) {
 						send_fail = false;
@@ -2709,7 +2768,12 @@ int Setting_Total(void) {
 
 	pthread_t tid_ao;//, tid_ai;
     // pthread_t tid_stream, tid_clip, tid_snap, tid_move, tim_osd, tid_fdpd, adc_thread_id;
-    pthread_t tid_uart;
+    pthread_t tid_uart, tid_snap;
+    pthread_t tid_spi;
+    char file_path[64] = {0};
+
+    bool door1=false, door2=false;
+    bool cap_start = false;
 
 
 #ifdef STREAMING_SPI
@@ -2815,6 +2879,56 @@ int Setting_Total(void) {
 
 	do {
 
+		if (door_cap_flag){
+			
+			
+			if (!cap_start) {
+				ret = spi_init();
+    			if(ret < 0){
+    			    printf("spi init error\n");
+    			    return 0;
+    			}
+
+				ret = pthread_create(&tid_snap, NULL, get_snap_stream_user_thread, NULL);
+				if(ret != 0) {
+					IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create get_snap_stream_user_thread failed\n", __func__);
+					return -1;
+				}
+
+				usleep(10*1000);
+
+				main_snap = true;
+				box_snap = true;
+				door1 = door2 = true;
+				cap_start = true;
+			}
+
+			if (!main_snap && door1) {
+				if (Ready_Busy_Check()){
+					printf("doorCap Send Start!\n");
+					memset(file_path, 0, 128);
+					sprintf(file_path, "/vtmp/main0.jpg");
+					spi_send_file(REC_DOOR_SNAP, file_path);
+				}
+				else {
+					printf("Fail to Send main0.jpg\n");
+				}
+				door1 = false;
+			}
+
+			if (!box_snap && door2) {
+				printf("Box Origin File!!\n");
+				system("cp /vtmp/box0.jpg /tmp/mnt/sdcard/box_origin.jpg");
+				system("sync");
+				door2 = false;
+			}
+
+			if (!door1 && !door2) {
+				printf("[END] Door Shot!\n");
+				device_end(SETTING);
+				door_cap_flag = false;
+			}
+		}
 			
 	}while(1);
 
