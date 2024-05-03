@@ -95,6 +95,7 @@ int memory_deinit(void) {
 
 int global_value_init(void) {
 	int i;
+	char date_buf[12] = "240430110415";
 	// buffMutex_vm = PTHREAD_MUTEX_INITIALIZER;
 	// buffMutex_vb = PTHREAD_MUTEX_INITIALIZER;
 	start_time=0;
@@ -151,7 +152,9 @@ int global_value_init(void) {
 	bell_call_flag = false;
 	temp_unmount_flag = false;
 	bell_stream_flag = false;
+	netwrok_busy = false;
 	// move_end = false;
+	save_send_flag = false;
 
 	for(i=0;i<10;i++){
 		fdpd_data[i].flag = false;
@@ -161,6 +164,10 @@ int global_value_init(void) {
         fdpd_data[i].br_x = 0;
         fdpd_data[i].br_y = 0;
 	}
+
+	snprintf(TimeStamp.date, 12, "%s", date_buf);
+	TimeStamp.type[0] = 1;
+	TimeStamp.type[1] = 1;
 
 	memset(ip, 0, 30);
 	return 0;
@@ -352,6 +359,7 @@ void handler(int sig){
 
 
 int clip_total(void);
+int clip_total_fake(void);
 int stream_total(void);
 int Setting_Total(void);
 
@@ -417,7 +425,11 @@ int main(int argc, char **argv) {
     if (mode == 1){
     	// printf("Clip Mode!!\n");
     	// if (ExpVal > 1000) gpio_LED_Set(1);
+    #ifndef __PHILL_REQ__
     	ret = clip_total();
+    #else
+    	ret = clip_total_fake();
+    #endif
     	if(ret < 0){
         	printf("Clip Mode error\n");
         	return 0;
@@ -436,6 +448,10 @@ int main(int argc, char **argv) {
     	// printf("Setting Mode!!\n");
     	Setting_Total();
     }
+
+    #ifdef __PHILL_REQ__
+    	ret = clip_total();
+    #endif
 
 	while (!bExit && (mode == 0 || mode == 3))
 	{
@@ -1262,6 +1278,21 @@ int main(int argc, char **argv) {
 		else if (cmd == 34) {
 			test_hash222("/tmp/mnt/sdcard/isc");
 		}
+		else if (cmd == 35) {
+			printf("cmd 35 Save File Test!\n");
+
+			system("ubi_mount");
+
+			file_name_get(&Save_movie1, 0);
+
+			for(int i=0;i<Save_movie1.cnt;i++) {
+				// char sepp[128];
+				printf("File[%d]:%s\n", i, Save_movie1.name[i]);
+				// sprintf(sepp, "/maincam/%s", Save_movie.name[i]);
+				spi_send_save_file("/maincam/", Save_movie1.name[i]);
+			}
+
+		}
 		else if (cmd == 90) {
 			printf("cmd 90 Reset Test\n");
 			system("reboot");
@@ -1409,7 +1440,7 @@ int clip_total(void) {
 	pthread_t tid_ao, tid_ai;
     // pthread_t tid_udp_in, tid_udp_out, tid_spi;
     pthread_t tid_stream, tid_snap, tid_move, tim_osd, tid_fdpd;
-    pthread_t tid_uart;
+    pthread_t tid_uart, tid_live;
 
 
     // Init_Audio_Out();
@@ -1473,6 +1504,12 @@ int clip_total(void) {
 		IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create uart_thread failed\n", __func__);
 		return -1;
 	}
+
+	ret = pthread_create(&tid_live, NULL, device_live_thread, NULL);
+	if(ret != 0) {
+		IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create device_live_thread failed\n", __func__);
+		return -1;
+	}
 	
 
 	
@@ -1481,6 +1518,7 @@ int clip_total(void) {
 
 	do {
 		if (start_flag == false) {
+		#ifndef __PHILL_REQ__
 			if ((face_cnt > 0) || (person_cnt > 0) || (main_motion_detect > 1)) {
 				printf("Start REC!!\n");
 				start_flag = true;
@@ -1496,6 +1534,16 @@ int clip_total(void) {
 				printf("Not Detection!! Device Turn Off.\n");
 				break;
 			}
+		#else
+			printf("Start REC!!\n");
+			start_flag = true;
+			roaming_person = false;
+			// start_time = sample_gettimeus();
+			clip_cause_t.Major = CLIP_CAUSE_MOVE;
+			clip_cause_t.Minor = CLIP_MOVE_MOVE;
+			Rec_type = CLIP_REC;
+			end_time = start_time + 5000000;
+		#endif
 		}
 		else {
 			if (Rec_type == CLIP_REC){
@@ -1539,14 +1587,16 @@ int clip_total(void) {
 					fr_state = FR_END;	// fr_state 5 / Time out
 					// Make File Send
 					for (int l=0; l<face_crop_cnt; l++) {
-						if (Ready_Busy_Check()){
-							printf("Face Crop %d JPG Send!\n", l);
-							memset(file_path, 0, 64);
-							sprintf(file_path, "/vtmp/face_crop%d.jpg", l);
-							spi_send_file(REC_FACESHOT, file_path);
-						}
-						else {
-							printf("Fail to Face Crop %d JPG Send.\n", l);
+						if (!netwrok_busy) {
+							if (Ready_Busy_Check()){
+								printf("Face Crop %d JPG Send!\n", l);
+								memset(file_path, 0, 64);
+								sprintf(file_path, "/vtmp/face_crop%d.jpg", l);
+								spi_send_file(REC_FACESHOT, file_path);
+							}
+							else {
+								printf("Fail to Face Crop %d JPG Send.\n", l);
+							}
 						}
 					}
 				}
@@ -1560,11 +1610,13 @@ int clip_total(void) {
 				if (thumbnail_state == THUMB_SNAPSHOT) {
 	   				thumbnail_make(thum_face_data);
 	   				thumbnail_state = THUMB_END;
-	   				if (Ready_Busy_Check()){
-						printf("Thumbnail Send!\n");
-						memset(file_path, 0, 64);
-						sprintf(file_path, "/vtmp/thumbnail_last.jpg");
-						spi_send_file(REC_SNAPSHOT, file_path);
+	   				if (!netwrok_busy) {
+		   				if (Ready_Busy_Check()){
+							printf("Thumbnail Send!\n");
+							memset(file_path, 0, 64);
+							sprintf(file_path, "/vtmp/thumbnail_last.jpg");
+							spi_send_file(REC_SNAPSHOT, file_path);
+						}
 					}
 					// else {
 					// 	printf("Fail to Thumbnail Send.\n");
@@ -1616,6 +1668,7 @@ int clip_total(void) {
 					file_cnt = 3;
 				}
 				
+			#ifndef __PHILL_REQ__
 				if ((file_cnt == 0) && (total_time>FACE_FIND_END_TIME) && (clip_rec_state < REC_STOP)) {	// Face or Motion Not Found -> Clip Stop
 					if ((person_cnt == 0) && (main_motion_detect == 0)) {
 						if ((sample_gettimeus() - end_time) > CLIP_CLOSE_TIME) {
@@ -1645,8 +1698,9 @@ int clip_total(void) {
 						end_time = sample_gettimeus();
 					}
 				}
+			#endif
 
-				if ((file_cnt == 0) && (fr_state == FR_END) && (bell_flag)) {	// Bell Push -> Clip Stop
+				if ((file_cnt == 0) && (bell_flag)) {	// Bell Push -> Clip Stop
 					printf("CLIP END:Bell!\n");
 					clip_rec_state = REC_STOP;
 					bell_rec_state = REC_START;
@@ -1698,16 +1752,18 @@ int clip_total(void) {
 						major_buf2 = REC_BELL_SNAP_B;
 					}
 
-					if (Ready_Busy_Check()){
-						printf("Bell/Temp Dual JPG Send!\n");
-						memset(file_path, 0, 64);
-						sprintf(file_path, "/vtmp/bell_m.jpg");
-						memset(file_sep, 0, 64);
-						sprintf(file_sep, "/vtmp/bell_b.jpg");
-						spi_send_file_dual(major_buf1, major_buf2, file_path, file_sep);
-					}
-					else {
-						printf("Fail to Dual Bell JPG Send.\n");
+					if (!netwrok_busy) {
+						if (Ready_Busy_Check()){
+							printf("Bell/Temp Dual JPG Send!\n");
+							memset(file_path, 0, 64);
+							sprintf(file_path, "/vtmp/bell_m.jpg");
+							memset(file_sep, 0, 64);
+							sprintf(file_sep, "/vtmp/bell_b.jpg");
+							spi_send_file_dual(major_buf1, major_buf2, file_path, file_sep);
+						}
+						else {
+							printf("Fail to Dual Bell JPG Send.\n");
+						}
 					}
 
 					stream_state = 1;
@@ -1864,13 +1920,16 @@ int clip_total(void) {
 	   			char *before_img = "/tmp/mnt/sdcard/box_before.jpg";
 				char *after_img  = "/vtmp/box0.jpg";
 				char *sistic_img = "/vtmp/corimg1.jpg";
-				int threshold = 85;
+				char *orgin_img = "/tmp/mnt/sdcard/box_origin.jpg";
+				int threshold = 75;
 				double sim = 0.0;
-				
+				int64_t cv_stime = sample_gettimeus();
+				int64_t cv_etime = 0;
 				// if (box_n != -1 && box_o != -1 && box_b != -1) {
+
 				if (box_n != -1 && box_b != -1) {
-					// sim = calculateSimilarity(before_img, after_img);
-					sim = 0.85;
+					sim = calculateSimilarity(before_img, after_img);
+					// sim = 0.85;
 	    			if (sim < 0.97) {
 	    				printf("box Sistic!\n");
 	    				ret = package_sistic(before_img, after_img);
@@ -1886,36 +1945,47 @@ int clip_total(void) {
 						}
 		    			else {
 	        				printf("Box Count : %d\n", ret);
-	        				if (ret == 0) {
-	        					printf("box simliarity!\n");
-	        	    			sim = calculateSimilarity(sistic_img, after_img);
-	    	        			printf("similarity:%f\n", sim);
-		    	        		// std::cout << "Similarity:" << sim << "\n" << std::ends;
-	        				}
-	        				else if (ret >= 1){
+	        				cv_etime = sample_gettimeus();
+	    					printf("CV Total Time:%lld\n", cv_etime-cv_stime);
+	        				// if (ret == 0) {
+	        				// 	printf("box simliarity!\n");
+	        	    		// 	sim = calculateSimilarity(sistic_img, after_img);
+	    	        		// 	printf("similarity:%f\n", sim);
+		    	        	// 	// std::cout << "Similarity:" << sim << "\n" << std::ends;
+		    	        		
+	        				// }
+	        				// else 
+	        				if (ret >= 1 && ret <= 5){
 	        					printf("Find Box!!\n");
-
-	        					if (Ready_Busy_Check()){
-									printf("Box Send!\n");
-									memset(file_path, 0, 64);
-									sprintf(file_path, "/vtmp/box_result.jpg");
-									printf("box send!\n");
-									if (clip_cause_t.Major == CLIP_CAUSE_MOVE) {
-										clip_cause_t.Major = CLIP_CAUSE_BOX;
-										clip_cause_t.Minor = CLIP_BOX_OCCUR;
+	        					if (!netwrok_busy) {
+		        					if (Ready_Busy_Check()){
+										printf("Box Send!\n");
+										memset(file_path, 0, 64);
+										sprintf(file_path, "/vtmp/box_result.jpg");
+										printf("box send!\n");
+										if (clip_cause_t.Major == CLIP_CAUSE_MOVE) {
+											clip_cause_t.Major = CLIP_CAUSE_BOX;
+											clip_cause_t.Minor = CLIP_BOX_OCCUR;
+										}
+										spi_send_file(REC_BOX_ALM, file_path);
 									}
-									spi_send_file(REC_BOX_ALM, file_path);
 								}
 	        				}
-
-	        				if (sim == 0xFF) {
+	        				sim = calculateSimilarity(orgin_img, after_img);
+	        				if (sim >= 0.9) {
 	        					system("cp /vtmp/box0.jpg /tmp/mnt/sdcard/box_origin.jpg");
+	        					if (clip_cause_t.Major == CLIP_CAUSE_MOVE || clip_cause_t.Major == CLIP_CAUSE_BOX) {
+									clip_cause_t.Major = CLIP_CAUSE_BOX;
+									clip_cause_t.Minor = CLIP_BOX_DISAP;
+								}
 	        				}
 	    				}
 	    			}
 	    			else {
 	    				printf("Change Not Find!\n");
 		    			printf("Similarity:%f\n", sim);
+		    			cv_etime = sample_gettimeus();
+	    				printf("CV Total Time:%lld\n", cv_etime-cv_stime);
 	    			}
 	    		}
 
@@ -1923,9 +1993,13 @@ int clip_total(void) {
 	    		system("cp /vtmp/box0.jpg /tmp/mnt/sdcard/box_before.jpg");
 	    		system("cp /vtmp/box_result.jpg /tmp/mnt/sdcard/box_before3.jpg");
 
+
+
 				if (face_snap == false) bStrem = true;
 
 				printf("MP4 Make!\n");
+
+				system("sync");
 
 				if (file_cnt > 0) {
 					#ifdef __H265__			
@@ -2011,7 +2085,6 @@ int clip_total(void) {
 
 				////// Fine Spi Send /////////
 				if (file_cnt > 0) { 
-					bool send_fail = false;
 					// uint32_t nowtime = 0;
 					int save_cnt=0;
 					char file_name[20];
@@ -2023,32 +2096,56 @@ int clip_total(void) {
 					
 
 					for (int i=0; i<file_cnt; i++) {
-						send_fail = false;
 						sprintf(file_name, "main%d", i);
 						
-						if (Ready_Busy_Check()){
-							printf("File %d-1 Start!\n", i+1);
-							memset(file_path, 0, 64);
-							sprintf(file_path, "/vtmp/main%d.mp4", i);
-							spi_send_file(REC_CLIP_F, file_path);
+						if (!netwrok_busy) {
+							if (Ready_Busy_Check()){
+								printf("File %d-1 Start!\n", i+1);
+								memset(file_path, 0, 64);
+								sprintf(file_path, "/vtmp/main%d.mp4", i);
+								spi_send_file(REC_CLIP_F, file_path);
+								}
+							else {
+								printf("Fail to Send %d-1\n", i+1);
 							}
-						else {
-							printf("Fail to Send %d-1\n", i+1);
-							send_fail = true;
-						}
-						
-						if (Ready_Busy_Check()){
-							printf("File %d-2 Start!\n", i+1);
-							memset(file_path, 0, 64);
-							sprintf(file_path, "/vtmp/box%d.mp4", i);
-							// sprintf(file_path, "/vtmp/box%d.mkv", i);
-							spi_send_file(REC_CLIP_B, file_path);
+							
+							if (Ready_Busy_Check()){
+								printf("File %d-2 Start!\n", i+1);
+								memset(file_path, 0, 64);
+								sprintf(file_path, "/vtmp/box%d.mp4", i);
+								// sprintf(file_path, "/vtmp/box%d.mkv", i);
+								spi_send_file(REC_CLIP_B, file_path);
+								}
+							else {
+								printf("Fail to Send %d-2\n", i+1);
 							}
-						else {
-							printf("Fail to Send %d-2\n", i+1);
-							send_fail = true;
 						}
-						if (send_fail) {
+						// else {
+						// 	// nowtime = sample_gettimeus();
+						// 	if (!ubi_flag) {
+						// 		ubi_flag = true;
+						// 		if (file_ck("/tmp/mnt/sdcard/nandformat")) {
+						// 			system("ubi_mount");
+						// 		}
+						// 		else {
+						// 			system("ubi_mk");
+						// 			system("echo ubiformat > /tmp/mnt/sdcard/nandformat");
+						// 		}
+						// 	}
+						// 	save_cnt = FileShow("/maincam", file_name);
+						// 	printf("file cnt : %s.mp4 %d\n", file_name, save_cnt);
+
+						// 	save_cnt++;
+						// 	memset(file_path, 0, 128);
+						// 	sprintf(file_path, "cp /vtmp/main%d.mp4 /maincam/main%d_%d.mp4", i, i, save_cnt);
+						// 	system(file_path);
+						// 	sleep(1);
+						// 	memset(file_path, 0, 128);
+						// 	sprintf(file_path, "cp /vtmp/box%d.mp4 /boxcam/box%d_%d.mp4", i, i, save_cnt);
+						// 	system(file_path);
+						// 	sleep(1);
+						// }
+						else {
 							// nowtime = sample_gettimeus();
 							if (!ubi_flag) {
 								ubi_flag = true;
@@ -2060,25 +2157,32 @@ int clip_total(void) {
 									system("echo ubiformat > /tmp/mnt/sdcard/nandformat");
 								}
 							}
-							save_cnt = FileShow("/maincam", file_name);
-							printf("file cnt : %s.mp4 %d\n", file_name, save_cnt);
+							// save_cnt = FileShow("/maincam", file_name);
+							// printf("file cnt : %s.mp4 %d\n", file_name, save_cnt);
+
+							TimeStamp.type[0] = clip_cause_t.Major;
+							TimeStamp.type[1] = clip_cause_t.Minor;
 
 							save_cnt++;
 							memset(file_path, 0, 128);
-							sprintf(file_path, "cp /vtmp/main%d.mp4 /maincam/main%d_%d.mp4", i, i, save_cnt);
+							// sprintf(file_path, "cp /vtmp/main%d.mp4 /maincam/main%d_%d.mp4", i, i, save_cnt);
+							sprintf(file_path, "cp /vtmp/main%d.mp4 /maincam/%s_%02d_00_%02x%02x.mp4", 
+												i, TimeStamp.date, i+1, TimeStamp.type[0], TimeStamp.type[1]);
 							system(file_path);
 							sleep(1);
 							memset(file_path, 0, 128);
-							sprintf(file_path, "cp /vtmp/box%d.mp4 /boxcam/box%d_%d.mp4", i, i, save_cnt);
+							// sprintf(file_path, "cp /vtmp/box%d.mp4 /boxcam/box%d_%d.mp4", i, i, save_cnt);
+							sprintf(file_path, "cp /vtmp/box%d.mp4 /boxcam/%s_%02d_01_%02x%02x.mp4", 
+												i, TimeStamp.date, i+1, TimeStamp.type[0], TimeStamp.type[1]);
 							system(file_path);
 							sleep(1);
+							old_file_del();
 						}
 					}
 				}
 
 
 				if (file_cnt2 > 0) { 
-					bool send_fail = false;
 					int save_cnt=0;
 					char file_name[20];
 
@@ -2097,33 +2201,56 @@ int clip_total(void) {
 							clip_cause_t.Minor = CLIP_BELL_BELL;
 					}
 
-					for (int i=0; i<file_cnt; i++) {
-						send_fail = false;
+					for (int i=0; i<file_cnt2; i++) {
 						sprintf(file_name, "bell_m%d", i);
-						
-						if (Ready_Busy_Check()){
-							printf("File %d-1 Start!\n", i+1);
-							memset(file_path, 0, 64);
-							sprintf(file_path, "/vtmp/bell_m%d.mp4", i);
-							spi_send_file(REC_CLIP_F, file_path);
+						if (!netwrok_busy) {
+							if (Ready_Busy_Check()){
+								printf("File %d-1 Start!\n", i+1);
+								memset(file_path, 0, 64);
+								sprintf(file_path, "/vtmp/bell_m%d.mp4", i);
+								spi_send_file(REC_CLIP_F, file_path);
+								}
+							else {
+								printf("Fail to Send %d-1\n", i+1);
 							}
-						else {
-							printf("Fail to Send %d-1\n", i+1);
-							send_fail = true;
-						}
-						
-						if (Ready_Busy_Check()){
-							printf("File %d-2 Start!\n", i+1);
-							memset(file_path, 0, 64);
-							sprintf(file_path, "/vtmp/bell_b%d.mp4", i);
-							// sprintf(file_path, "/vtmp/box%d.mkv", i);
-							spi_send_file(REC_CLIP_B, file_path);
+							
+							if (Ready_Busy_Check()){
+								printf("File %d-2 Start!\n", i+1);
+								memset(file_path, 0, 64);
+								sprintf(file_path, "/vtmp/bell_b%d.mp4", i);
+								// sprintf(file_path, "/vtmp/box%d.mkv", i);
+								spi_send_file(REC_CLIP_B, file_path);
+								}
+							else {
+								printf("Fail to Send %d-2\n", i+1);
 							}
-						else {
-							printf("Fail to Send %d-2\n", i+1);
-							send_fail = true;
 						}
-						if (send_fail) {
+						// else {
+						// 	// nowtime = sample_gettimeus();
+						// 	if (!ubi_flag) {
+						// 		ubi_flag = true;
+						// 		if (file_ck("/tmp/mnt/sdcard/nandformat")) {
+						// 			system("ubi_mount");
+						// 		}
+						// 		else {
+						// 			system("ubi_mk");
+						// 			system("echo ubiformat > /tmp/mnt/sdcard/nandformat");
+						// 		}
+						// 	}
+						// 	save_cnt = FileShow("/maincam", file_name);
+						// 	printf("file cnt : %s.mp4 %d\n", file_name, save_cnt);
+
+						// 	save_cnt++;
+						// 	memset(file_path, 0, 128);
+						// 	sprintf(file_path, "cp /vtmp/bell_m%d.mp4 /maincam/bell_m%d_%d.mp4", i, i, save_cnt);
+						// 	system(file_path);
+						// 	sleep(1);
+						// 	memset(file_path, 0, 128);
+						// 	sprintf(file_path, "cp /vtmp/bell_b%d.mp4 /boxcam/bell_b%d_%d.mp4", i, i, save_cnt);
+						// 	system(file_path);
+						// 	sleep(1);
+						// }
+						else {
 							// nowtime = sample_gettimeus();
 							if (!ubi_flag) {
 								ubi_flag = true;
@@ -2135,18 +2262,28 @@ int clip_total(void) {
 									system("echo ubiformat > /tmp/mnt/sdcard/nandformat");
 								}
 							}
-							save_cnt = FileShow("/maincam", file_name);
-							printf("file cnt : %s.mp4 %d\n", file_name, save_cnt);
+							// save_cnt = FileShow("/maincam", file_name);
+							// printf("file cnt : %s.mp4 %d\n", file_name, save_cnt);
+
+							old_file_del();
+
+							TimeStamp.type[0] = clip_cause_t.Major;
+							TimeStamp.type[1] = clip_cause_t.Minor;
 
 							save_cnt++;
 							memset(file_path, 0, 128);
-							sprintf(file_path, "cp /vtmp/bell_m%d.mp4 /maincam/bell_m%d_%d.mp4", i, i, save_cnt);
+							// sprintf(file_path, "cp /vtmp/main%d.mp4 /maincam/main%d_%d.mp4", i, i, save_cnt);
+							sprintf(file_path, "cp /vtmp/bell_m%d.mp4 /maincam/%s_%02d_00_%02x%02x.mp4", 
+												i, TimeStamp.date, i+1, TimeStamp.type[0], TimeStamp.type[1]);
 							system(file_path);
 							sleep(1);
 							memset(file_path, 0, 128);
-							sprintf(file_path, "cp /vtmp/bell_b%d.mp4 /boxcam/bell_b%d_%d.mp4", i, i, save_cnt);
+							// sprintf(file_path, "cp /vtmp/box%d.mp4 /boxcam/box%d_%d.mp4", i, i, save_cnt);
+							sprintf(file_path, "cp /vtmp/bell_b%d.mp4 /boxcam/%s_%02d_01_%02x%02x.mp4", 
+												i, TimeStamp.date, i+1, TimeStamp.type[0], TimeStamp.type[1]);
 							system(file_path);
 							sleep(1);
+							old_file_del();
 						}
 					}
 				}
@@ -2157,7 +2294,7 @@ int clip_total(void) {
 
 				// system("cp /vtmp/*.mp4 /tmp/mnt/sdcard/mp4");
 
-				spi_device_off(REC);
+				device_end(REC);
 				printf("File Send End!!\n");
 				break;
 			}
@@ -2165,6 +2302,8 @@ int clip_total(void) {
 	}while(1);
 
 	bExit = true;
+	bUart = true;
+	bStrem = true;
 
 	pthread_join(tim_osd, NULL);
 	pthread_join(tid_stream, NULL);
@@ -2173,9 +2312,90 @@ int clip_total(void) {
 	pthread_join(tid_fdpd, NULL);
 	pthread_join(tid_snap, NULL);
 	pthread_join(tid_uart, NULL);
+	pthread_join(tid_live, NULL);
 
 	return 0;
 }
+
+int clip_total_fake(void) {
+	// bool 		ubi_flag 		= false;
+	char 		file_path[128] 	= {0};
+	int 		ret 			= 0;
+	int 		file_cnt 		= 0;
+
+	//////////////// SPI Init ////////////////////////////////////////////////////////////////
+	ret = spi_init();
+    if(ret < 0){
+        printf("spi init error\n");
+        return 0;
+    }
+	//////////////////////////////////////////////////////////////////////////////////////////
+
+	Rec_type = MAKE_FILE;
+
+	do {
+		if(Rec_type == MAKE_FILE) {
+
+			bStrem = true;
+
+			file_cnt = 3;
+
+			////// Fine Spi Send /////////
+			if (file_cnt > 0) { 
+				// uint32_t nowtime = 0;
+				// int save_cnt=0;
+				char file_name[20];
+
+				// memset(file_path, 0, 64);
+				// sprintf(file_path, "/vtmp/faceperson.data");
+				// spi_send_file(REC_FACE, file_path);
+
+				
+
+				for (int i=0; i<file_cnt; i++) {
+					sprintf(file_name, "main%d", i);
+					
+					if (!netwrok_busy) {
+						if (Ready_Busy_Check()){
+							printf("File %d-1 Start!\n", i+1);
+							memset(file_path, 0, 64);
+							sprintf(file_path, "/tmp/mnt/sdcard/mp4/main%d.mp4", i);
+							spi_send_file(REC_CLIP_F, file_path);
+							}
+						else {
+							printf("Fail to Send %d-1\n", i+1);
+						}
+						
+						if (Ready_Busy_Check()){
+							printf("File %d-2 Start!\n", i+1);
+							memset(file_path, 0, 64);
+							sprintf(file_path, "/tmp/mnt/sdcard/mp4/box%d.mp4", i);
+							// sprintf(file_path, "/vtmp/box%d.mkv", i);
+							spi_send_file(REC_CLIP_B, file_path);
+							}
+					}
+				}
+			}
+
+			system("sync");
+
+			// system("rm /tmp/mnt/sdcard/mp4/*");
+
+			// system("cp /vtmp/*.mp4 /tmp/mnt/sdcard/mp4");
+
+			device_end(REC);
+			printf("File Send End!!\n");
+			break;
+		}
+	}while(1);
+
+	bExit = true;
+
+	// pthread_join(tid_uart, NULL);
+
+	return 0;
+}
+
 
 #define STREAMING_SPI
 
@@ -2200,17 +2420,17 @@ int stream_total(void) {
     
 
 #endif
-    int64_t rec_time_s = 0, rec_time_e = 0;
-    int64_t rec_now = 0;
+    int64_t rec_time_s = 0;//, rec_time_e = 0;
+    // int64_t rec_now = 0;
 
     char file_sep[256] = {0};
     char file_path[128] = {0};
 
 	pthread_t tid_ao, tid_ai;
     pthread_t tid_stream, tid_snap, tid_move, tim_osd, tid_fdpd;
-    pthread_t tid_uart;
+    pthread_t tid_uart, tid_live;
 
-    pthread_t adc_thread_id, tid_clip;
+    // pthread_t adc_thread_id, tid_clip;
 
     
 
@@ -2313,6 +2533,12 @@ int stream_total(void) {
 	ret = pthread_create(&tid_uart, NULL, uart_thread, NULL);
 	if(ret != 0) {
 		IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create uart_thread failed\n", __func__);
+		return -1;
+	}
+
+	ret = pthread_create(&tid_live, NULL, device_live_thread, NULL);
+	if(ret != 0) {
+		IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create device_live_thread failed\n", __func__);
 		return -1;
 	}
 
@@ -2673,7 +2899,7 @@ int stream_total(void) {
 		}
 #else
 		if (streaming_rec_state >= REC_START && streaming_rec_state < REC_STOP) {
-			rec_now = sample_gettimeus() - rec_time_s;
+			// rec_now = sample_gettimeus() - rec_time_s;
 			if (rec_total + rec_time_s >= 60000000) {
 				streaming_rec_state = REC_STOP;
             	rec_on = false;
@@ -2730,7 +2956,6 @@ int stream_total(void) {
 					}
 				}
 			}
-			// spi_device_off(STREAMING);
 			device_end(STREAMING);
 			printf("Streaming Mode End!!\n");
 			bUart = true;
@@ -2741,6 +2966,10 @@ int stream_total(void) {
 #endif
 			
 	}while(1);
+
+	bExit = true;
+	bUart = true;
+	bStrem = true;
 
 	pthread_join(tim_osd, NULL);
 	pthread_join(tid_stream, NULL);
@@ -2757,6 +2986,7 @@ int stream_total(void) {
 	pthread_join(tid_spi, NULL);
 #endif
 	pthread_join(tid_uart, NULL);
+	pthread_join(tid_live, NULL);
 
 
 	return 0;
@@ -2766,14 +2996,14 @@ int stream_total(void) {
 int Setting_Total(void) {
 	int ret = 0;
 
-	pthread_t tid_ao;//, tid_ai;
+	// pthread_t tid_ao, tid_ai;
     // pthread_t tid_stream, tid_clip, tid_snap, tid_move, tim_osd, tid_fdpd, adc_thread_id;
-    pthread_t tid_uart, tid_snap;
-    pthread_t tid_spi;
+    pthread_t tid_uart, tid_snap, tid_live;
+    // pthread_t tid_spi;
     char file_path[64] = {0};
 
     bool door1=false, door2=false;
-    bool cap_start = false;
+    bool cap_start = false, ubi_start = false;
 
 
 #ifdef STREAMING_SPI
@@ -2874,6 +3104,12 @@ int Setting_Total(void) {
 		return -1;
 	}
 
+	ret = pthread_create(&tid_live, NULL, device_live_thread, NULL);
+	if(ret != 0) {
+		IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create device_live_thread failed\n", __func__);
+		return -1;
+	}
+
 
 	usleep(1000*1000);
 
@@ -2929,10 +3165,49 @@ int Setting_Total(void) {
 				door_cap_flag = false;
 			}
 		}
+
+		if (save_send_flag) {
+
+			if (!ubi_start) {
+				ret = spi_init();
+    			if(ret < 0){
+    			    printf("spi init error\n");
+    			    return 0;
+    			}
+				system("ubi_mount");
+
+				ubi_start = true;
+			}
+
+
+			file_name_get(&Save_movie1, 0);
+			file_name_get(&Save_movie2, 1);
+
+			for(int i=0;i<Save_movie1.cnt;i++) {
+				printf("File[%d]:%s\n", i, Save_movie1.name[i]);
+				spi_send_save_file("/maincam/", Save_movie1.name[i]);
+				printf("File[%d]:%s\n", i, Save_movie2.name[i]);
+				spi_send_save_file("/boxcam/", Save_movie2.name[i]);
+			}
+
+			system("rm /maincam/*");
+			system("rm /boxcam/*");
+
+			system("sync");
+
+			printf("[END] Save Send!\n");
+			device_end(SETTING);
+			save_send_flag = false;
+		}
 			
 	}while(1);
 
+	bExit = true;
+	bUart = true;
+	bStrem = true;
+
 	pthread_join(tid_uart, NULL);
+	pthread_join(tid_live, NULL);
 
 
 	return 0;

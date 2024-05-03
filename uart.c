@@ -313,7 +313,13 @@ int Make_Packet_uart(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t major,
         break;
     case SETTING:
         switch(minor) {
-            case SET_START:
+            case SET_FILE_START:
+                // printf("Start Pck Make!\n");
+                break;
+            case SET_FILE_SEND:
+                // printf("Start Pck Make!\n");
+                break;
+            case SET_FILE_END:
                 // printf("Start Pck Make!\n");
                 break;
         }
@@ -429,6 +435,14 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             ack_len = 0;
             ack_flag = true;
         break;
+        case REC_DATE:
+            if (rbuff[index+9] > 0)     netwrok_busy = true;
+            else                        netwrok_busy = false;
+
+            // netwrok_busy = true;
+
+            snprintf(TimeStamp.date, 13, "%s\n", (char*)&rbuff[index+9+1]);
+            printf("1Set Busy : %d Date : %s\n", netwrok_busy, TimeStamp.date);
         break;
         }
     break;
@@ -481,6 +495,13 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             rec_end = true;
             ack_len = 0;
             ack_flag = true;
+        break;
+        case STREAM_DATE:
+            if (rbuff[index+9] > 0)     netwrok_busy = true;
+            else                        netwrok_busy = false;
+
+            snprintf(TimeStamp.date, 13, "%s\n", (char*)&rbuff[index+9+1]);
+            printf("Set Busy : %d Date : %s\n", netwrok_busy, TimeStamp.date);
         break;
         }
     break;
@@ -620,6 +641,16 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             ack_len = 0;
             ack_flag = true;
         break;
+        case SET_DATE:
+            if (rbuff[index+9] > 0)     netwrok_busy = true;
+            else                        netwrok_busy = false;
+
+            snprintf(TimeStamp.date, 13, "%s\n", (char*)&rbuff[index+9+1]);
+            printf("Set Busy : %d Date : %s\n", netwrok_busy, TimeStamp.date);
+        break;
+        case SET_SAVE_SEND:
+            save_send_flag = true;
+        break;
         }
     break;
     default:
@@ -666,6 +697,33 @@ int device_end(uint8_t major) {
     return 0;
 }
 
+
+int device_live(uint8_t major) {
+    uint8_t *uart_tx;
+
+    uart_tx = malloc(10);
+
+    memset(uart_tx, 0, 10);
+    uart_tx[0] = 0x02;
+    uart_tx[1] = (major & 0x7F) & 0xFF;
+    uart_tx[2] = 0x7D;
+    uart_tx[3] = 0;
+    uart_tx[4] = 0;
+    uart_tx[5] = 0x00;
+    uart_tx[6] = 0x00;
+    uart_tx[7] = 0x00;
+    uart_tx[8] = 0x00;
+    uart_tx[9] = 0x03;
+
+    uart_send(fd_uart, uart_tx, 10);
+    
+    // printf("L\n");
+    
+    free(uart_tx);
+
+    return 0;
+}
+
 /*
  * 串口接收函数
  *
@@ -694,6 +752,8 @@ void uart_tx_test (void) {
     printf("Uart Tx!\n");
     uart_send(fd_uart,uart2_buf, 0xff);
 }
+
+
 
 void *uart_thread(void *argc)
 {
@@ -747,10 +807,7 @@ void *uart_thread(void *argc)
             printf("\n");
             Recv_Uart_Packet_live(uart_rx);
         }
-
-        
-
-    }while (!bUart);
+     }while (!bUart);
 
     // res = Make_Packet_uart(uart_tx, start_data, 0, mode, SET_STOP);
     // uart_send(fd_uart, uart_tx, res);
@@ -762,3 +819,30 @@ void *uart_thread(void *argc)
     printf("Uart FD Close\n");
     return 0;
 }
+
+
+void *device_live_thread(void * argc) {
+    int mode;
+    int64_t live_total = sample_gettimeus();
+    bool live_flag = false;
+    int LMS_cnt = 0;
+    do {
+        if ((!live_flag) && (sample_gettimeus()-live_total > LIVE_MESSAGE_TIME)) {
+            // printf("LMS %d\n", LMS_cnt);
+            LMS_cnt++;
+            live_total = sample_gettimeus();
+            live_flag =true;
+            if (boot_mode == 0) mode = DTEST;
+            else if (boot_mode == 1) mode = REC;
+            else if (boot_mode == 2) mode = STREAMING;
+            else if (boot_mode == 3) mode = SETTING;
+            device_live(mode);
+        }
+        else {
+            live_flag = false;
+        }
+    } while (!bUart);
+    return 0;
+}
+
+

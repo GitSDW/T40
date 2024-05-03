@@ -35,6 +35,7 @@ typedef enum {
 	USTREAM_F_SEND	= 0x45,
 
 	STREAM_ACK  	= 0x80,
+	STREAM_DATE  	= 0x7E,
 	STREAM_STOP  	= 0x7F,
 } MINOR_STREAMING;
 
@@ -64,11 +65,14 @@ typedef enum {
 	UREC_STREAM_END = 0x45,
 
 	REC_ACK  		= 0x80,
+	REC_DATE  		= 0x7E,
 	REC_DEV_STOP  	= 0x7F,
 } MINOR_REC;
 
 typedef enum {
-	SET_START  		= 0x01,
+	SET_FILE_START  = 0x01,
+	SET_FILE_SEND  	= 0x02,
+	SET_FILE_END  	= 0x03,
 
 	SET_LED			= 0x41,
 	SET_BELL_VOL	= 0x42,
@@ -84,7 +88,9 @@ typedef enum {
 	SET_DOOR_GRID	= 0x4C,
 	SET_USER_GRID	= 0x4D,
 	SET_DOOR_CAP 	= 0x4E,
+	SET_SAVE_SEND 	= 0x4F,
 
+	SET_DATE  		= 0x7E,
 	SET_STOP  		= 0x7F,
 } MINOR_SETTING;
 
@@ -94,11 +100,6 @@ typedef enum {
 	TEST_STOP  		= 0x7F,
 } MINOR_TEST;
 
-
-
-
-
-
 typedef enum {
 	UREC_START  		= 0x01,
 	
@@ -106,8 +107,13 @@ typedef enum {
 	UREC_STOP  		= 0x7F
 } MINOR_UART_REC;
 
-
-
+typedef struct FILEINFO {
+    char date[13];       // YYMMDDhhmmss 형식의 날짜
+    int order;           // 순서
+    int top_bottom;      // 위아래 정보
+    int type1;           // 타입1
+    int type2;           // 타입2
+}FileInfo;
 
 int spi_init(void);
 void spi_deinit(void);
@@ -121,6 +127,7 @@ void test_spi_rw(void);
 void test_spi_onekbytes(int dly);
 int Ready_Busy_Check(void);
 int spi_send_file_dual(uint8_t minor1, uint8_t minor2, char *file1, char *file2);
+int spi_send_save_file(char *path, char *file);
 
 #ifdef __cplusplus
 }

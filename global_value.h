@@ -10,7 +10,7 @@ extern "C" {
 
 #define MAJOR_VER	"0"
 #define MINOR_VER	"4"	
-#define CAHR_VER	"l"
+#define CAHR_VER	"q"
 
 typedef struct CIRCULAR_BUFF
 {
@@ -39,6 +39,14 @@ typedef struct CIRCULAR_BUFF2
 Buff2_t VM_Frame_Buff;
 Buff2_t VB_Frame_Buff;
 
+typedef struct FILE_TIMESTAMP
+{
+	char 			date[13];
+	uint8_t  	type[2];
+} File_TimeStamp;
+
+File_TimeStamp TimeStamp;
+
 // typedef struct VUDP_Attr
 // {
 // 	unsigned char *tx;
@@ -61,19 +69,22 @@ int move_det_xs, move_det_ys, move_det_xe, move_det_ye;
 
 // #define V_SEND_SIZE 1004 // 1014 -> 1004
 #ifdef __H265__
-	#define V_SEND_SIZE 					992
+	#define V_SEND_SIZE 					1004
 #else
-	// #define V_SEND_SIZE 992-12
-	#define V_SEND_SIZE 					868
-	// #define V_SEND_SIZE 					1800
+	// #define V_SEND_SIZE 					868
+	// #define V_SEND_SIZE 					992
+	#define V_SEND_SIZE 					978
 #endif
+
+
 #define V_SEND_RESERV 					5
 #define V_BUFF_SIZE 						256*1024
-#define MAX_REC_TIME 						60000000	// 60 * 1000 * 1000 usec
+#define MAX_REC_TIME 						63000000	// 60 * 1000 * 1000 usec
 #define ROAMING_PER_TIME 				30000000	// 60 * 1000 * 1000 usec
 #define THUMBNAIL_TIME 					1000000
 #define FACE_FIND_END_TIME 			5000000
 #define CLIP_CLOSE_TIME  				3000000
+#define LIVE_MESSAGE_TIME  			10000000	// 10 * 1000 * 1000 usec
 
 int data_sel;
 char ip[30];
@@ -168,6 +179,14 @@ Clip_Cause_t clip_cause_t;
 #define START_CHECK_TIME 5000000
 #define READY_BUSY_TIME 5
 
+typedef struct  {
+    char name[15][128];
+    uint8_t cnt;
+}SaveFile;
+
+SaveFile Save_movie1;
+SaveFile Save_movie2;
+
 int64_t start_time;
 uint32_t ExpVal;
 int64_t rec_total;
@@ -222,6 +241,8 @@ bool temp_flag;
 bool bell_call_flag;
 bool temp_unmount_flag;
 bool bell_stream_flag;
+bool netwrok_busy;
+bool save_send_flag;
 // bool move_end;
 
 
@@ -332,6 +353,8 @@ enum REC_TYPE {
 #ifdef __TEST_FAKE_VEDIO__
 	int led_cnt;
 #endif
+
+// #define __PHILL_REQ__
 
 #if __cplusplus
 }

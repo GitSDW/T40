@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
@@ -9,6 +10,10 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <time.h>
+#include <string.h>
+#include <sys/stat.h>
+
+#include "global_value.h"
 
 void ST_Flush(void)
 {
@@ -264,4 +269,185 @@ int file_ck(const char* filename) {
         return 0;
     }
 
+}
+
+
+
+#define FOLDER1_PATH "/maincam"
+#define FOLDER2_PATH "/boxcam"
+#define MAX_FILES 22
+
+// 파일명에서 날짜를 추출하는 함수
+char* extract_date_from_filename(const char* filename) {
+    char* date = (char*)malloc(13 * sizeof(char)); // 12자리 날짜 + NULL 문자
+    if (date == NULL) {
+        perror("Malloc Error!\n");
+        exit(EXIT_FAILURE);
+    }
+    strncpy(date, filename, 12);
+    date[12] = '\0'; // NULL 문자 추가
+    return date;
+}
+
+// 가장 오래된 파일 삭제하는 함수
+void delete_oldest_file(const char* folder_path) {
+    DIR* dir;
+    struct dirent* entry;
+    struct stat file_stat;
+    char oldest_file_name[256];
+    time_t oldest_time = time(NULL);
+
+    // 폴더 열기
+    dir = opendir(folder_path);
+    if (dir == NULL) {
+        perror("Folder Open Fail");
+        exit(EXIT_FAILURE);
+    }
+
+    // 폴더 내 파일 탐색
+    while ((entry = readdir(dir)) != NULL) {
+        char full_path[512];
+        snprintf(full_path, sizeof(full_path), "%s/%s", folder_path, entry->d_name);
+
+        // 파일 상태 가져오기
+        if (stat(full_path, &file_stat) == -1) {
+            perror("file status get fail!");
+            exit(EXIT_FAILURE);
+        }
+
+        // 파일이 regular file이고, 수정 시간이 현재 가장 오래된 파일보다 오래된 경우 업데이트
+        if (S_ISREG(file_stat.st_mode) && difftime(file_stat.st_mtime, oldest_time) < 0) {
+            oldest_time = file_stat.st_mtime;
+            strcpy(oldest_file_name, entry->d_name);
+        }
+    }
+
+    closedir(dir);
+
+    // 가장 오래된 파일 삭제
+    char full_path[512];
+    snprintf(full_path, sizeof(full_path), "%s/%s", folder_path, oldest_file_name);
+    if (remove(full_path) != 0) {
+        perror("Fail to Delete!");
+        exit(EXIT_FAILURE);
+    }
+    printf("Oldest file del: %s\n", oldest_file_name);
+}
+
+int old_file_del(void) {
+    int file_count = 0;
+
+    // 폴더1 내 파일 확인
+    DIR* folder1 = opendir(FOLDER1_PATH);
+    if (folder1 == NULL) {
+        perror("Folder Open Fail1");
+        exit(EXIT_FAILURE);
+    }
+    struct dirent* entry1;
+    while ((entry1 = readdir(folder1)) != NULL) {
+        // 파일명에서 날짜 추출
+        char* date = extract_date_from_filename(entry1->d_name);
+        printf("File1: %s, Date: %s\n", entry1->d_name, date);
+        free(date);
+        file_count++;
+    }
+    closedir(folder1);
+
+    // 폴더2 내 파일 확인
+    DIR* folder2 = opendir(FOLDER2_PATH);
+    if (folder2 == NULL) {
+        perror("Folder Open Fail2");
+        exit(EXIT_FAILURE);
+    }
+    struct dirent* entry2;
+    while ((entry2 = readdir(folder2)) != NULL) {
+        // 파일명에서 날짜 추출
+        char* date = extract_date_from_filename(entry2->d_name);
+        printf("File2: %s, Date: %s\n", entry2->d_name, date);
+        free(date);
+        file_count++;
+    }
+    closedir(folder2);
+
+    // 파일 개수가 최대 파일 개수를 초과하는 경우 가장 오래된 파일 삭제
+    if (file_count > MAX_FILES) {
+        printf("File Num over %d. Oldest file delete.\n", MAX_FILES);
+        delete_oldest_file(FOLDER1_PATH);
+        delete_oldest_file(FOLDER2_PATH);
+    }
+
+    return 0;
+}
+
+
+int file_name_get(SaveFile *filelist, int topbot) {
+    DIR *dir;
+    struct dirent *ent;
+    int cnt=0;
+
+    // 폴더 경로
+    const char *folder_path1 = FOLDER1_PATH;
+    const char *folder_path2 = FOLDER2_PATH;
+
+    // 폴더 열기
+    if ((topbot == 0) && ((dir = opendir(folder_path1)) != NULL)) {
+        // 파일 개수 세기
+        int file_count = 0;
+        while ((ent = readdir(dir)) != NULL) {
+            if (strcmp(ent->d_name, ".") != 0 && strcmp(ent->d_name, "..") != 0) {
+                file_count++;
+            }
+        }
+
+        // 파일 개수 출력
+        // printf("File Count: %d\n", file_count);
+
+        // 다시 폴더 처음부터 열기
+        rewinddir(dir);
+
+        // 파일명 순서대로 출력
+        while ((ent = readdir(dir)) != NULL) {
+            if (strcmp(ent->d_name, ".") != 0 && strcmp(ent->d_name, "..") != 0) {
+                sprintf(filelist->name[cnt], "%s", ent->d_name);
+                // printf("%d%s\n", cnt, ent->d_name);
+                cnt++;
+            }
+        }
+        filelist->cnt = cnt;
+        closedir(dir);
+    } 
+    else if ((topbot == 1) && ((dir = opendir(folder_path2)) != NULL)) {
+        // 파일 개수 세기
+        int file_count = 0;
+        while ((ent = readdir(dir)) != NULL) {
+            if (strcmp(ent->d_name, ".") != 0 && strcmp(ent->d_name, "..") != 0) {
+                file_count++;
+            }
+        }
+
+        // 파일 개수 출력
+        // printf("File Count: %d\n", file_count);
+
+        // 다시 폴더 처음부터 열기
+        rewinddir(dir);
+
+        // 파일명 순서대로 출력
+        while ((ent = readdir(dir)) != NULL) {
+            if (strcmp(ent->d_name, ".") != 0 && strcmp(ent->d_name, "..") != 0) {
+                sprintf(filelist->name[cnt], "%s", ent->d_name);
+                // printf("%d%s\n", cnt, ent->d_name);
+                cnt++;
+            }
+        }
+        filelist->cnt = cnt;
+        closedir(dir);
+    } 
+    else {
+        // 폴더 열기 실패
+        perror("Folder Open Error!");
+        filelist->cnt = 0;
+        return EXIT_FAILURE;
+    }
+
+    return 0;
 }

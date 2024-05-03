@@ -6,6 +6,11 @@
 extern "C" {
 #endif
 
+// typedef struct  {
+//     char name[15][128];
+//     uint8_t cnt;
+// }SaveFile_cutil;
+
 void ST_Flush(void);
 int64_t sample_gettimeus(void);
 char** listJPGFiles(const char* folderPath, int* fileCount);
@@ -17,6 +22,10 @@ int GetTime(void);
 void record_shutdown_time();
 void set_system_time_from_file();
 int file_ck(const char* filename);
+int old_file_del(void);
+int file_name_get(SaveFile *filelist, int topbot);
+
+
 
 #if __cplusplus
 }

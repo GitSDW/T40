@@ -217,6 +217,7 @@ int  spi_rw_bytes(int fd,unsigned char *tx_buff,unsigned char *rx_buff,unsigned 
 #define SPI_SEND_HEDER_LEN 10
 #define FILE_READ_LENGTH_LIVE SPI_SEND_LENGTH - SPI_SEND_HEDER_LEN
 #define FILE_READ_LENGTH 900
+// #define FILE_READ_LENGTH 450
 
 uint8_t a_pkt_cnt = 0;
 
@@ -317,7 +318,11 @@ int Make_Spi_Packet(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t major, 
         break;
         case SETTING:
             switch(minor){
-
+                case SET_FILE_START:
+                case SET_FILE_SEND:
+                case SET_FILE_END:
+                    memcpy(&tbuff[9+V_SEND_RESERV], data, len);
+                break;
                 default:
                     printf("Protocol Make Fail!!\n");
                     return -1;
@@ -1099,30 +1104,30 @@ int spi_send_file_dual(uint8_t minor1, uint8_t minor2, char *file1, char *file2)
 
     close(filed1);
 
-    if (Ready_Busy_Check())
-        printf("File Send Start!\n");
-    else{
-        printf("Fail to Start2 CMD\n");
-        return -1;
-    }
-
-    read_buff[0] = minor2;
-    read_buff[1] = (sz_file>>24)&0xFF;
-    read_buff[2] = (sz_file>>16)&0xFF;
-    read_buff[3] = (sz_file>>8)&0xFF;
-    read_buff[4] = sz_file&0xFF;
-    len = 5;
-   
-    Make_Spi_Packet(tx_buff, read_buff, len, REC, REC_STREAM_STR);
-    // memset(tx_buff, 0, 1033);
-    // memcpy(&tx_buff[6], read_buff,1);
-
-    // if (!first_send) {
-    //     spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
-    //     usleep(dly*1000);
-    //     first_send = true;
+    // if (Ready_Busy_Check())
+    //     printf("File Send Start!\n");
+    // else{
+    //     printf("Fail to Start2 CMD\n");
+    //     return -1;
     // }
-    spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
+
+    // read_buff[0] = minor2;
+    // read_buff[1] = (sz_file>>24)&0xFF;
+    // read_buff[2] = (sz_file>>16)&0xFF;
+    // read_buff[3] = (sz_file>>8)&0xFF;
+    // read_buff[4] = sz_file&0xFF;
+    // len = 5;
+   
+    // Make_Spi_Packet(tx_buff, read_buff, len, REC, REC_STREAM_STR);
+    // // memset(tx_buff, 0, 1033);
+    // // memcpy(&tx_buff[6], read_buff,1);
+
+    // // if (!first_send) {
+    // //     spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
+    // //     usleep(dly*1000);
+    // //     first_send = true;
+    // // }
+    // spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
 
 
     filed2 = open(file2, O_RDONLY);
@@ -1242,6 +1247,115 @@ int spi_send_fake_file(uint8_t minor)
     spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
     usleep(500*1000);
 
+    return ret;
+}
+
+// 파일명을 파싱하여 구조체에 저장하는 함수
+int parse_filename(char* filename, FileInfo* file_info) {
+    int ret = -1;
+    // 파일명에서 각 부분을 추출
+    ret = sscanf(filename, "%12s_%2d_%2d_%2d%2d.mp4", file_info->date, &file_info->order, &file_info->top_bottom, &file_info->type1, &file_info->type2);
+
+    return ret;
+}
+
+int spi_send_save_file(char *path, char *file)
+{
+    int filed = 0, ret = -1;
+    // int dly = 3;
+    struct stat file_info;
+    int sz_file;
+    int len = 0;
+    int wcnt = 0;
+    FileInfo fileinfo;
+    char filebuf[128];
+    
+    // printf("s:%s", file);
+    sprintf(filebuf, "%s%s", path, file);
+
+    if ( 0 > stat(filebuf, &file_info)) {
+        printf("File Size Not Check!!\n");
+        return -1;
+    }
+
+    filed = open(filebuf, O_RDONLY);
+    if (filed == -1) {
+        printf("File %s Open Fail!\n", filebuf);
+        return -1;
+    }
+
+    parse_filename(file, &fileinfo);
+
+    sz_file = file_info.st_size;
+
+    printf("size:%d date:%s order:%d topbot:%d type1:%d type2:%d\n", 
+        sz_file, fileinfo.date, fileinfo.order, fileinfo.top_bottom, fileinfo.type1, fileinfo.type2);
+
+    printf("**********SAVE SEND START CMD************\n");
+    // // printf("d %s,s %d,d %d,b %d,m %d,f %s, size:%d\n",device,speed,delay,bits,mode,file,sz_file);
+
+    // Save File Date
+    read_buff[0] = (char)fileinfo.date[0];
+    read_buff[1] = (char)fileinfo.date[1];
+    read_buff[2] = (char)fileinfo.date[2];
+    read_buff[3] = (char)fileinfo.date[3];
+    read_buff[4] = (char)fileinfo.date[4];
+    read_buff[5] = (char)fileinfo.date[5];
+    read_buff[6] = (char)fileinfo.date[6];
+    read_buff[7] = (char)fileinfo.date[7];
+    read_buff[8] = (char)fileinfo.date[8];
+    read_buff[9] = (char)fileinfo.date[9];
+    read_buff[10] = (char)fileinfo.date[10];
+    read_buff[11] = (char)fileinfo.date[11];
+
+    // Save File Order
+    read_buff[12] = fileinfo.order&0xFF;
+
+    // Save File Top Bottom
+    read_buff[13] = fileinfo.top_bottom&0xFF;
+
+    // Save File Type
+    read_buff[14] = fileinfo.type1&0xFF;
+    read_buff[15] = fileinfo.type2&0xFF;
+
+    // Save File Size
+    read_buff[16] = (sz_file>>24)&0xFF;
+    read_buff[17] = (sz_file>>16)&0xFF;
+    read_buff[18] = (sz_file>>8)&0xFF;
+    read_buff[19] = sz_file&0xFF;
+
+    len = 20;
+
+    if (!Ready_Busy_Check()) {
+        printf("[%s]SF\n", __func__);
+        return -1;
+    }
+    
+    Make_Spi_Packet(tx_buff, read_buff, len, SETTING, SET_FILE_START);
+    spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
+
+    do {
+        ret = read(filed, read_buff, FILE_READ_LENGTH);
+        if(ret != 0) {
+            if (!Ready_Busy_Check()){
+                printf("F:%d\n", wcnt);
+                return -1;
+            }
+
+            Make_Spi_Packet(tx_buff, read_buff, ret, SETTING, SET_FILE_SEND);
+            spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
+        }
+        wcnt++;
+    } while(ret != 0);
+
+    if (!Ready_Busy_Check()){
+        printf("[%s]EF\n", __func__);
+        return -1;
+    }
+    Make_Spi_Packet(tx_buff, read_buff, 0, SETTING, SET_FILE_END);
+    spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
+    usleep(100*1000);
+    printf("**********FILE SEND END CMD************\n");
     return ret;
 }
 
@@ -1570,3 +1684,7 @@ void test_spi_onekbytes(int dly){
         usleep(dly*1000);
     }while(1);
 }
+
+
+
+
