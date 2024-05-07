@@ -51,18 +51,41 @@ static int osd_show(void)
 		}
 	}
 
+	// for (i=0; i<27; i++) {
+	// 	printf("grid[%d]:0x%02x\n", i, settings.user_grid[i]);
+	// }
+
+
 	IMPOSDRgnAttr cover_rAttr;
-	for (i=0; i<GRID_COVER_INDEX; i++) {
-		if (settings.door_grid[i/8]&(0x01 << i%8)|| settings.user_grid[i/8]&(0x01 << i%8)) {
-		// if (grid_cover_flag[i] == true){
-			IMP_OSD_GetRgnAttr(prHander[2+RECT_INDEX+MOSAIC_INDEX+i], &cover_rAttr);
-			printf("grid[%d] x:%d y:%d \n", i, cover_rAttr.mosaicAttr.x, cover_rAttr.mosaicAttr.y);
-			ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+MOSAIC_INDEX+i], mosdgrp, 1);
-			if (ret != 0) {
-				IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
-				return -1;
+	if (settings.SF.bits.door_g) {
+		for (i=0; i<GRID_COVER_INDEX; i++) {
+			if (settings.door_grid[i/8]&(0x01 << i%8)) {
+			// if (grid_cover_flag[i] == true){
+				IMP_OSD_GetRgnAttr(prHander[2+RECT_INDEX+MOSAIC_INDEX+i], &cover_rAttr);
+				// printf("grid[%d] x:%d y:%d \n", i, cover_rAttr.mosaicAttr.x, cover_rAttr.mosaicAttr.y);
+				ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+MOSAIC_INDEX+i], mosdgrp, 1);
+				if (ret != 0) {
+					IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
+					return -1;
+				}
+				// printf("grid %d On!\n", i);
 			}
-			printf("grid %d On!\n", i);
+		}
+	}
+
+	if (settings.SF.bits.user_g) {
+		for (i=0; i<GRID_COVER_INDEX; i++) {
+			if (settings.user_grid[i/8]&(0x01 << i%8)) {
+			// if (grid_cover_flag[i] == true){
+				IMP_OSD_GetRgnAttr(prHander[2+RECT_INDEX+MOSAIC_INDEX+i], &cover_rAttr);
+				// printf("grid[%d] x:%d y:%d \n", i, cover_rAttr.mosaicAttr.x, cover_rAttr.mosaicAttr.y);
+				ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+MOSAIC_INDEX+i], mosdgrp, 1);
+				if (ret != 0) {
+					IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
+					return -1;
+				}
+				// printf("grid %d On!\n", i);
+			}
 		}
 	}
 

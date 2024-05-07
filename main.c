@@ -124,6 +124,7 @@ int global_value_init(void) {
 	// rec_state = REC_READY;
 	clip_rec_state = REC_READY;
 	streaming_rec_state = REC_READY;
+	rec_streaming_state = REC_READY;
 	bell_rec_state = REC_READY;
 	bl_state = BSS_WAIT;
 
@@ -155,6 +156,7 @@ int global_value_init(void) {
 	netwrok_busy = false;
 	// move_end = false;
 	save_send_flag = false;
+	cmd_end_flag = false;
 
 	for(i=0;i<10;i++){
 		fdpd_data[i].flag = false;
@@ -1519,7 +1521,7 @@ int clip_total(void) {
 	do {
 		if (start_flag == false) {
 		#ifndef __PHILL_REQ__
-			if ((face_cnt > 0) || (person_cnt > 0) || (main_motion_detect > 1)) {
+			if ((face_cnt > 0) || (person_cnt > 0) || (main_motion_detect > 1) || bell_flag || temp_flag) {
 				printf("Start REC!!\n");
 				start_flag = true;
 				roaming_person = false;
@@ -1647,16 +1649,26 @@ int clip_total(void) {
 						IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Record_AEC_Thread failed\n", __func__);
 						return -1;
 					}
+					if (rec_streaming_state == REC_START) rec_streaming_state = REC_ING;
 				}
 
-				if (start_flag && (person_cnt != 0) && !roaming_person) {
-					printf("roaming_person Check!\n");
+				if (start_flag && (face_cnt != 0) && !roaming_person) {
+					printf("Face Check!\n");
 					roaming_person = true;
 				}
 
 				if ((total_time > ROAMING_PER_TIME) && roaming_person && 
 					clip_cause_t.Major == CLIP_CAUSE_MOVE && clip_cause_t.Minor == CLIP_MOVE_MOVE) {
+					printf("Roaming Person Tag!! : %lld\n", total_time);
 					clip_cause_t.Minor = CLIP_MOVE_PER;
+				}
+
+				if (rec_streaming_state == REC_STOP) {
+					rec_streaming_state = REC_MP4MAKE;
+					printf("CLIP END:Streaming End! %lld\n", total_time);
+					clip_rec_state = REC_STOP;
+					box_snap = true;
+					Rec_type = MAKE_FILE;
 				}
 
 				if ((total_time > MAX_REC_TIME) && (clip_rec_state == REC_ING)) {	// 60Sec Time Over -> Clip Stop
@@ -1669,7 +1681,7 @@ int clip_total(void) {
 				}
 				
 			#ifndef __PHILL_REQ__
-				if ((file_cnt == 0) && (total_time>FACE_FIND_END_TIME) && (clip_rec_state < REC_STOP)) {	// Face or Motion Not Found -> Clip Stop
+				if ((file_cnt == 0) && (total_time > FACE_FIND_END_TIME) && (clip_rec_state < REC_STOP)) {	// Face or Motion Not Found -> Clip Stop
 					if ((person_cnt == 0) && (main_motion_detect == 0)) {
 						if ((sample_gettimeus() - end_time) > CLIP_CLOSE_TIME) {
 							printf("CLIP END:Move End!\n");
@@ -1714,7 +1726,6 @@ int clip_total(void) {
 			}
 			else if (Rec_type == BELL_REC){
 				
-
 				total_time2 = sample_gettimeus() - start_time2;
 				if (total_time2%10000000 == 0){
 					printf("Rec T:%d time : %lld\n", Rec_type, total_time2);
@@ -1767,6 +1778,7 @@ int clip_total(void) {
 					}
 
 					stream_state = 1;
+					data_sel = 4;
 
 					bl_state = BSS_END;
 				}
@@ -1794,6 +1806,16 @@ int clip_total(void) {
 					if(ret != 0) {
 						IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Record_AEC_Thread failed\n", __func__);
 						return -1;
+					}
+				}
+
+				if (rec_streaming_state == REC_STOP) {
+					rec_streaming_state = REC_MP4MAKE;
+					printf("BELL END:Steaming End! %lld\n", total_time);
+					bell_rec_state = REC_STOP;
+					if (bell_stream_flag == false){
+						Rec_type = MAKE_FILE;
+						// box_snap = true;
 					}
 				}
 
@@ -1888,6 +1910,8 @@ int clip_total(void) {
 
 			while(box_snap);
 
+			make_file_start(REC);
+
 			// if (main_rec_end && box_rec_end) {
 			if ((clip_rec_state == REC_MP4MAKE && bell_rec_state == REC_MP4MAKE) ||
 				(clip_rec_state == REC_MP4MAKE && bell_rec_state == REC_READY)) {
@@ -1921,7 +1945,7 @@ int clip_total(void) {
 				char *after_img  = "/vtmp/box0.jpg";
 				char *sistic_img = "/vtmp/corimg1.jpg";
 				char *orgin_img = "/tmp/mnt/sdcard/box_origin.jpg";
-				int threshold = 75;
+				int threshold = 70;
 				double sim = 0.0;
 				int64_t cv_stime = sample_gettimeus();
 				int64_t cv_etime = 0;
@@ -1930,7 +1954,7 @@ int clip_total(void) {
 				if (box_n != -1 && box_b != -1) {
 					sim = calculateSimilarity(before_img, after_img);
 					// sim = 0.85;
-	    			if (sim < 0.97) {
+	    			if (sim < 0.95) {
 	    				printf("box Sistic!\n");
 	    				ret = package_sistic(before_img, after_img);
 						if(ret < 0) {
@@ -1955,7 +1979,22 @@ int clip_total(void) {
 		    	        		
 	        				// }
 	        				// else 
-	        				if (ret >= 1 && ret <= 5){
+	        				if (box_o != -1) {
+	        					sim = calculateSimilarity(orgin_img, after_img);
+	        				}
+	        				else {
+	        					sim = 0.1;
+	        				}
+	        				printf("Box Dis : %f\n", sim);
+	        				if (sim >= 0.9) {
+	        					system("cp /vtmp/box0.jpg /tmp/mnt/sdcard/box_origin.jpg");
+	        					if (clip_cause_t.Major == CLIP_CAUSE_MOVE) {
+									clip_cause_t.Major = CLIP_CAUSE_BOX;
+									clip_cause_t.Minor = CLIP_BOX_DISAP;
+								}
+								spi_send_file(REC_BOX_ALM, file_path);
+	        				}
+	        				else if (ret >= 1 && ret <= 5){
 	        					printf("Find Box!!\n");
 	        					if (!netwrok_busy) {
 		        					if (Ready_Busy_Check()){
@@ -1971,14 +2010,8 @@ int clip_total(void) {
 									}
 								}
 	        				}
-	        				sim = calculateSimilarity(orgin_img, after_img);
-	        				if (sim >= 0.9) {
-	        					system("cp /vtmp/box0.jpg /tmp/mnt/sdcard/box_origin.jpg");
-	        					if (clip_cause_t.Major == CLIP_CAUSE_MOVE || clip_cause_t.Major == CLIP_CAUSE_BOX) {
-									clip_cause_t.Major = CLIP_CAUSE_BOX;
-									clip_cause_t.Minor = CLIP_BOX_DISAP;
-								}
-	        				}
+
+	        				
 	    				}
 	    			}
 	    			else {
@@ -1992,7 +2025,7 @@ int clip_total(void) {
 	    		system("cp /tmp/mnt/sdcard/box_before.jpg /tmp/mnt/sdcard/box_before2.jpg");
 	    		system("cp /vtmp/box0.jpg /tmp/mnt/sdcard/box_before.jpg");
 	    		system("cp /vtmp/box_result.jpg /tmp/mnt/sdcard/box_before3.jpg");
-
+ 
 
 
 				if (face_snap == false) bStrem = true;
@@ -2916,6 +2949,7 @@ int stream_total(void) {
 			else printf("streaming_rec_state Error:%d\n", streaming_rec_state);
 
 			if (streaming_rec_state == REC_MP4MAKE) {
+				make_file_start(STREAMING);
 				for(int i=0; i<rec_cnt; i++) {
 				#ifdef __H265__
 					memset(file_sep, 0, 256);
@@ -3190,8 +3224,8 @@ int Setting_Total(void) {
 				spi_send_save_file("/boxcam/", Save_movie2.name[i]);
 			}
 
-			system("rm /maincam/*");
-			system("rm /boxcam/*");
+			// system("rm /maincam/*");
+			// system("rm /boxcam/*");
 
 			system("sync");
 
@@ -3199,6 +3233,15 @@ int Setting_Total(void) {
 			device_end(SETTING);
 			save_send_flag = false;
 		}
+
+		if (cmd_end_flag) {
+			system("sync");
+
+			printf("[END] CMD Send!\n");
+			device_end(SETTING);
+			cmd_end_flag = false;
+		}
+
 			
 	}while(1);
 
@@ -3212,5 +3255,4 @@ int Setting_Total(void) {
 
 	return 0;
 }
-
 

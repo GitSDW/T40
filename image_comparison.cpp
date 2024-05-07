@@ -50,9 +50,7 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
     // img1 = img1(roi);
     // img2 = img2(roi);
     // printf("box3\n");
-    cv_buf = (sample_gettimeus() - cv_time)/1000;
-    cv_time = sample_gettimeus();
-    cerr << "find try! : " << cv_buf << endl;
+    cerr << "find try! : " << endl;
     try {
         cv::Mat gray1, gray2;
         cv::cvtColor(img1, gray1, cv::COLOR_BGR2GRAY);
@@ -73,13 +71,13 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
         // printf("box1\n");
         cv_buf = (sample_gettimeus() - cv_time)/1000;
         cv_time = sample_gettimeus();
-        cerr << "find gray! : " << cv_buf << endl;
+        cerr << "find gray! : " << endl;
         cv::Mat diff_image;
         cv::absdiff(gray1, gray2, diff_image);
 
         cv_buf = (sample_gettimeus() - cv_time)/1000;
         cv_time = sample_gettimeus();
-        cerr << "find set threshold!"<< thhold << " : " << cv_buf << endl;
+        cerr << "find set threshold!"<< thhold << " : " << endl;
         cv::Mat bin_img;
         cv::threshold(diff_image, bin_img, thhold, 255, cv::THRESH_BINARY);
 
@@ -88,7 +86,7 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
         // printf("box2\n");
         cv_buf = (sample_gettimeus() - cv_time)/1000;
         cv_time = sample_gettimeus();
-        cerr << "find contours! : " << cv_buf << endl;
+        cerr << "find contours! : " << endl;
         vector<vector<cv::Point>> contours;
         cv::findContours(bin_img, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
@@ -99,7 +97,7 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
         for(size_t i = 0; i< contours.size(); i++) {
             cv::Rect boundingRect = cv::boundingRect(contours[i]);
 
-            if (boundingRect.width > 17 && boundingRect.height > 17) {
+            if (boundingRect.width > 10 && boundingRect.height > 10) {
                 // box_cnt++;
 
                 // Maximum Scale Box
@@ -128,9 +126,7 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
     // cv::rectangle(img2, boundingRect2, cv::Scalar(0, 255, 0), 2);
     // printf("box4\n");
 
-    cv_buf = (sample_gettimeus() - cv_time)/1000;
-    cv_time = sample_gettimeus();
-    cerr << "find end! : " << cv_buf << endl;
+    cerr << "find end! : " << endl;
 
     cv::imwrite("/vtmp/box_result.jpg", img2);
 
@@ -161,32 +157,24 @@ int package_sistic(char *imgpath1, char *imgpath2) {
     resizeImage(image2, 1920/3, 1080/3);
 
 #if 1
-    cv_buf = (sample_gettimeus() - cv_time)/1000;
-    cv_time = sample_gettimeus();
-    cerr << "sistic make! : " << cv_buf <<endl;
+    cerr << "sistic make! : " <<endl;
     // ORB 객체 생성
     Ptr<ORB> orb = ORB::create();
 
-    cv_buf = (sample_gettimeus() - cv_time)/1000;
-    cv_time = sample_gettimeus();
-    cerr << "sistic point cal! : " << cv_buf << endl;
+    cerr << "sistic point cal! : " << endl;
     // 키 포인트와 디스크립터 계산
     vector<KeyPoint> keypoints1, keypoints2;
     Mat descriptors1, descriptors2;
     orb->detectAndCompute(image1, Mat(), keypoints1, descriptors1);
     orb->detectAndCompute(image2, Mat(), keypoints2, descriptors2);
 
-    cv_buf = (sample_gettimeus() - cv_time)/1000;
-    cv_time = sample_gettimeus();
-    cerr << "sistic point match! : " << cv_buf << endl;
+    cerr << "sistic point match! : " << endl;
     // 특징점 매칭 
     BFMatcher matcher(NORM_HAMMING);
     vector<DMatch> matches;
     matcher.match(descriptors1, descriptors2, matches);
 
-    cv_buf = (sample_gettimeus() - cv_time)/1000;
-    cv_time = sample_gettimeus();
-    cerr << "sistic filtering! : " << cv_buf << endl;
+    cerr << "sistic filtering! : " << endl;
     // 좋은 매칭 필터링
     double minDist = min_element(matches.begin(), matches.end(),
         [](const DMatch& m1, const DMatch& m2) { return m1.distance < m2.distance; })->distance;
@@ -199,9 +187,7 @@ int package_sistic(char *imgpath1, char *imgpath2) {
         }
     }
 
-    cv_buf = (sample_gettimeus() - cv_time)/1000;
-    cv_time = sample_gettimeus();
-    cerr << "sistic metrix cal! : " << cv_buf << endl;
+    cerr << "sistic metrix cal! : " << endl;
     // 좋은 매칭을 사용하여 변환 행렬 계산
     if (goodMatches.size() > 10) {
         try {
@@ -281,9 +267,7 @@ int package_sistic(char *imgpath1, char *imgpath2) {
     }
 #endif
     // 결과 이미지를 디스크에 저장
-    cv_buf = (sample_gettimeus() - cv_time)/1000;
-    cv_time = sample_gettimeus();
-    cerr << "Sistic End : " << cv_buf << endl;
+    cerr << "Sistic End : " << endl;
 
     return 0;
 }
@@ -296,6 +280,17 @@ double calculateSimilarity(char *imgpath1, char *imgpath2) {
     // 이미지 불러오기
     cv::Mat imag1 = imread(imagePath1, IMREAD_GRAYSCALE);
     cv::Mat imag2 = imread(imagePath2, IMREAD_GRAYSCALE);
+
+    resizeImage(imag1, 1920/3, 1080/3);
+    resizeImage(imag2, 1920/3, 1080/3);
+
+    // cerr << imgpath1 << "W:" << img1.rows << "H:" << img1.cols << endl;
+    // cerr << imgpath2 << "W:" << img2.rows << "H:" << img2.cols << endl;
+
+    // cv::Rect roi(160, 180, 1600, 900-50);
+    // cv::Rect roi(160/3, 180/3, 1600/3, 900/3-50/3);
+    // imag1 = imag1(roi);
+    // imag2 = imag2(roi);
 
     cv::Mat histImage1, histImage2;
     int hisSize = 256;

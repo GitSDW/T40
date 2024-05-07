@@ -406,7 +406,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             ack_flag = true;
         break;
         case UREC_STREAM:
-            // stream_state = 1;
+            stream_state = 1;
+            rec_streaming_state = REC_START;
             bell_stream_flag = true;
             if (Rec_type == BELL_REC) {
                 bell_call_flag = true;
@@ -416,7 +417,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         break;
 
         case UREC_STREAM_END:
-            // stream_state = 0;
+            stream_state = 0;
+            rec_streaming_state = REC_STOP;
             bell_stream_flag = false;
             ack_len = 0;
             ack_flag = true;
@@ -427,8 +429,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             ao_file_play_thread(effect_file);
             // clip_cause_t.Major = CLIP_CAUSE_MOUNT;
             // clip_cause_t.Minor = CLIP_MOUNT_DISMT;
-            if (Rec_type != BELL_REC)
-                bell_flag = true;
+            // if (Rec_type != BELL_REC)
+                // bell_flag = true;
             temp_flag = true;
             if (rbuff[index+9] > 0)     temp_unmount_flag = true;
             else                        temp_unmount_flag = 0;
@@ -517,6 +519,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 system("sync");
                 ack_len = 0;
                 ack_flag = true;
+                cmd_end_flag = true;
             }
         break;
         case SET_BELL_VOL:
@@ -534,6 +537,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/start3c.wav";;
                 printf("play : %s\n", effect_file);
                 ao_file_play_thread(effect_file);
+                cmd_end_flag = true;
             }
         break;
         case SET_SPK_VOL:
@@ -545,6 +549,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 system("sync");
                 ack_len = 0;
                 ack_flag = true;
+                cmd_end_flag = true;
             }
         break;
         case SET_BACK_LIGHT:
@@ -557,6 +562,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 system("sync");
                 ack_len = 0;
                 ack_flag = true;
+                cmd_end_flag = true;
             }
         break;
         case SET_FLICKER:
@@ -569,6 +575,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 system("sync");
                 ack_len = 0;
                 ack_flag = true;
+                cmd_end_flag = true;
             }
         break;
         case SET_MOVE_SENSI:
@@ -580,6 +587,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 system("sync");
                 ack_len = 0;
                 ack_flag = true;
+                cmd_end_flag = true;
             }
         break;
         case SET_EX_ONOF:
@@ -592,6 +600,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 system("sync");
                 ack_len = 0;
                 ack_flag = true;
+                cmd_end_flag = true;
             }
         break;
         case SET_FACE_MOSAIC:
@@ -604,6 +613,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 system("sync");
                 ack_len = 0;
                 ack_flag = true;
+                cmd_end_flag = true;
             }
         break;
         case SET_DOOR_ONOF:
@@ -616,6 +626,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 system("sync");
                 ack_len = 0;
                 ack_flag = true;
+                cmd_end_flag = true;
             }
         break;
         case SET_USER_ONOF:
@@ -628,13 +639,33 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 system("sync");
                 ack_len = 0;
                 ack_flag = true;
+                cmd_end_flag = true;
             }
         break;
         case SET_EX_AREA:
+            settings.move_ex_s_x = (rbuff[index+9]*0x100)+(rbuff[index+9+1]);
+            settings.move_ex_s_y = (rbuff[index+9+2]*0x100)+(rbuff[index+9+3]);
+            settings.move_ex_e_x = (rbuff[index+9+4]*0x100)+(rbuff[index+9+5]);
+            settings.move_ex_e_y = (rbuff[index+9+6]*0x100)+(rbuff[index+9+7]);
+            Setting_Save();
+            ack_len = 0;
+            ack_flag = true;
+            cmd_end_flag = true;
         break;
         case SET_DOOR_GRID:
+            memcpy(settings.door_grid, &rbuff[index+9], 27);
+            Setting_Save();
+            ack_len = 0;
+            ack_flag = true;
+            cmd_end_flag = true;
         break;
         case SET_USER_GRID:
+            memcpy(settings.user_grid, &rbuff[index+9], 27);
+            Setting_Save();
+            ack_len = 0;
+            ack_flag = true;
+
+            cmd_end_flag = true;
         break;
         case SET_DOOR_CAP:
             door_cap_flag = true;
@@ -724,6 +755,33 @@ int device_live(uint8_t major) {
     return 0;
 }
 
+
+int make_file_start(uint8_t major) {
+    uint8_t *uart_tx;
+
+    uart_tx = malloc(10);
+
+    memset(uart_tx, 0, 10);
+    uart_tx[0] = 0x02;
+    uart_tx[1] = (major & 0x7F) & 0xFF;
+    uart_tx[2] = 0x21;
+    uart_tx[3] = 0;
+    uart_tx[4] = 0;
+    uart_tx[5] = 0x00;
+    uart_tx[6] = 0x00;
+    uart_tx[7] = 0x00;
+    uart_tx[8] = 0x00;
+    uart_tx[9] = 0x03;
+
+    uart_send(fd_uart, uart_tx, 10);
+    
+    printf("FS\n");
+    
+    free(uart_tx);
+
+    return 0;
+}
+
 /*
  * 串口接收函数
  *
@@ -758,14 +816,17 @@ void uart_tx_test (void) {
 void *uart_thread(void *argc)
 {
     int res, mode;
+    int cmd_state = 0, len, len_p;
     // int set_baudrate = 2560000;
     // int set_databits = 8;
     // int set_stopbits = 1;
     // char set_parity = 'N';
     // path = (char *)default_path;
     uint8_t *uart_rx;
+    uint8_t *cmd_rx;
 
-    uart_rx = malloc(1024);
+    uart_rx = malloc(128);
+    cmd_rx = malloc(128);
     
     // printf("/dev/ttyS2 115200 8 1 N\n"); 
 
@@ -781,7 +842,7 @@ void *uart_thread(void *argc)
     uint8_t *uart_tx;
     uint8_t start_data[10] = {0};
 
-    uart_tx = malloc(11);
+    uart_tx = malloc(50);
     if (boot_mode == 0) mode = DTEST;
     else if (boot_mode == 1) mode = REC;
     else if (boot_mode == 2) mode = STREAMING;
@@ -805,7 +866,29 @@ void *uart_thread(void *argc)
                 printf("0x%02x ", uart_rx[i]);
             }
             printf("\n");
-            Recv_Uart_Packet_live(uart_rx);
+            if (uart_rx[0] == 0x02) {
+                cmd_state = 1;
+                len = (uart_rx[3] * 0x100) + (uart_rx[4]);
+                memset(cmd_rx, 0x00, 128);
+                memcpy(cmd_rx, uart_rx, res);
+                if (res == len+10) {
+                    cmd_state = 2;
+                }
+                else {
+                    len_p = res;
+                }
+            }
+            else if (cmd_state == 1) {
+                if (len_p + res == len + 10) {
+                    memcpy(&cmd_rx[len_p], uart_rx, res);
+                    cmd_state = 2;
+                }
+            }
+
+            if (cmd_state == 2) {
+                Recv_Uart_Packet_live(cmd_rx);
+                cmd_state = 0;
+            }
         }
      }while (!bUart);
 

@@ -31,8 +31,8 @@ typedef struct {
     int move_ex_s_y;
     int move_ex_e_x;
     int move_ex_e_y;
-    int door_grid[28];
-    int user_grid[28];
+    uint8_t door_grid[28];
+    uint8_t user_grid[28];
     SETTING_FLAGS SF;
 } Settings;
 

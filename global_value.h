@@ -10,7 +10,7 @@ extern "C" {
 
 #define MAJOR_VER	"0"
 #define MINOR_VER	"4"	
-#define CAHR_VER	"q"
+#define CAHR_VER	"u"
 
 typedef struct CIRCULAR_BUFF
 {
@@ -202,12 +202,14 @@ int rec_cnt;
 // int rec_state;
 int clip_rec_state;
 int streaming_rec_state;
+int rec_streaming_state;
 int bell_rec_state;
 
 int boot_mode;
 int face_crop_cnt;
 int Rec_type;
 int bl_state;
+
 
 // bool rec_stop;
 // bool main_rec_end;
@@ -244,6 +246,7 @@ bool bell_stream_flag;
 bool netwrok_busy;
 bool save_send_flag;
 // bool move_end;
+bool cmd_end_flag;
 
 
 extern int bExit;

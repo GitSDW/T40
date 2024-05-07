@@ -2336,7 +2336,7 @@ int Send_Frame_Main_UDP(IMPEncoderStream *stream) {
 	VM_Frame_Buff.cnt++;
 	pthread_mutex_unlock(&buffMutex_vm);
 
-	// printf("nr_pack:%d frame[Main]:%d time:%lld\n", nr_pack, len, );
+	// printf("V1:%d\n", len);
 
 	return 0;
 }	

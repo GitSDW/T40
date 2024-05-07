@@ -953,6 +953,7 @@ int spi_send_file(uint8_t minor, char *file)
     else {
         len = 5;
     }
+    printf("Type1 : 0x%02x Type2 : 0x%02x\n", read_buff[5], read_buff[6]);
     Make_Spi_Packet(tx_buff, read_buff, len, REC, REC_STREAM_STR);
     // memset(tx_buff, 0, 1033);
     // memcpy(&tx_buff[6], read_buff,1);
@@ -1425,6 +1426,7 @@ void *spi_send_stream (void *arg)
                         // printf("cnt:%d total:%d dsize%d\n", i, framesize, datasize);
                         // printf("STX:0x%02x CMD:0x%02x%02x LEN:0x%02x%02x ETX:0x%02x\n", 
                             // tx_buff[0+5], tx_buff[1+5], tx_buff[2+5], tx_buff[3+5], tx_buff[4+5], tx_buff[1023-5]);
+                        // printf("V1\n");
                         usleep(1*1000);
                     }
                 }
@@ -1465,6 +1467,7 @@ void *spi_send_stream (void *arg)
             		}
 	            	else {
    	         		// printf("cnt:%d total:%d dsize%d\n", i, framesize, datasize);
+                        // printf("V2\n");
     	        		usleep(1*1000);
         	    	}
             	}
@@ -1505,6 +1508,7 @@ void *spi_send_stream (void *arg)
             	}
             	else {
             		// printf("AUDIO Send Data : 0x%02X%02X\n", tx_buff[3], tx_buff[4]);
+                    // printf("A\n");
 	            	usleep(1*1000);
     	        }
 			}
