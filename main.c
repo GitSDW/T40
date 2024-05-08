@@ -1945,80 +1945,69 @@ int clip_total(void) {
 				char *after_img  = "/vtmp/box0.jpg";
 				char *sistic_img = "/vtmp/corimg1.jpg";
 				char *orgin_img = "/tmp/mnt/sdcard/box_origin.jpg";
-				int threshold = 70;
-				double sim = 0.0;
+				int threshold = 80;
+				double bsim = 0.0;
+				double osim = 0.0;
+				double asim = 0.0;
 				int64_t cv_stime = sample_gettimeus();
 				int64_t cv_etime = 0;
 				// if (box_n != -1 && box_o != -1 && box_b != -1) {
 
 				if (box_n != -1 && box_b != -1) {
-					sim = calculateSimilarity(before_img, after_img);
-					// sim = 0.85;
-	    			if (sim < 0.95) {
-	    				printf("box Sistic!\n");
-	    				ret = package_sistic(before_img, after_img);
-						if(ret < 0) {
-							printf("package_sistic Fail!\n");
-							return ret;
-						}
-						printf("box Find!\n");
-						ret = package_find(sistic_img, after_img, threshold);
-						if(ret < 0) {
-							printf("package_find Fail!\n");
-							return ret;
-						}
-		    			else {
-	        				printf("Box Count : %d\n", ret);
-	        				cv_etime = sample_gettimeus();
-	    					printf("CV Total Time:%lld\n", cv_etime-cv_stime);
-	        				// if (ret == 0) {
-	        				// 	printf("box simliarity!\n");
-	        	    		// 	sim = calculateSimilarity(sistic_img, after_img);
-	    	        		// 	printf("similarity:%f\n", sim);
-		    	        	// 	// std::cout << "Similarity:" << sim << "\n" << std::ends;
-		    	        		
-	        				// }
-	        				// else 
-	        				if (box_o != -1) {
-	        					sim = calculateSimilarity(orgin_img, after_img);
-	        				}
-	        				else {
-	        					sim = 0.1;
-	        				}
-	        				printf("Box Dis : %f\n", sim);
-	        				if (sim >= 0.9) {
-	        					system("cp /vtmp/box0.jpg /tmp/mnt/sdcard/box_origin.jpg");
-	        					if (clip_cause_t.Major == CLIP_CAUSE_MOVE) {
+					if (box_o != -1) {
+	        			osim = calculateSimilarity(orgin_img, after_img);
+	        		}
+	        		else {
+	        			osim = 0.1;
+	        		}
+
+					bsim = calculateSimilarity(orgin_img, before_img);
+
+					asim = calculateSimilarity(before_img, after_img);
+
+					if (bsim == 0) bsim = 1.0;
+
+    				printf("box Sistic!\n");
+    				ret = package_sistic(before_img, after_img);
+					if(ret < 0) {
+						printf("package_sistic Fail!\n");
+						return ret;
+					}
+					printf("box Find!\n");
+					ret = package_find(sistic_img, after_img, threshold);
+					if(ret < 0) {
+						printf("package_find Fail!\n");
+						return ret;
+					} 
+	    			else {
+        				printf("Box Count : %d\n", ret);
+        				cv_etime = sample_gettimeus();
+    					printf("CV Total Time:%lld\n", cv_etime-cv_stime);
+    					if (ret > 0) {
+    						if (osim < bsim) {
+    							if (clip_cause_t.Major == CLIP_CAUSE_MOVE) {
 									clip_cause_t.Major = CLIP_CAUSE_BOX;
 									clip_cause_t.Minor = CLIP_BOX_DISAP;
 								}
-								spi_send_file(REC_BOX_ALM, file_path);
-	        				}
-	        				else if (ret >= 1 && ret <= 5){
-	        					printf("Find Box!!\n");
-	        					if (!netwrok_busy) {
-		        					if (Ready_Busy_Check()){
-										printf("Box Send!\n");
-										memset(file_path, 0, 64);
-										sprintf(file_path, "/vtmp/box_result.jpg");
-										printf("box send!\n");
-										if (clip_cause_t.Major == CLIP_CAUSE_MOVE) {
-											clip_cause_t.Major = CLIP_CAUSE_BOX;
-											clip_cause_t.Minor = CLIP_BOX_OCCUR;
-										}
-										spi_send_file(REC_BOX_ALM, file_path);
-									}
+							}
+							else {
+								if (clip_cause_t.Major == CLIP_CAUSE_MOVE) {
+									clip_cause_t.Major = CLIP_CAUSE_BOX;
+									clip_cause_t.Minor = CLIP_BOX_OCCUR;
 								}
-	        				}
-
-	        				
-	    				}
-	    			}
-	    			else {
-	    				printf("Change Not Find!\n");
-		    			printf("Similarity:%f\n", sim);
-		    			cv_etime = sample_gettimeus();
-	    				printf("CV Total Time:%lld\n", cv_etime-cv_stime);
+							}
+							printf("osim:%f bsim:%f asim:%f cnt:%d\n", osim, bsim, asim, ret);
+	    					if (!netwrok_busy) {
+	        					if (Ready_Busy_Check()){
+									printf("Box Send!\n");
+									memset(file_path, 0, 64);
+									sprintf(file_path, "/vtmp/box_result.jpg");
+									printf("box send!\n");
+									
+									spi_send_file(REC_BOX_ALM, file_path);
+								}
+							}
+						}
 	    			}
 	    		}
 
@@ -3189,6 +3178,7 @@ int Setting_Total(void) {
 			if (!box_snap && door2) {
 				printf("Box Origin File!!\n");
 				system("cp /vtmp/box0.jpg /tmp/mnt/sdcard/box_origin.jpg");
+				system("cp /vtmp/box0.jpg /tmp/mnt/sdcard/box_before.jpg");
 				system("sync");
 				door2 = false;
 			}

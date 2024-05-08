@@ -97,7 +97,7 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
         for(size_t i = 0; i< contours.size(); i++) {
             cv::Rect boundingRect = cv::boundingRect(contours[i]);
 
-            if (boundingRect.width > 10 && boundingRect.height > 10) {
+            if (boundingRect.width > 15 && boundingRect.height > 15) {
                 // box_cnt++;
 
                 // Maximum Scale Box
@@ -278,28 +278,64 @@ double calculateSimilarity(char *imgpath1, char *imgpath2) {
     string imagePath2 = imgpath2;
 
     // 이미지 불러오기
-    cv::Mat imag1 = imread(imagePath1, IMREAD_GRAYSCALE);
-    cv::Mat imag2 = imread(imagePath2, IMREAD_GRAYSCALE);
+    // cv::Mat imag1 = imread(imagePath1, IMREAD_GRAYSCALE);
+    // cv::Mat imag2 = imread(imagePath2, IMREAD_GRAYSCALE);
 
-    resizeImage(imag1, 1920/3, 1080/3);
-    resizeImage(imag2, 1920/3, 1080/3);
+    // resizeImage(imag1, 1920/3, 1080/3);
+    // resizeImage(imag2, 1920/3, 1080/3);
 
     // cerr << imgpath1 << "W:" << img1.rows << "H:" << img1.cols << endl;
     // cerr << imgpath2 << "W:" << img2.rows << "H:" << img2.cols << endl;
 
-    // cv::Rect roi(160, 180, 1600, 900-50);
-    // cv::Rect roi(160/3, 180/3, 1600/3, 900/3-50/3);
-    // imag1 = imag1(roi);
-    // imag2 = imag2(roi);
+    cv::Mat imag1 = cv::imread(imagePath1);
+    cv::Mat imag2 = cv::imread(imagePath2);
 
+    if (imag1.empty() || imag2.empty()) {
+        cerr << "Can't Open File!" << ends;
+        cerr << imagePath1 << ends;
+        cerr << imagePath2 << ends;
+        return -2;
+    }
+
+    resizeImage(imag1, 1920/3, 1080/3);
+    resizeImage(imag2, 1920/3, 1080/3);
+
+    cv::Rect roi(160/3, 180/3, 1600/3, 900/3-50/3);
+    imag1 = imag1(roi);
+    imag2 = imag2(roi);
+
+    cout << "cvtColor" << endl;
+
+    Mat gray_image1, gray_image2;
+    cvtColor(imag1, gray_image1, COLOR_BGR2GRAY);
+    cvtColor(imag2, gray_image2, COLOR_BGR2GRAY);
+
+    // 밝기 측정
+    cout << "mean" << endl;
+    double brightness1 = mean(gray_image1)[0];
+    double brightness2 = mean(gray_image2)[0];
+
+    // 두 이미지의 밝기의 평균을 계산
+    double average_brightness = (brightness1 + brightness2) / 2;
+
+    cout << "Average Brightness: " << average_brightness << endl;
+
+    // 평균 밝기로 이미지 보정
+    cout << "convertTo" << endl;
+    double ratio = average_brightness / brightness1;
+    Mat corrected_image1, corrected_image2;
+    gray_image1.convertTo(corrected_image1, -1, ratio, 0);
+    gray_image2.convertTo(corrected_image2, -1, ratio, 0);
+
+    cout << "calcHist" << endl;
     cv::Mat histImage1, histImage2;
     int hisSize = 256;
     float range[] = {0, 256};
     const float* histRange = {range};
-    cv::calcHist(&imag1, 1, 0, cv::Mat(), histImage1, 1, &hisSize, &histRange);
-    cv::calcHist(&imag2, 1, 0, cv::Mat(), histImage2, 1, &hisSize, &histRange);
+    cv::calcHist(&corrected_image1, 1, 0, cv::Mat(), histImage1, 1, &hisSize, &histRange);
+    cv::calcHist(&corrected_image2, 1, 0, cv::Mat(), histImage2, 1, &hisSize, &histRange);
 
-    double similarity = cv::compareHist(histImage1, histImage2, cv::HISTCMP_CORREL);
+    double similarity = cv::compareHist(histImage1, histImage2, cv::HISTCMP_CHISQR);
 
     return similarity;
 }

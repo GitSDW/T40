@@ -610,7 +610,7 @@ static int Recv_Spi_Packet_live(uint8_t *rbuff) {
 
     
 
-#if 0
+#if 1
     static int filefd = 0;
     if (filefd == 0) {
         filefd = open("/vtmp/test.pcm", O_RDWR | O_CREAT | O_TRUNC, 0777);
@@ -942,8 +942,8 @@ int spi_send_file(uint8_t minor, char *file)
     }
     else if (minor == REC_BOX_ALM) {
         len = 7;
-        read_buff[5] = CLIP_CAUSE_BOX;
-        read_buff[6] = CLIP_BOX_OCCUR;
+        read_buff[5] = clip_cause_t.Major;
+        read_buff[6] = clip_cause_t.Minor;
     }
     else if (minor == REC_STREAMING_M ||minor == REC_STREAMING_B) {
         len = 7;
