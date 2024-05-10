@@ -12,6 +12,19 @@ int64_t cv_time = 0;
 
 void resizeImage(cv::Mat& image, int width, int height);
 
+Mat reduceImageQuality(const Mat& inputImage, int quality) {
+    // 이미지의 화질을 낮추기 위해 JPEG 포맷으로 압축 후 다시 디코딩
+    std::vector<int> compression_params;
+    compression_params.push_back(IMWRITE_JPEG_QUALITY);
+    compression_params.push_back(quality); // JPEG 압축 품질을 지정한 수준으로 설정
+
+    std::vector<uchar> buf;
+    imencode(".jpg", inputImage, buf, compression_params);
+    Mat result = imdecode(buf, IMREAD_COLOR);
+
+    return result;
+}
+
 int package_find(char *imgpath1, char *imgpath2, int thhold) {
     int64_t cv_time = sample_gettimeus();
     int64_t cv_buf;
@@ -68,6 +81,13 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
         cv::equalizeHist(gray1, gray1);
         cv::equalizeHist(gray2, gray2);
 
+        cv_buf = (sample_gettimeus() - cv_time)/1000;
+        cv_time = sample_gettimeus();
+        cerr << "find set threshold!"<< thhold << " : " << endl;
+        // cv::Mat bin_img1, bin_img2;
+        // cv::threshold(gray1, bin_img1, thhold, 255, cv::THRESH_BINARY);
+        // cv::threshold(gray2, bin_img2, thhold, 255, cv::THRESH_BINARY);
+
         // printf("box1\n");
         cv_buf = (sample_gettimeus() - cv_time)/1000;
         cv_time = sample_gettimeus();
@@ -90,9 +110,7 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
         vector<vector<cv::Point>> contours;
         cv::findContours(bin_img, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
-        cv::Rect boundingRect2;
-
-
+        // cv::Rect boundingRect2;
   
         for(size_t i = 0; i< contours.size(); i++) {
             cv::Rect boundingRect = cv::boundingRect(contours[i]);
@@ -272,6 +290,8 @@ int package_sistic(char *imgpath1, char *imgpath2) {
     return 0;
 }
 
+
+
 double calculateSimilarity(char *imgpath1, char *imgpath2) {
         // 이미지 파일 경로 설정
     string imagePath1 = imgpath1;
@@ -300,15 +320,29 @@ double calculateSimilarity(char *imgpath1, char *imgpath2) {
     resizeImage(imag1, 1920/3, 1080/3);
     resizeImage(imag2, 1920/3, 1080/3);
 
-    cv::Rect roi(160/3, 180/3, 1600/3, 900/3-50/3);
+    cv::Rect roi(160/3, 180/3, 1600/3, 900/3-3);
     imag1 = imag1(roi);
     imag2 = imag2(roi);
 
     cout << "cvtColor" << endl;
 
+    // Mat blurred1, blurred2;
+    // GaussianBlur(gray_image1, blurred1, Size(5, 5), 0);
+    // GaussianBlur(gray_image2, blurred2, Size(5, 5), 0);
+
+    // // 평균 필터링을 사용하여 플리커 제거
+    // Mat flickerRemoved1, flickerRemoved2;
+    // // blur(blurred1, flickerRemoved1, Size(5, 5));
+    // // blur(blurred2, flickerRemoved2, Size(5, 5));
+    // imag1 = reduceImageQuality(imag1, 30);
+    // imag1 = reduceImageQuality(imag2, 30);
+
     Mat gray_image1, gray_image2;
     cvtColor(imag1, gray_image1, COLOR_BGR2GRAY);
     cvtColor(imag2, gray_image2, COLOR_BGR2GRAY);
+
+    // imwrite("/tmp/mnt/sdcard/flickerremove1.jpg", flickerRemoved1);
+    // imwrite("/tmp/mnt/sdcard/flickerremove2.jpg", flickerRemoved2);
 
     // 밝기 측정
     cout << "mean" << endl;
@@ -335,9 +369,135 @@ double calculateSimilarity(char *imgpath1, char *imgpath2) {
     cv::calcHist(&corrected_image1, 1, 0, cv::Mat(), histImage1, 1, &hisSize, &histRange);
     cv::calcHist(&corrected_image2, 1, 0, cv::Mat(), histImage2, 1, &hisSize, &histRange);
 
+    // HISTCMP_CORREL        = 0,
+    // HISTCMP_CHISQR        = 1,
+    // HISTCMP_INTERSECT     = 2,
+    // HISTCMP_BHATTACHARYYA = 3,
+    // HISTCMP_HELLINGER     = HISTCMP_BHATTACHARYYA, //!< Synonym for HISTCMP_BHATTACHARYYA
+    // HISTCMP_CHISQR_ALT    = 4,
+    // HISTCMP_KL_DIV        = 5
+
+    //     typedef struct SIMIL_T
+    // {
+    //     double correl:
+    //     double chisqr;
+    //     double intersect;
+    //     double bhattacharyya;
+    //     double kl_div;
+    // } Simil_t;
+
     double similarity = cv::compareHist(histImage1, histImage2, cv::HISTCMP_CHISQR);
 
     return similarity;
+}
+
+
+int calculateSimilarity2(char *imgpath1, char *imgpath2, Simil_t2* sim_t) {
+        // 이미지 파일 경로 설정
+    string imagePath1 = imgpath1;
+    string imagePath2 = imgpath2;
+
+    // 이미지 불러오기
+    // cv::Mat imag1 = imread(imagePath1, IMREAD_GRAYSCALE);
+    // cv::Mat imag2 = imread(imagePath2, IMREAD_GRAYSCALE);
+
+    // resizeImage(imag1, 1920/3, 1080/3);
+    // resizeImage(imag2, 1920/3, 1080/3);
+
+    // cerr << imgpath1 << "W:" << img1.rows << "H:" << img1.cols << endl;
+    // cerr << imgpath2 << "W:" << img2.rows << "H:" << img2.cols << endl;
+
+    cv::Mat imag1 = cv::imread(imagePath1);
+    cv::Mat imag2 = cv::imread(imagePath2);
+
+    if (imag1.empty() || imag2.empty()) {
+        cerr << "Can't Open File!" << ends;
+        cerr << imagePath1 << ends;
+        cerr << imagePath2 << ends;
+        return -2;
+    }
+
+    resizeImage(imag1, 1920/3, 1080/3);
+    resizeImage(imag2, 1920/3, 1080/3);
+
+    cv::Rect roi(160/3, 180/3, 1600/3, 900/3-3);
+    imag1 = imag1(roi);
+    imag2 = imag2(roi);
+
+    cout << "cvtColor" << endl;
+
+    // Mat blurred1, blurred2;
+    // GaussianBlur(gray_image1, blurred1, Size(5, 5), 0);
+    // GaussianBlur(gray_image2, blurred2, Size(5, 5), 0);
+
+    // // 평균 필터링을 사용하여 플리커 제거
+    // Mat flickerRemoved1, flickerRemoved2;
+    // // blur(blurred1, flickerRemoved1, Size(5, 5));
+    // // blur(blurred2, flickerRemoved2, Size(5, 5));
+    // imag1 = reduceImageQuality(imag1, 30);
+    // imag1 = reduceImageQuality(imag2, 30);
+
+    Mat gray_image1, gray_image2;
+    cvtColor(imag1, gray_image1, COLOR_BGR2GRAY);
+    cvtColor(imag2, gray_image2, COLOR_BGR2GRAY);
+
+    // imwrite("/tmp/mnt/sdcard/flickerremove1.jpg", flickerRemoved1);
+    // imwrite("/tmp/mnt/sdcard/flickerremove2.jpg", flickerRemoved2);
+
+    // 밝기 측정
+    cout << "mean" << endl;
+    double brightness1 = mean(gray_image1)[0];
+    double brightness2 = mean(gray_image2)[0];
+
+    // 두 이미지의 밝기의 평균을 계산
+    double average_brightness = (brightness1 + brightness2) / 2;
+
+    cout << "Average Brightness: " << average_brightness << endl;
+
+    // 평균 밝기로 이미지 보정
+    cout << "convertTo" << endl;
+    double ratio = average_brightness / brightness1;
+    Mat corrected_image1, corrected_image2;
+    gray_image1.convertTo(corrected_image1, -1, ratio, 0);
+    gray_image2.convertTo(corrected_image2, -1, ratio, 0);
+
+    cout << "calcHist" << endl;
+    cv::Mat histImage1, histImage2;
+    int hisSize = 256;
+    float range[] = {0, 256};
+    const float* histRange = {range};
+    cv::calcHist(&corrected_image1, 1, 0, cv::Mat(), histImage1, 1, &hisSize, &histRange);
+    cv::calcHist(&corrected_image2, 1, 0, cv::Mat(), histImage2, 1, &hisSize, &histRange);
+
+    // HISTCMP_CORREL        = 0,
+    // HISTCMP_CHISQR        = 1,
+    // HISTCMP_INTERSECT     = 2,
+    // HISTCMP_BHATTACHARYYA = 3,
+    // HISTCMP_HELLINGER     = HISTCMP_BHATTACHARYYA, //!< Synonym for HISTCMP_BHATTACHARYYA
+    // HISTCMP_CHISQR_ALT    = 4,
+    // HISTCMP_KL_DIV        = 5
+
+    //     typedef struct SIMIL_T
+    // {
+    //     double correl:
+    //     double chisqr;
+    //     double intersect;
+    //     double bhattacharyya;
+    //     double kl_div;
+    // } Simil_t;
+
+    sim_t->correl = cv::compareHist(histImage1, histImage2, cv::HISTCMP_CORREL);
+    cout << "HISTCMP_CORREL        : " << sim_t->correl << endl;
+    sim_t->chisqr = cv::compareHist(histImage1, histImage2, cv::HISTCMP_CHISQR);
+    cout << "HISTCMP_CHISQR        : " << sim_t->chisqr << endl;
+    sim_t->intersect = cv::compareHist(histImage1, histImage2, cv::HISTCMP_INTERSECT);
+    cout << "HISTCMP_INTERSECT     : " << sim_t->intersect << endl;
+    sim_t->bhattacharyya = cv::compareHist(histImage1, histImage2, cv::HISTCMP_BHATTACHARYYA);
+    cout << "HISTCMP_BHATTACHARYYA : " << sim_t->bhattacharyya << endl;
+    sim_t->kl_div = cv::compareHist(histImage1, histImage2, cv::HISTCMP_KL_DIV);
+    cout << "HISTCMP_KL_DIV        : " << sim_t->kl_div << endl;
+
+    return 1;
 }
 
 // int main(int argc, char ** argv) {

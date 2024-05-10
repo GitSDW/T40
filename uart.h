@@ -30,7 +30,7 @@ void *device_live_thread(void * argc);
 void uart_tx_test (void);
 int device_end(uint8_t major);
 int make_file_start(uint8_t major);
-
+int face_end(uint8_t major);
 
 #if __cplusplus
 }

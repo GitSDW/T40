@@ -10,7 +10,7 @@ extern "C" {
 
 #define MAJOR_VER	"0"
 #define MINOR_VER	"4"	
-#define CAHR_VER	"w"
+#define CAHR_VER	"y"
 
 typedef struct CIRCULAR_BUFF
 {
@@ -148,6 +148,20 @@ typedef struct THUM_SNAP
 	int ex[10];
 	int ey[10];
 } Thum_Data_t;
+
+
+
+typedef struct SIMIL_T
+{
+	double correl;
+	double chisqr;
+	double intersect;
+	double bhattacharyya;
+	double kl_div;
+} Simil_t;
+
+Simil_t osim_t;
+Simil_t bsim_t;
 
 // Thum_Data_t mosaic_data;
 Thum_Data_t thum_face_data;

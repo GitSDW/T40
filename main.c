@@ -415,7 +415,7 @@ int main(int argc, char **argv) {
 
     isd_crop(160, 180, 1600, 900, 1);
 
-    // printf("expval : %d\n", ExpVal);
+    printf("expval : %d\n", ExpVal);
 
     if (ExpVal > 1000 && settings.SF.bits.led) {
     	gpio_LED_Set(1);
@@ -1601,6 +1601,7 @@ int clip_total(void) {
 							}
 						}
 					}
+					face_end(REC);
 				}
 
 				if ((total_time > THUMBNAIL_TIME) && (thumbnail_state == THUMB_WAIT) &&
@@ -1954,19 +1955,7 @@ int clip_total(void) {
 				// if (box_n != -1 && box_o != -1 && box_b != -1) {
 
 				if (box_n != -1 && box_b != -1) {
-					if (box_o != -1) {
-	        			osim = calculateSimilarity(orgin_img, after_img);
-	        		}
-	        		else {
-	        			osim = 0.1;
-	        		}
-
-					bsim = calculateSimilarity(orgin_img, before_img);
-
-					asim = calculateSimilarity(before_img, after_img);
-
-					if (bsim == 0) bsim = 1.0;
-
+					
     				printf("box Sistic!\n");
     				ret = package_sistic(before_img, after_img);
 					if(ret < 0) {
@@ -1984,10 +1973,26 @@ int clip_total(void) {
         				cv_etime = sample_gettimeus();
     					printf("CV Total Time:%lld\n", cv_etime-cv_stime);
     					if (ret > 0) {
+
+    						#if 0
+    						if (box_o != -1) {
+			        			osim = calculateSimilarity(orgin_img, after_img);
+			        		}
+			        		else {
+			        			osim = 0.1;
+			        		}
+
+							bsim = calculateSimilarity(orgin_img, before_img);
+
+							// asim = calculateSimilarity(before_img, after_img);
+
+							if (bsim == 0) bsim = 1.0;
+
     						if (osim < bsim) {
     							if (clip_cause_t.Major == CLIP_CAUSE_MOVE) {
 									clip_cause_t.Major = CLIP_CAUSE_BOX;
 									clip_cause_t.Minor = CLIP_BOX_DISAP;
+									system("cp /vtmp/box0.jpg /tmp/mnt/sdcard/box_origin2.jpg");
 								}
 							}
 							else {
@@ -1996,7 +2001,45 @@ int clip_total(void) {
 									clip_cause_t.Minor = CLIP_BOX_OCCUR;
 								}
 							}
-							printf("osim:%f bsim:%f asim:%f cnt:%d\n", osim, bsim, asim, ret);
+							#else
+							int sim_cnt = 0;
+
+    						if (box_o != -1) {
+			        			osim = calculateSimilarity2(orgin_img, after_img, (Simil_t2*)&osim_t);
+			        		
+
+				        		bsim = calculateSimilarity2(orgin_img, before_img, (Simil_t2*)&bsim_t);
+
+				        		if (osim_t.correl 			> bsim_t.correl) 		sim_cnt++;
+				        		if (osim_t.chisqr 			< bsim_t.chisqr) 		sim_cnt++;
+				        		if (osim_t.intersect 		> bsim_t.intersect) 	sim_cnt++;
+				        		if (osim_t.bhattacharyya 	< bsim_t.bhattacharyya) sim_cnt++;
+				        		if (osim_t.kl_div 			< bsim_t.kl_div) 		sim_cnt++;
+
+				        		printf("similarity count : %d\n", sim_cnt);
+				        		if (sim_cnt > 2) {
+	    							if (clip_cause_t.Major == CLIP_CAUSE_MOVE) {
+										clip_cause_t.Major = CLIP_CAUSE_BOX;
+										clip_cause_t.Minor = CLIP_BOX_DISAP;
+										system("cp /vtmp/box0.jpg /tmp/mnt/sdcard/box_origin2.jpg");
+									}
+								}
+								else {
+									if (clip_cause_t.Major == CLIP_CAUSE_MOVE) {
+										clip_cause_t.Major = CLIP_CAUSE_BOX;
+										clip_cause_t.Minor = CLIP_BOX_OCCUR;
+									}
+								}
+							}
+			        		else {
+			        			clip_cause_t.Major = CLIP_CAUSE_BOX;
+								clip_cause_t.Minor = CLIP_BOX_OCCUR;
+			        		}
+
+							#endif
+
+							// printf("osim:%f bsim:%f asim:%f cnt:%d\n", osim, bsim, asim, ret);
+							// printf("osim:%f bsim:%f cnt:%d\n", osim, bsim, ret);
 	    					if (!netwrok_busy) {
 	        					if (Ready_Busy_Check()){
 									printf("Box Send!\n");

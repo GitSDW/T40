@@ -429,8 +429,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             ao_file_play_thread(effect_file);
             // clip_cause_t.Major = CLIP_CAUSE_MOUNT;
             // clip_cause_t.Minor = CLIP_MOUNT_DISMT;
-            // if (Rec_type != BELL_REC)
-                // bell_flag = true;
+            if (Rec_type != BELL_REC)
+                bell_flag = true;
             temp_flag = true;
             if (rbuff[index+9] > 0)     temp_unmount_flag = true;
             else                        temp_unmount_flag = 0;
@@ -775,12 +775,39 @@ int make_file_start(uint8_t major) {
 
     uart_send(fd_uart, uart_tx, 10);
     
-    printf("FS\n");
+    printf("MFS\n");
     
     free(uart_tx);
 
     return 0;
 }
+
+int face_end(uint8_t major) {
+    uint8_t *uart_tx;
+
+    uart_tx = malloc(10);
+
+    memset(uart_tx, 0, 10);
+    uart_tx[0] = 0x02;
+    uart_tx[1] = (major & 0x7F) & 0xFF;
+    uart_tx[2] = 0x22;
+    uart_tx[3] = 0;
+    uart_tx[4] = 0;
+    uart_tx[5] = 0x00;
+    uart_tx[6] = 0x00;
+    uart_tx[7] = 0x00;
+    uart_tx[8] = 0x00;
+    uart_tx[9] = 0x03;
+
+    uart_send(fd_uart, uart_tx, 10);
+    
+    printf("FE\n");
+    
+    free(uart_tx);
+
+    return 0;
+}
+
 
 /*
  * 串口接收函数

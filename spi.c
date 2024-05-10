@@ -610,7 +610,7 @@ static int Recv_Spi_Packet_live(uint8_t *rbuff) {
 
     
 
-#if 1
+#if 0
     static int filefd = 0;
     if (filefd == 0) {
         filefd = open("/vtmp/test.pcm", O_RDWR | O_CREAT | O_TRUNC, 0777);
