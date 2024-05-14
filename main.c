@@ -359,6 +359,16 @@ void handler(int sig){
 	}
 }
 
+void mv_cap(int mb, int cnt) {
+	char sep[128] = {0};
+	if (mb == 0)
+		sprintf(sep, "cp /vtmp/main%d.jpg /tmp/mnt/sdcard/main_cap%d.jpg", cnt, cnt);
+	else
+		sprintf(sep, "cp /vtmp/box%d.jpg /tmp/mnt/sdcard/box_cap%d.jpg", cnt, cnt);
+	system(sep);
+	system("sync");
+}
+
 
 int clip_total(void);
 int clip_total_fake(void);
@@ -1295,6 +1305,49 @@ int main(int argc, char **argv) {
 			}
 
 		}
+		else if (cmd == 36) {
+			int snap, max_sharp = 0, max_foucs = 0;
+			double avr_sharp, avr_focus;
+			char file_name[128];
+			Focus_Sharpness fs_t[10];
+
+			for (int q=0; q<10; q++) {
+				main_snap = true;
+				while (main_snap);
+
+				memset(file_name , 0x00, 128);
+				sprintf(file_name, "/vtmp/main%d.jpg", q);
+				// sharpness[q] = Sharpness_cal(file_name);
+				ret = focus_and_sharpness_cal(file_name, (Focus_Sharpness2*)&fs_t[q]);
+				// printf("now:%f max:%f\n", sharpness[q],  sharpness[max_sharp]);
+				if (fs_t[q].sharpness > fs_t[max_sharp].sharpness){
+					max_sharp = q;
+					// printf("Max Q : %d\n", max_sharp);
+				}
+
+				if (fs_t[q].focus > fs_t[max_foucs].focus){
+					max_foucs = q;
+					// printf("Max Q : %d\n", max_sharp);
+				}
+			}
+
+			avr_sharp = 0;
+			avr_focus = 0;
+
+			for (int q=0; q<10; q++){
+				if (q != max_sharp) {
+					avr_sharp += fs_t[q].sharpness;
+					// printf("shapness add %d : %f\n", q, avr_sharp);
+				}
+
+				if (q != max_foucs) {
+					avr_focus += fs_t[q].focus;
+					// printf("focus add %d : %f\n", q, avr_focus);
+				}
+			}
+			printf("Avrage Focus : %f\n", avr_focus/9);
+			printf("Avrage Sharpness : %f\n", avr_sharp/9);
+		}
 		else if (cmd == 90) {
 			printf("cmd 90 Reset Test\n");
 			system("reboot");
@@ -1672,6 +1725,18 @@ int clip_total(void) {
 					Rec_type = MAKE_FILE;
 				}
 
+				if ((file_cnt == 0) && (bell_flag)) {	// Bell Push -> Clip Stop
+					printf("CLIP END:Bell!\n");
+					clip_rec_state = REC_STOP;
+					bell_rec_state = REC_START;
+					bell_flag = false;
+					Rec_type = BELL_REC;
+					bl_state = BSS_START;
+					bell_snap_m = true;
+					bell_snap_b = true;
+					start_time2 = end_time2 = sample_gettimeus();
+				}
+
 				if ((total_time > MAX_REC_TIME) && (clip_rec_state == REC_ING)) {	// 60Sec Time Over -> Clip Stop
 					// rec_stop = true;
 					printf("CLIP END:Time Over! %lld\n", total_time);
@@ -1713,19 +1778,11 @@ int clip_total(void) {
 				}
 			#endif
 
-				if ((file_cnt == 0) && (bell_flag)) {	// Bell Push -> Clip Stop
-					printf("CLIP END:Bell!\n");
-					clip_rec_state = REC_STOP;
-					bell_rec_state = REC_START;
-					bell_flag = false;
-					Rec_type = BELL_REC;
-					bl_state = BSS_START;
-					bell_snap_m = true;
-					bell_snap_b = true;
-					start_time2 = end_time2 = sample_gettimeus();
-				}
+				
 			}
 			else if (Rec_type == BELL_REC){
+
+
 				
 				total_time2 = sample_gettimeus() - start_time2;
 				if (total_time2%10000000 == 0){
@@ -1755,6 +1812,7 @@ int clip_total(void) {
 					// 	printf("Fail to BELL Box JPG Send.\n");
 					// }
 
+
 					if (temp_flag) {
 						major_buf1 = REC_TEMP_SNAP_M;
 						major_buf2 = REC_TEMP_SNAP_B;
@@ -1776,7 +1834,10 @@ int clip_total(void) {
 						else {
 							printf("Fail to Dual Bell JPG Send.\n");
 						}
+
 					}
+
+					face_end(REC);
 
 					stream_state = 1;
 					data_sel = 4;
@@ -1830,7 +1891,7 @@ int clip_total(void) {
 					}
 				}
 
-				if ((person_cnt == 0) && (main_motion_detect == 0) && (bell_rec_state < REC_STOP)) {
+				if ((total_time2 > FACE_FIND_END_TIME) && (person_cnt == 0) && (main_motion_detect == 0) && (bell_rec_state < REC_STOP)) {
 					if ((sample_gettimeus() - end_time2) > CLIP_CLOSE_TIME) {
 						printf("BELL END:Move End! %lld\n", total_time);
 						bell_rec_state = REC_STOP;
@@ -2607,6 +2668,9 @@ int stream_total(void) {
 		return -1;
 	}
 
+	// system("rm /tmp/mnt/sdcard/main*.jpg");
+	// system("rm /tmp/mnt/sdcard/box*.jpg");
+
 
 	usleep(1000*1000);
 
@@ -2635,6 +2699,8 @@ int stream_total(void) {
 		printf("cmd 17 Target Bit Change!\n");
 		printf("cmd 18 streaming rec start\n");
 		printf("cmd 19 streaming rec end\n");
+		printf("cmd 20 streaming end & save file send\n");
+		printf("cmd 21 Focus & Sharpness Test\n");
 		printf("cmd 90 Reset Test\n");
 		printf("cmd 99 : exit\n");
 
@@ -2828,23 +2894,23 @@ int stream_total(void) {
 			system("echo 0 > /sys/class/pwm/pwmchip0/pwm6/enable");
 			system("echo 1 > /sys/class/pwm/pwmchip0/pwm6/enable");
 		}
-		else if (cmd == 12) {
-			if (adc_flag == false) {
-				printf("cmd 12 adc test\n");
-				system("echo 54 > /sys/class/gpio/export");
-				system("echo out > /sys/class/gpio/gpio54/direction");
-				system("echo 1 > /sys/class/gpio/gpio54/value");
-				// /* get value thread */
-				adc_init();
+		// else if (cmd == 12) {
+		// 	if (adc_flag == false) {
+		// 		printf("cmd 12 adc test\n");
+		// 		system("echo 54 > /sys/class/gpio/export");
+		// 		system("echo out > /sys/class/gpio/gpio54/direction");
+		// 		system("echo 1 > /sys/class/gpio/gpio54/value");
+		// 		// /* get value thread */
+		// 		adc_init();
 				
-				adc_flag = true;
-			}
-			ret = pthread_create(&adc_thread_id, NULL, adc_get_voltage_thread, NULL);
-			if (ret != 0) {
-				printf("error: pthread_create error!!!!!!");
-				return -1;
-			}
-    	}
+		// 		adc_flag = true;
+		// 	}
+		// 	ret = pthread_create(&adc_thread_id, NULL, adc_get_voltage_thread, NULL);
+		// 	if (ret != 0) {
+		// 		printf("error: pthread_create error!!!!!!");
+		// 		return -1;
+		// 	}
+    	// }
 		else if (cmd == 13) {
 			printf("cmd 13 Box LED ON/OFF\n");
 			ret = gpio_set_val(PORTD+6, gval);
@@ -2893,12 +2959,12 @@ int stream_total(void) {
                 streaming_rec_state = REC_START;
             }
 		}
-		else if (cmd == 19) {
-			printf("cmd 19 streaming rec end\n");
-			rec_time_e = sample_gettimeus()-rec_time_s;
-			printf("Rec Time : %lld\n", rec_time_e);
-            streaming_rec_state = REC_STOP;
-		}
+		// else if (cmd == 19) {
+		// 	printf("cmd 19 streaming rec end\n");
+		// 	rec_time_e = sample_gettimeus()-rec_time_s;
+		// 	printf("Rec Time : %lld\n", rec_time_e);
+        //     streaming_rec_state = REC_STOP;
+		// }
 		else if (cmd == 20) {
 			printf("cmd 20 streaming end & save file send\n");
 			bExit = 1;
@@ -2950,6 +3016,51 @@ int stream_total(void) {
 			printf("Streaming Mode End!!\n");
 			bUart = true;
 			
+		}
+		else if (cmd == 21) {
+			int snap, max_sharp = 0, max_foucs = 0;
+			double avr_sharp, avr_focus;
+			char file_name[128];
+			Focus_Sharpness fs_t[10];
+
+			printf("cmd 21 Focus & Sharpness Test\n");
+
+			for (int q=0; q<10; q++) {
+				main_snap = true;
+				while (main_snap);
+
+				memset(file_name , 0x00, 128);
+				sprintf(file_name, "/vtmp/main%d.jpg", q);
+				// sharpness[q] = Sharpness_cal(file_name);
+				ret = focus_and_sharpness_cal(file_name, (Focus_Sharpness2*)&fs_t[q]);
+				// printf("now:%f max:%f\n", sharpness[q],  sharpness[max_sharp]);
+				if (fs_t[q].sharpness > fs_t[max_sharp].sharpness){
+					max_sharp = q;
+					// printf("Max Q : %d\n", max_sharp);
+				}
+
+				if (fs_t[q].focus > fs_t[max_foucs].focus){
+					max_foucs = q;
+					// printf("Max Q : %d\n", max_sharp);
+				}
+			}
+
+			avr_sharp = 0;
+			avr_focus = 0;
+
+			for (int q=0; q<10; q++){
+				if (q != max_sharp) {
+					avr_sharp += fs_t[q].sharpness;
+					// printf("shapness add %d : %f\n", q, avr_sharp);
+				}
+
+				if (q != max_foucs) {
+					avr_focus += fs_t[q].focus;
+					// printf("focus add %d : %f\n", q, avr_focus);
+				}
+			}
+			printf("Avrage Focus : %f\n", avr_focus/9);
+			printf("Avrage Sharpness : %f\n", avr_sharp/9);
 		}
 		else if (cmd == 90) {
 			printf("cmd 90 Reset Test\n");

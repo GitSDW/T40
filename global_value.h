@@ -10,7 +10,7 @@ extern "C" {
 
 #define MAJOR_VER	"0"
 #define MINOR_VER	"4"	
-#define CAHR_VER	"y"
+#define CAHR_VER	"z"
 
 typedef struct CIRCULAR_BUFF
 {
@@ -200,6 +200,11 @@ typedef struct  {
 
 SaveFile Save_movie1;
 SaveFile Save_movie2;
+
+typedef struct  {
+    double focus;
+    double sharpness;
+}Focus_Sharpness;
 
 int64_t start_time;
 uint32_t ExpVal;

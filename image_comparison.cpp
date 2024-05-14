@@ -779,3 +779,90 @@ int facecrop_make(Fdpd_Data_t cont) {
         return -1;
     }
 }
+
+
+
+
+double calculateSharpness(const std::string& imagePath) {
+    // 이미지 로드
+    cv::Mat image = cv::imread(imagePath, cv::IMREAD_GRAYSCALE);
+    if (image.empty()) {
+        std::cerr << "Can't Open Image." << std::endl;
+        return -1.0;
+    }
+
+    // 이미지의 라플라시안 변환 계산
+    cv::Mat laplacian;
+    cv::Laplacian(image, laplacian, CV_64F);
+
+    // 라플라시안 변환의 절대값 계산
+    cv::Mat absLaplacian = cv::abs(laplacian);
+
+    // 라플라시안 변환의 평균값 계산
+    double sharpness = cv::mean(absLaplacian)[0];
+
+    return sharpness;
+}
+
+double Sharpness_cal(char *imgpath1) {
+    // 이미지 파일 경로
+    std::string imagePath = imgpath1;
+
+    // 선명도 계산
+    double sharpness = calculateSharpness(imagePath);
+
+    if (sharpness >= 0) {
+        std::cout << "Sharpness: " << sharpness << std::endl;
+    }
+
+    return sharpness;
+}
+
+
+pair<double, double> calculateFocusAndSharpness(const string& imagePath) {
+    // 이미지 로드
+    Mat image = imread(imagePath, IMREAD_GRAYSCALE);
+    if (image.empty()) {
+        cerr << "Can not open Image!" << endl;
+        return make_pair(-1.0, -1.0);
+    }
+
+    // 이미지의 라플라시안 변환 계산
+    Mat laplacian;
+    Laplacian(image, laplacian, CV_64F);
+
+    // 라플라시안 변환의 절대값 계산
+    Mat absLaplacian = abs(laplacian);
+
+    // 라플라시안 변환의 평균값 계산 (선명도)
+    double sharpness = mean(absLaplacian)[0];
+
+    // 이미지의 그레이스케일 변화의 표준 편차 계산 (초점)
+    Scalar meanValue, stdDevValue;
+    meanStdDev(image, meanValue, stdDevValue);
+    double focus = stdDevValue[0] * stdDevValue[0];
+
+    return make_pair(focus, sharpness);
+}
+int focus_and_sharpness_cal(char *imgpath1, Focus_Sharpness2 *fs_t) {
+    // 이미지 파일 경로
+    std::string imagePath = imgpath1;
+
+    try {
+        // 초점과 선명도 계산
+        pair<double, double> result = calculateFocusAndSharpness(imagePath);
+
+        if (result.first >= 0 && result.second >= 0) {
+            cout << "Focus: " << result.first << endl;
+            cout << "Sharpness: " << result.second << endl;
+        }
+
+        fs_t->focus = result.first;
+        fs_t->sharpness = result.second;
+
+        return 0;
+    } catch (Exception& e) {
+        cerr << "Focus and Sharpness Cal Fail!" << endl;
+        return -1;
+    }
+}

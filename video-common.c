@@ -3006,6 +3006,7 @@ int sample_get_video_clip_user()
 	return 0;
 }
 
+extern void mv_cap(int mb, int cnt);
 
 static void *sample_get_jpeg_snap(void *args)
 {
@@ -3068,8 +3069,9 @@ static void *sample_get_jpeg_snap(void *args)
 			}
 
 			close(snap_fd);
-			printf("MAIN END!\n");
+			printf("%s END!\n", snap_path);
 			main_snap = false;
+			mv_cap(0, main_cnt-1);
 		}
 
 		if (box_snap && chnNum == 5) {
@@ -3094,8 +3096,9 @@ static void *sample_get_jpeg_snap(void *args)
 			}
 
 			close(snap_fd);
-			printf("BOX END!\n");
+			printf("%s END!\n", snap_path);
 			box_snap = false;
+			mv_cap(1, box_cnt-1);
 		}
 
 		if (thumbnail_snap && chnNum == 2) {

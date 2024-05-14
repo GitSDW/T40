@@ -783,7 +783,11 @@ int make_file_start(uint8_t major) {
 }
 
 int face_end(uint8_t major) {
+    static bool first_flag = false;
     uint8_t *uart_tx;
+
+    if (first_flag)
+        return 0;
 
     uart_tx = malloc(10);
 
@@ -804,6 +808,8 @@ int face_end(uint8_t major) {
     printf("FE\n");
     
     free(uart_tx);
+
+    first_flag = true;
 
     return 0;
 }
