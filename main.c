@@ -157,6 +157,8 @@ int global_value_init(void) {
 	// move_end = false;
 	save_send_flag = false;
 	cmd_end_flag = false;
+	cfile_flag = false;
+	bfile_flag = false;
 
 	for(i=0;i<10;i++){
 		fdpd_data[i].flag = false;
@@ -367,6 +369,113 @@ void mv_cap(int mb, int cnt) {
 		sprintf(sep, "cp /vtmp/box%d.jpg /tmp/mnt/sdcard/box_cap%d.jpg", cnt, cnt);
 	system(sep);
 	system("sync");
+}
+
+
+
+void *make_mp4_clip(void *argc) {
+	int type, file_cnt;
+	char file_sep[100] = {0};
+
+	Make_File *mfd =(Make_File*)argc;
+	type = mfd->type;
+	file_cnt = mfd-> cnt;
+
+	printf("[%s] Type : %d Cnt : %d\n", __func__, type, file_cnt);
+
+	if (file_cnt > 0 && type == 0) {
+		#ifdef __H265__			
+			system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/stream-0.h265 -c copy /vtmp/main.mp4");
+			system("rm /vtmp/stream-0.h265");
+			system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/stream-3.h265 -c copy /vtmp/box.mp4");
+			system("rm /vtmp/stream-3.h265");
+		#else
+			system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/stream-0.h264 -c copy /vtmp/main.mp4");
+			system("rm /vtmp/stream-0.h264");
+			system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/stream-3.h264 -c copy /vtmp/box.mp4");
+			system("rm /vtmp/stream-3.h264");
+		#endif
+		// system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/stream-4.h264 -c copy /vtmp/box.mkv");
+		for (int i=0; i<file_cnt; i++){
+			if (i == 0) {
+				memset(file_sep, 0, 100);
+				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/main.mp4 -ss 0 -t 20 -c copy /vtmp/main%d.mp4", i);
+				printf("%s\n", file_sep);
+				system(file_sep);
+				memset(file_sep, 0, 100);
+				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/box.mp4 -ss 0 -t 20 -c copy /vtmp/box%d.mp4", i);
+				// sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/box.mkv -ss 0 -t 12 -c copy /vtmp/box%d.mkv", i);
+				printf("%s\n", file_sep);
+				system(file_sep);
+			}
+			else {
+				memset(file_sep, 0, 100);
+				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/main.mp4 -ss %d.4 -t 20 -c copy /vtmp/main%d.mp4", (i*20)-1, i);
+				printf("%s\n", file_sep);
+				system(file_sep);
+				memset(file_sep, 0, 100);
+				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/box.mp4 -ss %d.4 -t 20 -c copy /vtmp/box%d.mp4", (i*20)-1, i);
+				// sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/box.mkv -ss %d.4 -t 12 -c copy /vtmp/box%d.mkv", (i*12)-1, i);
+				printf("%s\n", file_sep);
+				system(file_sep);
+			}
+		}
+		cfile_flag = true;
+	}
+	return (void*) 0;
+}
+
+void *make_mp4_bell(void *argc) {
+	int type, file_cnt;
+	char file_sep[100] = {0};
+
+	Make_File *mfd =(Make_File*)argc;
+	type = mfd->type;
+	file_cnt = mfd-> cnt;
+
+	printf("[%s] Type : %d Cnt : %d\n", __func__, type, file_cnt);
+
+	if (file_cnt > 0 && type == 1) {
+		#ifdef __H265__			
+			system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell-0.h265 -c copy /vtmp/bell_m.mp4");
+			system("rm /vtmp/bell-0.h265");
+			system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell-3.h265 -c copy /vtmp/bell_b.mp4");
+			system("rm /vtmp/bell-3.h265");
+		#else
+			system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell-0.h264 -c copy /vtmp/bell_m.mp4");
+			system("rm /vtmp/bell-0.h264");
+			system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell-3.h264 -c copy /vtmp/bell_b.mp4");
+			system("rm /vtmp/bell-3.h264");
+		#endif
+		// system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell-4.h264 -c copy /vtmp/bell_b.mkv");
+		for (int i=0; i<file_cnt; i++){
+			if (i == 0) {
+				memset(file_sep, 0, 100);
+				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell_m.mp4 -ss 0 -t 20 -c copy /vtmp/bell_m%d.mp4", i);
+				printf("%s\n", file_sep);
+				system(file_sep);
+				memset(file_sep, 0, 100);
+				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell_b.mp4 -ss 0 -t 20 -c copy /vtmp/bell_b%d.mp4", i);
+				// sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell_b.mkv -ss 0 -t 12 -c copy /vtmp/bell_b%d.mkv", i);
+				printf("%s\n", file_sep);
+				system(file_sep);
+			}
+			else {
+				memset(file_sep, 0, 100);
+				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell_m.mp4 -ss %d.4 -t 20 -c copy /vtmp/bell_m%d.mp4", (i*20)-1, i);
+				printf("%s\n", file_sep);
+				system(file_sep);
+				memset(file_sep, 0, 100);
+				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell_b.mp4 -ss %d.4 -t 20 -c copy /vtmp/bell_b%d.mp4", (i*20)-1, i);
+				// sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell_b.mkv -ss %d.4 -t 12 -c copy /vtmp/bell_b%d.mkv", (i*12)-1, i);
+				printf("%s\n", file_sep);
+				system(file_sep);
+			}
+		}
+		bfile_flag = true;
+	}
+
+	return (void*) 0;
 }
 
 
@@ -1306,7 +1415,7 @@ int main(int argc, char **argv) {
 
 		}
 		else if (cmd == 36) {
-			int snap, max_sharp = 0, max_foucs = 0;
+			int max_sharp = 0, max_foucs = 0;
 			double avr_sharp, avr_focus;
 			char file_name[128];
 			Focus_Sharpness fs_t[10];
@@ -1916,9 +2025,9 @@ int clip_total(void) {
 
 		if(Rec_type == MAKE_FILE) {
 
-			// if (stream_state == 1) {
-				// continue;
-			// }
+			if (stream_state == 1) {
+				continue;
+			}
 
 			bStrem = true;
 
@@ -1974,6 +2083,28 @@ int clip_total(void) {
 
 			make_file_start(REC);
 
+			pthread_t tid_makefile;
+			Make_File mfd1;
+			mfd1.type = 0;
+			mfd1.cnt = file_cnt;
+			cfile_flag = false;
+			ret = pthread_create(&tid_makefile, NULL, make_mp4_clip,(void*)&mfd1);
+			if(ret != 0) {
+				IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Record_AEC_Thread failed\n", __func__);
+				return -1;
+			}
+			if (file_cnt2 > 0) {
+				Make_File mfd2;
+				mfd2.type = 1;
+				mfd2.cnt = file_cnt2;
+				bfile_flag = false;
+				ret = pthread_create(&tid_makefile, NULL, make_mp4_bell,(void*)&mfd2);
+				if(ret != 0) {
+					IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Record_AEC_Thread failed\n", __func__);
+					return -1;
+				}
+			}
+
 			// if (main_rec_end && box_rec_end) {
 			if ((clip_rec_state == REC_MP4MAKE && bell_rec_state == REC_MP4MAKE) ||
 				(clip_rec_state == REC_MP4MAKE && bell_rec_state == REC_READY)) {
@@ -2008,9 +2139,9 @@ int clip_total(void) {
 				char *sistic_img = "/vtmp/corimg1.jpg";
 				char *orgin_img = "/tmp/mnt/sdcard/box_origin.jpg";
 				int threshold = 80;
-				double bsim = 0.0;
-				double osim = 0.0;
-				double asim = 0.0;
+				// double bsim = 0.0;
+				// double osim = 0.0;
+				// double asim = 0.0;
 				int64_t cv_stime = sample_gettimeus();
 				int64_t cv_etime = 0;
 				// if (box_n != -1 && box_o != -1 && box_b != -1) {
@@ -2066,10 +2197,15 @@ int clip_total(void) {
 							int sim_cnt = 0;
 
     						if (box_o != -1) {
-			        			osim = calculateSimilarity2(orgin_img, after_img, (Simil_t2*)&osim_t);
-			        		
+			        			ret = calculateSimilarity2(orgin_img, after_img, (Simil_t2*)&osim_t);
+			        			if (ret < 0) {
+			        				printf("Original vs After similarity cal fail!\n");
+			        			}
 
-				        		bsim = calculateSimilarity2(orgin_img, before_img, (Simil_t2*)&bsim_t);
+				        		ret = calculateSimilarity2(orgin_img, before_img, (Simil_t2*)&bsim_t);
+				        		if (ret < 0) {
+			        				printf("Original vs Before similarity cal fail!\n");
+			        			}
 
 				        		if (osim_t.correl 			> bsim_t.correl) 		sim_cnt++;
 				        		if (osim_t.chisqr 			< bsim_t.chisqr) 		sim_cnt++;
@@ -2123,94 +2259,96 @@ int clip_total(void) {
 
 				if (face_snap == false) bStrem = true;
 
-				printf("MP4 Make!\n");
+				// printf("MP4 Make!\n");
 
-				system("sync");
+				// system("sync");
 
-				if (file_cnt > 0) {
-					#ifdef __H265__			
-						system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/stream-0.h265 -c copy /vtmp/main.mp4");
-						system("rm /vtmp/stream-0.h265");
-						system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/stream-3.h265 -c copy /vtmp/box.mp4");
-						system("rm /vtmp/stream-3.h265");
-					#else
-						system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/stream-0.h264 -c copy /vtmp/main.mp4");
-						system("rm /vtmp/stream-0.h264");
-						system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/stream-3.h264 -c copy /vtmp/box.mp4");
-						system("rm /vtmp/stream-3.h264");
-					#endif
-					// system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/stream-4.h264 -c copy /vtmp/box.mkv");
-					for (int i=0; i<file_cnt; i++){
-						if (i == 0) {
-							memset(file_sep, 0, 100);
-							sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/main.mp4 -ss 0 -t 20 -c copy /vtmp/main%d.mp4", i);
-							printf("%s\n", file_sep);
-							system(file_sep);
-							memset(file_sep, 0, 100);
-							sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/box.mp4 -ss 0 -t 20 -c copy /vtmp/box%d.mp4", i);
-							// sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/box.mkv -ss 0 -t 12 -c copy /vtmp/box%d.mkv", i);
-							printf("%s\n", file_sep);
-							system(file_sep);
-						}
-						else {
-							memset(file_sep, 0, 100);
-							sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/main.mp4 -ss %d.4 -t 20 -c copy /vtmp/main%d.mp4", (i*20)-1, i);
-							printf("%s\n", file_sep);
-							system(file_sep);
-							memset(file_sep, 0, 100);
-							sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/box.mp4 -ss %d.4 -t 20 -c copy /vtmp/box%d.mp4", (i*20)-1, i);
-							// sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/box.mkv -ss %d.4 -t 12 -c copy /vtmp/box%d.mkv", (i*12)-1, i);
-							printf("%s\n", file_sep);
-							system(file_sep);
-						}
+				// if (file_cnt > 0) {
+				// 	#ifdef __H265__			
+				// 		system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/stream-0.h265 -c copy /vtmp/main.mp4");
+				// 		system("rm /vtmp/stream-0.h265");
+				// 		system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/stream-3.h265 -c copy /vtmp/box.mp4");
+				// 		system("rm /vtmp/stream-3.h265");
+				// 	#else
+				// 		system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/stream-0.h264 -c copy /vtmp/main.mp4");
+				// 		system("rm /vtmp/stream-0.h264");
+				// 		system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/stream-3.h264 -c copy /vtmp/box.mp4");
+				// 		system("rm /vtmp/stream-3.h264");
+				// 	#endif
+				// 	// system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/stream-4.h264 -c copy /vtmp/box.mkv");
+				// 	for (int i=0; i<file_cnt; i++){
+				// 		if (i == 0) {
+				// 			memset(file_sep, 0, 100);
+				// 			sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/main.mp4 -ss 0 -t 20 -c copy /vtmp/main%d.mp4", i);
+				// 			printf("%s\n", file_sep);
+				// 			system(file_sep);
+				// 			memset(file_sep, 0, 100);
+				// 			sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/box.mp4 -ss 0 -t 20 -c copy /vtmp/box%d.mp4", i);
+				// 			// sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/box.mkv -ss 0 -t 12 -c copy /vtmp/box%d.mkv", i);
+				// 			printf("%s\n", file_sep);
+				// 			system(file_sep);
+				// 		}
+				// 		else {
+				// 			memset(file_sep, 0, 100);
+				// 			sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/main.mp4 -ss %d.4 -t 20 -c copy /vtmp/main%d.mp4", (i*20)-1, i);
+				// 			printf("%s\n", file_sep);
+				// 			system(file_sep);
+				// 			memset(file_sep, 0, 100);
+				// 			sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/box.mp4 -ss %d.4 -t 20 -c copy /vtmp/box%d.mp4", (i*20)-1, i);
+				// 			// sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/box.mkv -ss %d.4 -t 12 -c copy /vtmp/box%d.mkv", (i*12)-1, i);
+				// 			printf("%s\n", file_sep);
+				// 			system(file_sep);
+				// 		}
 						
-					}
-				}
+				// 	}
+				// }
 
-				if (file_cnt2 > 0) {
-					#ifdef __H265__			
-						system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell-0.h265 -c copy /vtmp/bell_m.mp4");
-						system("rm /vtmp/bell-0.h265");
-						system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell-3.h265 -c copy /vtmp/bell_b.mp4");
-						system("rm /vtmp/bell-3.h265");
-					#else
-						system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell-0.h264 -c copy /vtmp/bell_m.mp4");
-						system("rm /vtmp/bell-0.h264");
-						system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell-3.h264 -c copy /vtmp/bell_b.mp4");
-						system("rm /vtmp/bell-3.h264");
-					#endif
-					// system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell-4.h264 -c copy /vtmp/bell_b.mkv");
-					for (int i=0; i<file_cnt2; i++){
-						if (i == 0) {
-							memset(file_sep, 0, 100);
-							sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell_m.mp4 -ss 0 -t 20 -c copy /vtmp/bell_m%d.mp4", i);
-							printf("%s\n", file_sep);
-							system(file_sep);
-							memset(file_sep, 0, 100);
-							sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell_b.mp4 -ss 0 -t 20 -c copy /vtmp/bell_b%d.mp4", i);
-							// sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell_b.mkv -ss 0 -t 12 -c copy /vtmp/bell_b%d.mkv", i);
-							printf("%s\n", file_sep);
-							system(file_sep);
-						}
-						else {
-							memset(file_sep, 0, 100);
-							sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell_m.mp4 -ss %d.4 -t 20 -c copy /vtmp/bell_m%d.mp4", (i*20)-1, i);
-							printf("%s\n", file_sep);
-							system(file_sep);
-							memset(file_sep, 0, 100);
-							sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell_b.mp4 -ss %d.4 -t 20 -c copy /vtmp/bell_b%d.mp4", (i*20)-1, i);
-							// sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell_b.mkv -ss %d.4 -t 12 -c copy /vtmp/bell_b%d.mkv", (i*12)-1, i);
-							printf("%s\n", file_sep);
-							system(file_sep);
-						}
+				// if (file_cnt2 > 0) {
+				// 	#ifdef __H265__			
+				// 		system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell-0.h265 -c copy /vtmp/bell_m.mp4");
+				// 		system("rm /vtmp/bell-0.h265");
+				// 		system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell-3.h265 -c copy /vtmp/bell_b.mp4");
+				// 		system("rm /vtmp/bell-3.h265");
+				// 	#else
+				// 		system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell-0.h264 -c copy /vtmp/bell_m.mp4");
+				// 		system("rm /vtmp/bell-0.h264");
+				// 		system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell-3.h264 -c copy /vtmp/bell_b.mp4");
+				// 		system("rm /vtmp/bell-3.h264");
+				// 	#endif
+				// 	// system("/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell-4.h264 -c copy /vtmp/bell_b.mkv");
+				// 	for (int i=0; i<file_cnt2; i++){
+				// 		if (i == 0) {
+				// 			memset(file_sep, 0, 100);
+				// 			sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell_m.mp4 -ss 0 -t 20 -c copy /vtmp/bell_m%d.mp4", i);
+				// 			printf("%s\n", file_sep);
+				// 			system(file_sep);
+				// 			memset(file_sep, 0, 100);
+				// 			sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell_b.mp4 -ss 0 -t 20 -c copy /vtmp/bell_b%d.mp4", i);
+				// 			// sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell_b.mkv -ss 0 -t 12 -c copy /vtmp/bell_b%d.mkv", i);
+				// 			printf("%s\n", file_sep);
+				// 			system(file_sep);
+				// 		}
+				// 		else {
+				// 			memset(file_sep, 0, 100);
+				// 			sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell_m.mp4 -ss %d.4 -t 20 -c copy /vtmp/bell_m%d.mp4", (i*20)-1, i);
+				// 			printf("%s\n", file_sep);
+				// 			system(file_sep);
+				// 			memset(file_sep, 0, 100);
+				// 			sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell_b.mp4 -ss %d.4 -t 20 -c copy /vtmp/bell_b%d.mp4", (i*20)-1, i);
+				// 			// sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/bell_b.mkv -ss %d.4 -t 12 -c copy /vtmp/bell_b%d.mkv", (i*12)-1, i);
+				// 			printf("%s\n", file_sep);
+				// 			system(file_sep);
+				// 		}
 						
-					}
-				}
+				// 	}
+				// }
 
+				while (file_cnt > 0 && cfile_flag == false) ;
+				while (file_cnt2 > 0 && bfile_flag == false) ;
 
 
 				////// Fine Spi Send /////////
-				if (file_cnt > 0) { 
+				if (file_cnt > 0 && cfile_flag) { 
 					// uint32_t nowtime = 0;
 					int save_cnt=0;
 					char file_name[20];
@@ -2308,7 +2446,7 @@ int clip_total(void) {
 				}
 
 
-				if (file_cnt2 > 0) { 
+				if (file_cnt2 > 0 && bfile_flag) { 
 					int save_cnt=0;
 					char file_name[20];
 
@@ -2546,7 +2684,8 @@ int stream_total(void) {
     
 
 #endif
-    int64_t rec_time_s = 0;//, rec_time_e = 0;
+    // int64_t rec_time_s = 0;//, 
+    int64_t rec_time_e = 0;
     // int64_t rec_now = 0;
 
     char file_sep[256] = {0};
@@ -3084,10 +3223,20 @@ int stream_total(void) {
 			}
 		}
 		if (rec_end) {
+			if (streaming_rec_state == REC_START || streaming_rec_state == REC_ING) {
+				rec_time_e = sample_gettimeus()-rec_time_s;
+            	printf("Rec Time : %lld total : %lld\n", rec_time_e, rec_total);
+            	rec_total += rec_time_e;
+            	streaming_rec_state = REC_STOP;
+            	rec_on = false;
+			}
 			rec_end = false;
 			printf("cmd 20 streaming end & save file send\n");
 			bExit = 1;
 			bStrem = true;
+
+			while (streaming_rec_state != REC_WAIT);
+
 			if (streaming_rec_state == REC_WAIT) streaming_rec_state = REC_MP4MAKE;
 			else printf("streaming_rec_state Error:%d\n", streaming_rec_state);
 
@@ -3293,9 +3442,8 @@ int Setting_Total(void) {
 	do {
 
 		if (door_cap_flag){
-			
-			
 			if (!cap_start) {
+				printf("[door] cap init!\n");
 				ret = spi_init();
     			if(ret < 0){
     			    printf("spi init error\n");
@@ -3308,15 +3456,18 @@ int Setting_Total(void) {
 					return -1;
 				}
 
-				usleep(10*1000);
+				usleep(100*1000);
 
 				main_snap = true;
 				box_snap = true;
 				door1 = door2 = true;
 				cap_start = true;
+
 			}
 
-			if (!main_snap && door1) {
+			if (!main_snap && door1 && cap_start) {
+				usleep(500*1000);
+				system("sync");
 				if (Ready_Busy_Check()){
 					printf("doorCap Send Start!\n");
 					memset(file_path, 0, 128);

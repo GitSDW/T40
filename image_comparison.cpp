@@ -26,8 +26,8 @@ Mat reduceImageQuality(const Mat& inputImage, int quality) {
 }
 
 int package_find(char *imgpath1, char *imgpath2, int thhold) {
-    int64_t cv_time = sample_gettimeus();
-    int64_t cv_buf;
+    // int64_t cv_time = sample_gettimeus();
+    // int64_t cv_buf;
     // int boxscale=0, boxscale2=0;
     int box_cnt=0;
 
@@ -81,32 +81,32 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
         cv::equalizeHist(gray1, gray1);
         cv::equalizeHist(gray2, gray2);
 
-        cv_buf = (sample_gettimeus() - cv_time)/1000;
-        cv_time = sample_gettimeus();
-        cerr << "find set threshold!"<< thhold << " : " << endl;
+        // cv_buf = (sample_gettimeus() - cv_time)/1000;
+        // cv_time = sample_gettimeus();
+        // cerr << "find set threshold!"<< thhold << endl;
         // cv::Mat bin_img1, bin_img2;
         // cv::threshold(gray1, bin_img1, thhold, 255, cv::THRESH_BINARY);
         // cv::threshold(gray2, bin_img2, thhold, 255, cv::THRESH_BINARY);
 
         // printf("box1\n");
-        cv_buf = (sample_gettimeus() - cv_time)/1000;
-        cv_time = sample_gettimeus();
-        cerr << "find gray! : " << endl;
+        // cv_buf = (sample_gettimeus() - cv_time)/1000;
+        // cv_time = sample_gettimeus();
+        cerr << "find gray!" << endl;
         cv::Mat diff_image;
         cv::absdiff(gray1, gray2, diff_image);
 
-        cv_buf = (sample_gettimeus() - cv_time)/1000;
-        cv_time = sample_gettimeus();
-        cerr << "find set threshold!"<< thhold << " : " << endl;
+        // cv_buf = (sample_gettimeus() - cv_time)/1000;
+        // cv_time = sample_gettimeus();
+        cerr << "find set threshold!"<< endl;
         cv::Mat bin_img;
         cv::threshold(diff_image, bin_img, thhold, 255, cv::THRESH_BINARY);
 
         // imwrite("bin.jpg", bin_img);
 
         // printf("box2\n");
-        cv_buf = (sample_gettimeus() - cv_time)/1000;
-        cv_time = sample_gettimeus();
-        cerr << "find contours! : " << endl;
+        // cv_buf = (sample_gettimeus() - cv_time)/1000;
+        // cv_time = sample_gettimeus();
+        cerr << "find contours!" << endl;
         vector<vector<cv::Point>> contours;
         cv::findContours(bin_img, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
@@ -152,8 +152,8 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
 }
 
 int package_sistic(char *imgpath1, char *imgpath2) {
-    int64_t cv_time = sample_gettimeus();
-    int64_t cv_buf;
+    // int64_t cv_time = sample_gettimeus();
+    // int64_t cv_buf;
 
     // 이미지 파일 경로 설정
     string imagePath1 = imgpath1;
@@ -175,24 +175,24 @@ int package_sistic(char *imgpath1, char *imgpath2) {
     resizeImage(image2, 1920/3, 1080/3);
 
 #if 1
-    cerr << "sistic make! : " <<endl;
+    cerr << "sistic make!" <<endl;
     // ORB 객체 생성
     Ptr<ORB> orb = ORB::create();
 
-    cerr << "sistic point cal! : " << endl;
+    cerr << "sistic point cal!" << endl;
     // 키 포인트와 디스크립터 계산
     vector<KeyPoint> keypoints1, keypoints2;
     Mat descriptors1, descriptors2;
     orb->detectAndCompute(image1, Mat(), keypoints1, descriptors1);
     orb->detectAndCompute(image2, Mat(), keypoints2, descriptors2);
 
-    cerr << "sistic point match! : " << endl;
+    cerr << "sistic point match!" << endl;
     // 특징점 매칭 
     BFMatcher matcher(NORM_HAMMING);
     vector<DMatch> matches;
     matcher.match(descriptors1, descriptors2, matches);
 
-    cerr << "sistic filtering! : " << endl;
+    cerr << "sistic filtering!" << endl;
     // 좋은 매칭 필터링
     double minDist = min_element(matches.begin(), matches.end(),
         [](const DMatch& m1, const DMatch& m2) { return m1.distance < m2.distance; })->distance;
@@ -205,7 +205,7 @@ int package_sistic(char *imgpath1, char *imgpath2) {
         }
     }
 
-    cerr << "sistic metrix cal! : " << endl;
+    cerr << "sistic metrix cal!" << endl;
     // 좋은 매칭을 사용하여 변환 행렬 계산
     if (goodMatches.size() > 10) {
         try {
@@ -285,7 +285,7 @@ int package_sistic(char *imgpath1, char *imgpath2) {
     }
 #endif
     // 결과 이미지를 디스크에 저장
-    cerr << "Sistic End : " << endl;
+    cerr << "Sistic End" << endl;
 
     return 0;
 }

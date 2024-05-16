@@ -9,8 +9,8 @@ extern "C" {
 #endif
 
 #define MAJOR_VER	"0"
-#define MINOR_VER	"4"	
-#define CAHR_VER	"z"
+#define MINOR_VER	"5"	
+#define CAHR_VER	"a"
 
 typedef struct CIRCULAR_BUFF
 {
@@ -206,9 +206,15 @@ typedef struct  {
     double sharpness;
 }Focus_Sharpness;
 
+typedef struct  {
+    double type;
+    double cnt;
+}Make_File;
+
 int64_t start_time;
 uint32_t ExpVal;
 int64_t rec_total;
+int64_t rec_time_s;
 
 int stream_state;
 int thumbnail_state;
@@ -266,6 +272,8 @@ bool netwrok_busy;
 bool save_send_flag;
 // bool move_end;
 bool cmd_end_flag;
+bool cfile_flag;
+bool bfile_flag;
 
 
 extern int bExit;

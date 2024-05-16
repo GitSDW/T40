@@ -341,7 +341,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
     int bad_cnt = 0;
     uint8_t *uart_tx;
     uint8_t ack_data[256];
-    static int64_t rec_time_s = 0;
+    // static int64_t rec_time_s = 0;
     int64_t rec_time_e = 0;
     char* effect_file = NULL;
 
