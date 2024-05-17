@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 
 // T40 Library
 #include <imp/imp_audio.h>
@@ -2081,6 +2082,8 @@ int clip_total(void) {
 
 			while(box_snap);
 
+			system("sync");
+
 			make_file_start(REC);
 
 			pthread_t tid_makefile;
@@ -2115,7 +2118,15 @@ int clip_total(void) {
 	   				printf("File /vtmp/box0.jpg Open Fail!\n");
 	   			}
 	   			else {
-	   				close(box_n);
+	   				struct stat file_info;
+					if ( 0 > stat("/vtmp/box0.jpg", &file_info)) {
+    					printf("File Size Not Check!!\n");
+    					close(box_n);
+    					box_n = -1;
+    				}
+    				else {
+	   					close(box_n);
+	   				}
 	   			}
 
 	   			box_o = open("/tmp/mnt/sdcard/box_origin.jpg", O_RDONLY);
@@ -2123,7 +2134,15 @@ int clip_total(void) {
 	   				printf("File /tmp/mnt/sdcard/box_origin.jpg Open Fail!\n");
 	   			}
 	   			else {
-	   				close(box_o);
+	   				struct stat file_info;
+					if ( 0 > stat("/tmp/mnt/sdcard/box_origin.jpg", &file_info)) {
+    					printf("File Size Not Check!!\n");
+    					close(box_o);
+    					box_o = -1;
+    				}
+    				else {
+	   					close(box_o);
+	   				}
 	   			}
 
 	   			box_b = open("/tmp/mnt/sdcard/box_before.jpg", O_RDONLY);
@@ -2131,7 +2150,15 @@ int clip_total(void) {
 	   				printf("File /tmp/mnt/sdcard/box_before.jpg Open Fail!\n");
 	   			}
 	   			else {
-	   				close(box_b);
+	   				struct stat file_info;
+					if ( 0 > stat("/tmp/mnt/sdcard/box_before.jpg", &file_info)) {
+    					printf("File Size Not Check!!\n");
+    					close(box_b);
+    					box_b = -1;
+    				}
+    				else {
+	   					close(box_b);
+	   				}
 	   			}
 
 	   			char *before_img = "/tmp/mnt/sdcard/box_before.jpg";
@@ -2152,13 +2179,13 @@ int clip_total(void) {
     				ret = package_sistic(before_img, after_img);
 					if(ret < 0) {
 						printf("package_sistic Fail!\n");
-						return ret;
+						// return ret;
 					}
 					printf("box Find!\n");
 					ret = package_find(sistic_img, after_img, threshold);
 					if(ret < 0) {
 						printf("package_find Fail!\n");
-						return ret;
+						// return ret;
 					} 
 	    			else {
         				printf("Box Count : %d\n", ret);
@@ -2254,8 +2281,6 @@ int clip_total(void) {
 	    		system("cp /tmp/mnt/sdcard/box_before.jpg /tmp/mnt/sdcard/box_before2.jpg");
 	    		system("cp /vtmp/box0.jpg /tmp/mnt/sdcard/box_before.jpg");
 	    		system("cp /vtmp/box_result.jpg /tmp/mnt/sdcard/box_before3.jpg");
- 
-
 
 				if (face_snap == false) bStrem = true;
 
