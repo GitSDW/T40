@@ -445,6 +445,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
 
             snprintf(TimeStamp.date, 13, "%s\n", (char*)&rbuff[index+9+1]);
             printf("1Set Busy : %d Date : %s\n", netwrok_busy, TimeStamp.date);
+            ack_len = 0;
+            ack_flag = true;
         break;
         }
     break;
@@ -504,6 +506,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
 
             snprintf(TimeStamp.date, 13, "%s\n", (char*)&rbuff[index+9+1]);
             printf("Set Busy : %d Date : %s\n", netwrok_busy, TimeStamp.date);
+            ack_len = 0;
+            ack_flag = true;
         break;
         }
     break;
@@ -678,9 +682,19 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
 
             snprintf(TimeStamp.date, 13, "%s\n", (char*)&rbuff[index+9+1]);
             printf("Set Busy : %d Date : %s\n", netwrok_busy, TimeStamp.date);
+            ack_len = 0;
+            ack_flag = true;
         break;
         case SET_SAVE_SEND:
             save_send_flag = true;
+            ack_len = 0;
+            ack_flag = true;
+        break;
+        case SET_FACTORY:
+            Setting_Reinit();
+            ack_len = 0;
+            ack_flag = true;
+            cmd_end_flag = true;
         break;
         }
     break;
@@ -698,6 +712,37 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         ack_flag = false;
         free(uart_tx);
     }
+
+    return 0;
+}
+
+
+int device_star(uint8_t major) {
+    uint8_t *uart_tx;
+
+    uart_tx = malloc(30);
+
+    memset(uart_tx, 0, 10);
+    uart_tx[0] = 0x02;
+    uart_tx[1] = (major & 0x7F) & 0xFF;
+    uart_tx[2] = 0x01;
+    uart_tx[3] = 0;
+    uart_tx[4] = 5;
+    uart_tx[5] = 0x00;
+    uart_tx[6] = 0x00;
+    uart_tx[7] = 0x00;
+    uart_tx[8] = 0x00;
+
+    sprintf((char*)&uart_tx[9], "%s.%s.%s", MAJOR_VER, MINOR_VER, CAHR_VER);
+    
+    uart_tx[14] = 0x03;
+
+    uart_send(fd_uart, uart_tx, 15);
+    
+    printf("Device Start Major:0x%02x\n", uart_tx[1]);
+    printf("%c%c%c%c%c\n",(char) uart_tx[9],(char) uart_tx[10],(char) uart_tx[11],(char) uart_tx[12],(char) uart_tx[13]);
+    
+    free(uart_tx);
 
     return 0;
 }
@@ -872,19 +917,33 @@ void *uart_thread(void *argc)
     if(res < 0){
         printf("uart init failed \n");
     }
-    uint8_t *uart_tx;
-    uint8_t start_data[10] = {0};
+    // uint8_t *uart_tx;
+    // uint8_t start_data[10] = {0};
 
-    uart_tx = malloc(50);
+    // uart_tx = malloc(50);
+    // if (boot_mode == 0) mode = DTEST;
+    // else if (boot_mode == 1) mode = REC;
+    // else if (boot_mode == 2) mode = STREAMING;
+    // else if (boot_mode == 3) mode = SETTING;
+    // // start_data[0] = (uint8_t)MAJOR_VER;
+    // // start_data[1] = '.';
+    // // start_data[2] = (uint8_t)MINOR_VER;
+    // // start_data[3] = '.';
+    // // start_data[4] = (uint8_t)CAHR_VER;
+    // // start_data[5] = 0;
+    // sprintf((char*)start_data, "%s.%s.%s\n", MAJOR_VER, MINOR_VER, CAHR_VER);
+    // res = Make_Packet_uart(uart_tx, start_data, 5, mode, 1);
+    // uart_send(fd_uart, uart_tx, res);
+    // printf("Start Major:0x%02x Minor0x%02x\n", uart_tx[1], uart_tx[2]);
+    // printf("Start LEN : 0x%02x%02x\\n", uart_tx[3], uart_tx[4]);
+    // free(uart_tx);
+
     if (boot_mode == 0) mode = DTEST;
     else if (boot_mode == 1) mode = REC;
     else if (boot_mode == 2) mode = STREAMING;
     else if (boot_mode == 3) mode = SETTING;
-    res = Make_Packet_uart(uart_tx, start_data, 0, mode, 1);
-    uart_send(fd_uart, uart_tx, res);
-    printf("Start Major:0x%02x Minor0x%02x\n", uart_tx[1], uart_tx[2]);
-    // free(uart_tx);
 
+    device_star(mode);
 
     /*
      * 测试代码

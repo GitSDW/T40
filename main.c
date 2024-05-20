@@ -329,7 +329,7 @@ int gpio_LED_Set(int onoff) {
 		light_on = true;
 	}
 	else {
-		led_duty = 100;
+		led_duty = 90;
 		system("echo 1000000 > /sys/class/pwm/pwmchip0/pwm6/period");
 		memset(file_sep, 0, 100);
 		sprintf(file_sep, "echo %d > /sys/class/pwm/pwmchip0/pwm6/duty_cycle", 10000*(led_duty));
@@ -539,6 +539,9 @@ int main(int argc, char **argv) {
 
     if (ExpVal > 1000 && settings.SF.bits.led) {
     	gpio_LED_Set(1);
+    }
+    else {
+    	gpio_LED_Set(0);
     }
 
     boot_mode = mode = start_up_mode();
@@ -3533,6 +3536,7 @@ int Setting_Total(void) {
 				ubi_start = true;
 			}
 
+			usleep(500*1000);
 
 			file_name_get(&Save_movie1, 0);
 			file_name_get(&Save_movie2, 1);

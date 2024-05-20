@@ -89,7 +89,8 @@ typedef enum {
 	SET_USER_GRID	= 0x4D,
 	SET_DOOR_CAP 	= 0x4E,
 	SET_SAVE_SEND 	= 0x4F,
-
+	SET_FACTORY		= 0x50,
+	
 	SET_DATE  		= 0x7E,
 	SET_STOP  		= 0x7F,
 } MINOR_SETTING;
