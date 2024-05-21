@@ -497,12 +497,17 @@ int main(int argc, char **argv) {
     // char file_sep[100] = {0};
     int gval = 0;
     int spk_vol_buf = 80;
+    int spk_gain_buf = 15;
 
     memory_init();
 	global_value_init();
 
 	Setting_Init();
-	spk_vol_buf = 20 * settings.spk_vol;
+	spk_vol_buf = (20 * settings.spk_vol) + 10;
+	if (settings.spk_vol == 4)
+		spk_gain_buf = 10;
+	else
+		spk_gain_buf = 15;
     Mosaic_En = settings.SF.bits.per_face;
 
 #ifndef	__TEST_FAKE_VEDIO__
@@ -529,7 +534,7 @@ int main(int argc, char **argv) {
     
  
 
-    Set_Vol(100,25,spk_vol_buf,15);
+    Set_Vol(100,25,spk_vol_buf,spk_gain_buf);
 
     // isd_crop(0, 0, 1920, 1080, 0);
 
@@ -2714,7 +2719,7 @@ int stream_total(void) {
 #endif
     // int64_t rec_time_s = 0;//, 
     int64_t rec_time_e = 0;
-    // int64_t rec_now = 0;
+    int64_t rec_now = 0;
 
     char file_sep[256] = {0};
     char file_path[128] = {0};
@@ -3242,8 +3247,8 @@ int stream_total(void) {
 		}
 #else
 		if (streaming_rec_state >= REC_START && streaming_rec_state < REC_STOP) {
-			// rec_now = sample_gettimeus() - rec_time_s;
-			if (rec_total + rec_time_s >= 60000000) {
+			rec_now = sample_gettimeus() - rec_time_s;
+			if (rec_total + rec_now >= 60000000) {
 				streaming_rec_state = REC_STOP;
             	rec_on = false;
             	rec_total += rec_time_s;
@@ -3254,6 +3259,7 @@ int stream_total(void) {
 			if (streaming_rec_state == REC_START || streaming_rec_state == REC_ING) {
 				rec_time_e = sample_gettimeus()-rec_time_s;
             	printf("Rec Time : %lld total : %lld\n", rec_time_e, rec_total);
+            	rec_each_time[rec_cnt-1] = rec_time_e;
             	rec_total += rec_time_e;
             	streaming_rec_state = REC_STOP;
             	rec_on = false;
@@ -3269,6 +3275,7 @@ int stream_total(void) {
 			else printf("streaming_rec_state Error:%d\n", streaming_rec_state);
 
 			if (streaming_rec_state == REC_MP4MAKE) {
+				int file_cnt_rec = 0;
 				make_file_start(STREAMING);
 				for(int i=0; i<rec_cnt; i++) {
 				#ifdef __H265__
@@ -3283,30 +3290,61 @@ int stream_total(void) {
 					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/rec-0-%d.h264 -c copy /vtmp/rec0_%d.mp4", i+1, i+1);
 					system(file_sep);
 					memset(file_sep, 0, 256);
-					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/rec-3-%d.h264 -c copy /vtmp/rec1_%d.mp4", i+1, i+1);
+					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/rec-3-%d.h264 -c copy /vtmp/rec3_%d.mp4", i+1, i+1);
 					system(file_sep);
 				#endif
+					if (rec_each_time[i] < 23000000)
+						file_cnt_rec = 1;
+					else if(rec_each_time[i] < 43000000)
+						file_cnt_rec = 2;
+					else
+						file_cnt_rec = 3;
 
-					if (Ready_Busy_Check()){
-						printf("rec0_%d.mp4 Start!\n", i+1);
-						memset(file_path, 0, 128);
-						sprintf(file_path, "/vtmp/rec0_%d.mp4", i+1);
-						spi_send_file(REC_STREAMING_M, file_path);
-						// spi_send_fake_file(REC_STREAMING_M);
-					}
-					else {
-						printf("Fail to Send rec0_%d.mp4\n", i+1);
-					}
-					
-					if (Ready_Busy_Check()){
-						printf("rec1_%d.mp4 Start!\n", i+1);
-						memset(file_path, 0, 128);
-						sprintf(file_path, "/vtmp/rec1_%d.mp4", i+1);
-						spi_send_file(REC_STREAMING_B, file_path);
-						// spi_send_fake_file(REC_STREAMING_B);
-					}
-					else {
-						printf("Fail to Send rec0_%d.mp4\n", i+1);
+
+					for (int j=0; j<file_cnt_rec; j++) {
+
+						if (j == 0) {
+							memset(file_path, 0, 100);
+							sprintf(file_path, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/rec0_%d.mp4 -ss 0 -t 20 -c copy /vtmp/rec0_%d_%d.mp4", i+1, i+1, j);
+							printf("%s\n", file_path);
+							system(file_path);
+							memset(file_path, 0, 100);
+							sprintf(file_path, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/rec3_%d.mp4 -ss 0 -t 20 -c copy /vtmp/rec3_%d_%d.mp4", i+1, i+1, j);
+							printf("%s\n", file_path);
+							system(file_path);
+						}
+						else {
+							memset(file_path, 0, 100);
+							sprintf(file_path, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/rec0_%d.mp4 -ss %d.4 -t 20 -c copy /vtmp/rec0_%d_%d.mp4", i+1, (j*20)-1, i+1, j);
+							printf("%s\n", file_path);
+							system(file_path);
+							memset(file_path, 0, 100);
+							sprintf(file_path, "/tmp/mnt/sdcard/./ffmpeg -i /vtmp/rec3_%d.mp4 -ss %d.4 -t 20 -c copy /vtmp/rec3_%d_%d.mp4", i+1, (j*20)-1, i+1, j);
+							printf("%s\n", file_path);
+							system(file_path);
+						}
+
+						if (Ready_Busy_Check()){
+							printf("rec0_%d_%d.mp4 Start!\n", i+1, j);
+							memset(file_path, 0, 128);
+							sprintf(file_path, "/vtmp/rec0_%d_%d.mp4", i+1, j);
+							spi_send_file(REC_STREAMING_M, file_path);
+							// spi_send_fake_file(REC_STREAMING_M);
+						}
+						else {
+							printf("Fail to Send rec0_%d_%d.mp4\n", i+1, j);
+						}
+						
+						if (Ready_Busy_Check()){
+							printf("rec3_%d_%d.mp4 Start!\n", i+1, j);
+							memset(file_path, 0, 128);
+							sprintf(file_path, "/vtmp/rec3_%d_%d.mp4", i+1, j);
+							spi_send_file(REC_STREAMING_B, file_path);
+							// spi_send_fake_file(REC_STREAMING_B);
+						}
+						else {
+							printf("Fail to Send rec3_%d_%d.mp4\n", i+1, j);
+						}
 					}
 				}
 			}

@@ -489,6 +489,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             printf("Streaming Rec End!\n");
             rec_time_e = sample_gettimeus()-rec_time_s;
             printf("Rec Time : %lld total : %lld\n", rec_time_e, rec_total);
+            rec_each_time[rec_cnt-1] = rec_time_e;
             rec_total += rec_time_e;
             streaming_rec_state = REC_STOP;
             rec_on = false;

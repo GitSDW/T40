@@ -10,7 +10,7 @@ extern "C" {
 
 #define MAJOR_VER	"0"
 #define MINOR_VER	"5"	
-#define CAHR_VER	"c"
+#define CAHR_VER	"d"
 
 typedef struct CIRCULAR_BUFF
 {
@@ -41,7 +41,7 @@ Buff2_t VB_Frame_Buff;
 
 typedef struct FILE_TIMESTAMP
 {
-	char 			date[13];
+	char 		date[13];
 	uint8_t  	type[2];
 } File_TimeStamp;
 
@@ -215,6 +215,7 @@ int64_t start_time;
 uint32_t ExpVal;
 int64_t rec_total;
 int64_t rec_time_s;
+int64_t rec_each_time[10];
 
 int stream_state;
 int thumbnail_state;
