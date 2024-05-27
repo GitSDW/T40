@@ -69,17 +69,35 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
         cv::cvtColor(img1, gray1, cv::COLOR_BGR2GRAY);
         cv::cvtColor(img2, gray2, cv::COLOR_BGR2GRAY);
 
-         // 각 이미지의 평균 밝기 계산
+
+        // Clahe al /////////////////////////////////////////////////////////
+        // cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(2.0, cv::Size(16, 9));
+        // cv::Mat equalized1, equalized2;
+        // clahe->apply(gray1, equalized1);
+        // clahe->apply(gray2, equalized2);
+        // /////////////////////////////////////////////////////////////////////
+
+        // cv::imwrite("/tmp/mnt/sdcard/before_clahe.jpg", equalized1);
+        // cv::imwrite("/tmp/mnt/sdcard/after_clahe.jpg", equalized2);
+
+
+        // Hist al //////////////////////////////////////////////////////////
+        // // 각 이미지의 평균 밝기 계산
         Scalar mean_intensity_img1 = mean(gray1);
         Scalar mean_intensity_img2 = mean(gray2);
+        Scalar mean_avrg = (mean_intensity_img1+mean_intensity_img2) / 2;
 
          // 조명 보정을 위해 이미지의 밝기 정규화
         Mat normalized_img1, normalized_img2;
-        convertScaleAbs(gray1, normalized_img1, 127.0 / mean_intensity_img1[0], 0);
-        convertScaleAbs(gray2, normalized_img2, 127.0 / mean_intensity_img2[0], 0);
+        convertScaleAbs(gray1, normalized_img1, 127.0 / mean_avrg[0], 0);
+        convertScaleAbs(gray2, normalized_img2, 127.0 / mean_avrg[0], 0);
 
-        cv::equalizeHist(gray1, gray1);
-        cv::equalizeHist(gray2, gray2);
+        cv::equalizeHist(normalized_img1, normalized_img1);
+        cv::equalizeHist(normalized_img2, normalized_img2);
+
+        cv::imwrite("/tmp/mnt/sdcard/before_hist.jpg", normalized_img1);
+        cv::imwrite("/tmp/mnt/sdcard/after_hist.jpg", normalized_img2);
+        /////////////////////////////////////////////////////////////////////
 
         // cv_buf = (sample_gettimeus() - cv_time)/1000;
         // cv_time = sample_gettimeus();
@@ -93,7 +111,7 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
         // cv_time = sample_gettimeus();
         cerr << "find gray!" << endl;
         cv::Mat diff_image;
-        cv::absdiff(gray1, gray2, diff_image);
+        cv::absdiff(normalized_img1, normalized_img2, diff_image);
 
         // cv_buf = (sample_gettimeus() - cv_time)/1000;
         // cv_time = sample_gettimeus();

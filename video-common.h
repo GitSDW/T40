@@ -144,7 +144,7 @@ extern "C"
 
 
 // #define BITRATE_720P_Kbs        1000
-#define BITRATE_720P_Kbs        500
+#define BITRATE_720P_Kbs        450
 #define NR_FRAMES_TO_SAVE		200
 #define STREAM_BUFFER_SIZE		(3 * 1024 * 1024)
 

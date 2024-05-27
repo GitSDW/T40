@@ -110,7 +110,7 @@ void Setting_Reinit(void) {
     settings.SF.bits.backlight = 1;
     settings.SF.bits.flicker = 1;
     settings.SF.bits.move_ex = 0;
-    settings.SF.bits.per_face = 0;
+    settings.SF.bits.per_face = 1;
     settings.SF.bits.door_g = 0;
     settings.SF.bits.user_g = 0;
 

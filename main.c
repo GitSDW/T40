@@ -82,6 +82,12 @@ int memory_init(void) {
 	// VB_Frame_Buff.buff = (unsigned char *)malloc(V_BUFF_SIZE);
 	// VB_Frame_Buff.blen = 0;
 
+	tx_buff = (unsigned char *)malloc(1040);;
+	tx_tbuff = (unsigned char *)malloc(1040);;
+	rx_buff = (unsigned char *)malloc(1040);;
+	read_buff = (unsigned char *)malloc(1040);;
+
+
 	return 0;
 }
 
@@ -102,10 +108,10 @@ int global_value_init(void) {
 	start_time=0;
 
 	move_flag = false;
-	move_det_xs = 400;
-	move_det_ys = 300;
-	move_det_xe = 1200;
-	move_det_ye = 1000;
+	move_det_xs = 0;
+	move_det_ys = 0;
+	move_det_xe = 0;
+	move_det_ye = 0;
 	main_motion_detect = 0;
 	for (i=0; i<GRID_COVER_INDEX; i++) {
 		grid_cover_flag[i] = false;
@@ -242,6 +248,25 @@ int gpio_init(void) {
 		return -1;
 	}
 
+	// ret = gpio_export(PORTB+31);	// Box LED Gpio
+	// if(ret < 0){
+	// 	printf("Fail Export GPIO : %d\n", PORTB+19);
+	// 	return -1;
+	// }
+
+	// ret = gpio_set_dir(PORTB+31, GPIO_OUTPUT, GPIO_HIGH);
+	// // ret = gpio_set_dir(PORTB+31, GPIO_OUTPUT, GPIO_LOW);
+	// if(ret < 0){
+	// 	printf("Fail get dir GPIO : %d\n", PORTB+17);
+	// 	return -1;
+	// }
+
+	// ret = gpio_set_val(PORTB+31, 1);
+	// if(ret < 0){
+	// 	printf("Fail set Value GPIO : %d\n", PORTB+31);
+	// 	return -1;
+	// }
+
 	return 0;
 }
 
@@ -309,7 +334,7 @@ int gpio_LED_Set(int onoff) {
 		led_flag = true;
 	}
 
-	if (onoff > 0) {
+	if (onoff == 1) {
 		led_duty = 0;
 		system("echo 1000000 > /sys/class/pwm/pwmchip0/pwm6/period");
 		memset(file_sep, 0, 100);
@@ -328,8 +353,26 @@ int gpio_LED_Set(int onoff) {
 
 		light_on = true;
 	}
-	else {
+	else if (onoff == 2) {
 		led_duty = 90;
+		system("echo 1000000 > /sys/class/pwm/pwmchip0/pwm6/period");
+		memset(file_sep, 0, 100);
+		sprintf(file_sep, "echo %d > /sys/class/pwm/pwmchip0/pwm6/duty_cycle", 10000*(led_duty));
+		printf(file_sep);
+		printf("\n");
+		system(file_sep);
+		system("echo 1 > /sys/class/pwm/pwmchip0/pwm6/enable");
+		// system("echo 0 > /sys/class/pwm/pwmchip0/pwm6/enable");
+		ret = gpio_set_val(PORTD+6, 1);
+		if(ret < 0){
+			printf("Fail set Value GPIO : %d\n", PORTD+6);
+			return -1;
+		}
+
+		light_on = false;
+	}
+	else {
+		led_duty = 100;
 		system("echo 1000000 > /sys/class/pwm/pwmchip0/pwm6/period");
 		memset(file_sep, 0, 100);
 		sprintf(file_sep, "echo %d > /sys/class/pwm/pwmchip0/pwm6/duty_cycle", 10000*(led_duty));
@@ -497,18 +540,25 @@ int main(int argc, char **argv) {
     // char file_sep[100] = {0};
     int gval = 0;
     int spk_vol_buf = 80;
-    int spk_gain_buf = 15;
+    int spk_gain_buf = 14;
 
     memory_init();
 	global_value_init();
 
 	Setting_Init();
-	spk_vol_buf = (20 * settings.spk_vol) + 10;
-	if (settings.spk_vol == 4)
-		spk_gain_buf = 10;
+	spk_vol_buf = (20 * settings.spk_vol) + 40;
+	if (settings.spk_vol == 4){
+		spk_gain_buf = 15;
+	}
 	else
 		spk_gain_buf = 15;
     Mosaic_En = settings.SF.bits.per_face;
+
+    move_det_xs = settings.move_ex_s_x;
+	move_det_ys = settings.move_ex_s_y;
+	move_det_xe = settings.move_ex_e_x;
+	move_det_ye = settings.move_ex_e_y;
+	printf("Move Ex : %d %d %d %d\n", settings.move_ex_s_x, settings.move_ex_s_y, settings.move_ex_e_x, settings.move_ex_e_y);
 
 #ifndef	__TEST_FAKE_VEDIO__
 	video_init();
@@ -542,12 +592,7 @@ int main(int argc, char **argv) {
 
     printf("expval : %d\n", ExpVal);
 
-    if (ExpVal > 1000 && settings.SF.bits.led) {
-    	gpio_LED_Set(1);
-    }
-    else {
-    	gpio_LED_Set(0);
-    }
+
 
     boot_mode = mode = start_up_mode();
     // printf("Mode : %d\n", mode);
@@ -629,10 +674,10 @@ int main(int argc, char **argv) {
 		if (cmd == 1) {
 			char *before_img = NULL;
     		char *after_img  = NULL;
-    		char *sistic_img = "/hoseo/corimg1.jpg";
+    		char *sistic_img = "/vtmp/corimg1.jpg";
 			int threshold = 70;
 			double sim = 0.0;
-			const char* folderPath = "/hoseo"; // 탐색할 폴더 경로 설정
+			const char* folderPath = "/vtmp"; // 탐색할 폴더 경로 설정
     		int fileCount;
     		char** jpgFiles = NULL;
 			printf("cmd 1 Package Find Test.\n");
@@ -1683,9 +1728,15 @@ int clip_total(void) {
 		IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create device_live_thread failed\n", __func__);
 		return -1;
 	}
-	
 
-	
+	if (settings.SF.bits.led) {
+	    if (ExpVal > 1000) {
+	    	gpio_LED_Set(1);
+	    }
+	    else {
+	    	gpio_LED_Set(2);
+	    }
+	}
 
 	usleep(300*1000);
 
@@ -1756,21 +1807,24 @@ int clip_total(void) {
 						fr_state = FR_END;
 					}
 				}
-				else if (fr_state != FR_END && total_time > 5000000) {
+				else if (fr_state != FR_END && total_time > FACE_FIND_END_TIME) {
 					fr_state = FR_END;	// fr_state 5 / Time out
 					// Make File Send
-					for (int l=0; l<face_crop_cnt; l++) {
-						if (!netwrok_busy) {
-							if (Ready_Busy_Check()){
-								printf("Face Crop %d JPG Send!\n", l);
-								memset(file_path, 0, 64);
-								sprintf(file_path, "/vtmp/face_crop%d.jpg", l);
-								spi_send_file(REC_FACESHOT, file_path);
-							}
-							else {
-								printf("Fail to Face Crop %d JPG Send.\n", l);
-							}
-						}
+					// for (int l=0; l<face_crop_cnt; l++) {
+					// 	if (!netwrok_busy) {
+					// 		if (Ready_Busy_Check()){
+					// 			printf("Face Crop %d JPG Send!\n", l);
+					// 			memset(file_path, 0, 64);
+					// 			sprintf(file_path, "/vtmp/face_crop%d.jpg", l);
+					// 			spi_send_file(REC_FACESHOT, file_path);
+					// 		}
+					// 		else {
+					// 			printf("Fail to Face Crop %d JPG Send.\n", l);
+					// 		}
+					// 	}
+					// }
+					if (Ready_Busy_Check() && face_crop_cnt > 0){
+						spi_send_file_face(REC_FACESHOT, face_crop_cnt);
 					}
 					face_end(REC);
 				}
@@ -2242,25 +2296,33 @@ int clip_total(void) {
 			        				printf("Original vs Before similarity cal fail!\n");
 			        			}
 
-				        		if (osim_t.correl 			> bsim_t.correl) 		sim_cnt++;
-				        		if (osim_t.chisqr 			< bsim_t.chisqr) 		sim_cnt++;
-				        		if (osim_t.intersect 		> bsim_t.intersect) 	sim_cnt++;
-				        		if (osim_t.bhattacharyya 	< bsim_t.bhattacharyya) sim_cnt++;
-				        		if (osim_t.kl_div 			< bsim_t.kl_div) 		sim_cnt++;
+			        			if (osim_t.bhattacharyya < 0.4 && bsim_t.bhattacharyya < 0.4) {
 
-				        		printf("similarity count : %d\n", sim_cnt);
-				        		if (sim_cnt > 2) {
-	    							if (clip_cause_t.Major == CLIP_CAUSE_MOVE) {
-										clip_cause_t.Major = CLIP_CAUSE_BOX;
-										clip_cause_t.Minor = CLIP_BOX_DISAP;
-										system("cp /vtmp/box0.jpg /tmp/mnt/sdcard/box_origin2.jpg");
+					        		if (osim_t.correl 			> bsim_t.correl) 		sim_cnt++;
+					        		if (osim_t.chisqr 			< bsim_t.chisqr) 		sim_cnt+=2;
+					        		if (osim_t.intersect 		> bsim_t.intersect) 	sim_cnt++;
+					        		if (osim_t.bhattacharyya 	< bsim_t.bhattacharyya) sim_cnt+=2;
+					        		if (osim_t.kl_div 			< bsim_t.kl_div) 		sim_cnt++;
+
+					        		printf("similarity count : %d\n", sim_cnt);
+					        		if (sim_cnt > 4) {
+		    							if (clip_cause_t.Major == CLIP_CAUSE_MOVE) {
+											clip_cause_t.Major = CLIP_CAUSE_BOX;
+											clip_cause_t.Minor = CLIP_BOX_DISAP;
+											system("cp /vtmp/box0.jpg /tmp/mnt/sdcard/box_origin2.jpg");
+										}
+									}
+									else {
+										if (clip_cause_t.Major == CLIP_CAUSE_MOVE) {
+											clip_cause_t.Major = CLIP_CAUSE_BOX;
+											clip_cause_t.Minor = CLIP_BOX_OCCUR;
+										}
 									}
 								}
 								else {
-									if (clip_cause_t.Major == CLIP_CAUSE_MOVE) {
-										clip_cause_t.Major = CLIP_CAUSE_BOX;
-										clip_cause_t.Minor = CLIP_BOX_OCCUR;
-									}
+									printf("Similarity Value Low -> Not Find!\n");
+									clip_cause_t.Major = CLIP_CAUSE_BOX;
+									clip_cause_t.Minor = CLIP_BOX_OCCUR;
 								}
 							}
 			        		else {
@@ -3503,7 +3565,8 @@ int Setting_Total(void) {
 	}
 
 
-	usleep(1000*1000);
+	// usleep(1000*1000);
+	printf("Thread Start!\n");
 
 	do {
 

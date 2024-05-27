@@ -285,6 +285,7 @@ int Make_Spi_Packet(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t major, 
                 case REC_TEMP_SNAP_M:
                 case REC_TEMP_SNAP_B:
                 case REC_DOOR_SNAP:
+                case REC_FACE_END:
                     memcpy(&tbuff[9+V_SEND_RESERV], data, len);
                     break;
                 default:
@@ -434,7 +435,7 @@ int Make_Spi_Packet_live(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t ma
     return 0;
 }
 
-int Make_Spi_Packet_live_rtp(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t major, uint8_t minor, int64_t time)
+int Make_Spi_Packet_live_rtp(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t major, uint8_t minor, int64_t time, bool fm_end)
 {
     int reserv_cnt = V_SEND_RESERV;   
 
@@ -449,7 +450,10 @@ int Make_Spi_Packet_live_rtp(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_
     static uint16_t seq_num3 = 0;
 
     header.version_padding_extension_cc = 0x80;
-    header.marker_payload_type = 0x61;
+    if (fm_end)
+        header.marker_payload_type = 0xE1;
+    else
+        header.marker_payload_type = 0x61;
     if (minor == STREAM_VEDIO_M) {
         header.sequence_number[0] = (seq_num0&0xFF00) >> 8;;
         header.sequence_number[1] = seq_num0&0xFF;
@@ -814,10 +818,10 @@ static int Recv_Spi_Packet_live(uint8_t *rbuff) {
 }
 
 
-uint8_t tx_buff[1040] = {0};
-uint8_t tx_tbuff[1040] = {0};
-uint8_t rx_buff[1040] = {0};
-uint8_t read_buff[1040] = {0};
+// uint8_t tx_buff[1040] = {0};
+// uint8_t tx_tbuff[1040] = {0};
+// uint8_t rx_buff[1040] = {0};
+// uint8_t read_buff[1040] = {0};
 /**
  * SPI功能使用，支持标准Linux接口
  * sample_spi.c目的是测试spi功能,如果使用请按照具体开发需要更改
@@ -1014,6 +1018,125 @@ int spi_send_file(uint8_t minor, char *file)
     spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
     usleep(100*1000);
     printf("**********FILE SEND END CMD************\n");
+    return ret;
+}
+
+int spi_send_file_face(uint8_t minor, int fcnt)
+{
+    int filed = 0, ret = -1;
+    // int dly = 3;
+    struct stat file_info;
+    int sz_file=0;
+    int len = 0;
+    int wcnt = 0;
+    char file[64];
+    int i = 0;
+
+    for (i=0; i<fcnt; i++) {
+
+        sprintf(file, "/vtmp/face_crop%d.jpg", i);
+    
+        if ( 0 > stat(file, &file_info)) {
+            printf("File Size Not Check!!\n");
+            return -1;
+        }
+
+        filed = open(file, O_RDONLY);
+        if (filed == -1) {
+            printf("File %s Open Fail!\n", file);
+            return -1;
+        }
+        else {
+            close(filed);
+        }
+        sz_file += file_info.st_size;
+    }
+    printf("**********FACE SEND START %d ************\n", sz_file);
+    // printf("d %s,s %d,d %d,b %d,m %d,f %s, size:%d\n",device,speed,delay,bits,mode,file,sz_file);
+    memset(read_buff, 0, 7);
+
+    read_buff[0] = minor;
+    read_buff[1] = (sz_file>>24)&0xFF;
+    read_buff[2] = (sz_file>>16)&0xFF;
+    read_buff[3] = (sz_file>>8)&0xFF;
+    read_buff[4] = sz_file&0xFF;
+    read_buff[5] = fcnt;
+    read_buff[6] = 0;
+    len = 7;
+
+    if (Ready_Busy_Check()){
+        // printf("File Send Start!\n");
+    }
+    else{
+        printf("[RB ERR]Face Start CMD\n");
+        return -1;
+    }
+    
+    printf("Face File Count : %d\n", read_buff[5]);
+    Make_Spi_Packet(tx_buff, read_buff, len, REC, REC_STREAM_STR);
+
+    spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
+    
+    for (i=0; i<fcnt; i++) {
+        memset(file, 0, 64);
+        sprintf(file, "/vtmp/face_crop%d.jpg", i);
+        filed = open(file, O_RDONLY);
+        if (filed == -1) {
+            printf("File %s Open Fail!\n", file);
+            return -1;
+        }
+        do {
+            ret = read(filed, read_buff, FILE_READ_LENGTH);
+            if(ret != 0) {
+                if (Ready_Busy_Check()){
+                    // printf("RB Checked!\n");
+                }
+                else{
+                    printf("F[%d]:%d\n", i, wcnt);
+                    return -1;
+                }
+
+                // Make_Spi_Packet(tx_buff, read_buff, ret, REC, minor);
+                Make_Spi_Packet(tx_buff, read_buff, ret, REC, minor);
+                // memset(tx_buff, 0, 1024);
+                // memcpy(&tx_buff[6], read_buff, ret);
+                spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
+                // printf("STX:0x%02x CMD:0x%02x%02x LEN:0x%02x%02x ETX:0x%02x\n", 
+                            // tx_buff[0+5], tx_buff[1+5], tx_buff[2+5], tx_buff[3+5], tx_buff[4+5], tx_buff[1023-5]);
+                // for (int i=0; i<1024; i++) {
+                    // printf(" 0x%02x", tx_buff[i]);
+                    // if (i%16 == 0) printf("\n");
+                // }
+            }
+            wcnt++;
+            // usleep(dly*1000);
+        } while(ret != 0);
+        if (Ready_Busy_Check()){
+            // printf("RB Checked!\n");
+        }
+        else{
+            printf("FE[%d]:%d\n", i, wcnt);
+            return -1;
+        }
+        read_buff[0] = i+1;
+        Make_Spi_Packet(tx_buff, read_buff, 1, REC, REC_FACE_END);
+        spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
+    }
+
+    if (Ready_Busy_Check()){
+        // printf("RB Checked!\n");
+    }
+    else{
+        printf("[RB ERR]Face End CMD\n");
+        return -1;
+    }
+    read_buff[0] = minor;
+    Make_Spi_Packet(tx_buff, read_buff, 1, REC, REC_STREAM_END);
+    // memset(tx_buff, 0, 1033);
+    // memcpy(&tx_buff[6], read_buff,1);
+    spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
+    usleep(100*1000);
+    printf("**********FACE SEND END ************\n");
     return ret;
 }
 
@@ -1391,6 +1514,7 @@ void *spi_send_stream (void *arg)
     uint8_t *buf;
 	int datasize = 0;
 	int framesize = 0;
+    bool frame_end = false;
 
 	buf = (uint8_t*)malloc(2000);
   
@@ -1409,8 +1533,10 @@ void *spi_send_stream (void *arg)
             #ifdef __H265__
                 Make_Spi_Packet_live(tx_buff, VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize, STREAMING, STREAM_VEDIO_M);
             #else
+                if (framesize < V_SEND_SIZE)    frame_end = true;
+                else                            frame_end = false;
                 Make_Spi_Packet_live_rtp(tx_buff, VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*i), 
-                                            datasize, STREAMING, STREAM_VEDIO_M, VM_Frame_Buff.ftime[VM_Frame_Buff.Rindex]);
+                                            datasize, STREAMING, STREAM_VEDIO_M, VM_Frame_Buff.ftime[VM_Frame_Buff.Rindex], frame_end);
             #endif
                 
                 // memset(tx_buff, 0, 1024);
@@ -1451,8 +1577,10 @@ void *spi_send_stream (void *arg)
             #ifdef __H265__
                 Make_Spi_Packet_live(tx_buff, VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize, STREAMING, STREAM_VEDIO_B);
             #else
+                if (framesize < V_SEND_SIZE)    frame_end = true;
+                else                            frame_end = false;
                 Make_Spi_Packet_live_rtp(tx_buff, VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*i), 
-                                            datasize, STREAMING, STREAM_VEDIO_B, VB_Frame_Buff.ftime[VB_Frame_Buff.Rindex]);
+                                            datasize, STREAMING, STREAM_VEDIO_B, VB_Frame_Buff.ftime[VB_Frame_Buff.Rindex], frame_end);
             #endif
 				
     	        // memset(tx_buff, 0, 1024);
