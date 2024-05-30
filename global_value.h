@@ -10,7 +10,7 @@ extern "C" {
 
 #define MAJOR_VER	"0"
 #define MINOR_VER	"5"	
-#define CAHR_VER	"h"
+#define CAHR_VER	"k"
 
 typedef struct CIRCULAR_BUFF
 {
@@ -82,7 +82,7 @@ int move_det_xs, move_det_ys, move_det_xe, move_det_ye;
 #define MAX_REC_TIME 				63000000	// 60 * 1000 * 1000 usec
 #define ROAMING_PER_TIME 			30000000	// 60 * 1000 * 1000 usec
 #define THUMBNAIL_TIME 				1000000
-#define FACE_FIND_END_TIME 			10000000
+#define FACE_FIND_END_TIME 			5000000
 #define CLIP_CLOSE_TIME  			3000000
 #define LIVE_MESSAGE_TIME  			10000000	// 10 * 1000 * 1000 usec
 
@@ -280,6 +280,7 @@ bool save_send_flag;
 bool cmd_end_flag;
 bool cfile_flag;
 bool bfile_flag;
+bool dimming;
 
 
 extern int bExit;

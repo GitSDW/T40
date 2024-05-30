@@ -355,7 +355,7 @@ void *fdpd_thread(void *args)
     // int mosaic_cnt[10] = {0};
 
     
-    // sprintf(framefilename, "/vtmp/faceperson.data");
+    // sprintf(framefilename, "/dev/shm/faceperson.data");
     // fd = open(framefilename, O_RDWR | O_CREAT, 0x644);
     // if (fd < 0) {
     //     IMP_LOG_ERR(TAG, "open %s failed\n", framefilename);

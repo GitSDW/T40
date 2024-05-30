@@ -408,6 +408,7 @@ int Set_Target_Bit(uint32_t targetbit) {
 	IMPEncoderAttrRcMode encecmode;
 
 	IMP_Encoder_GetChnAttrRcMode(CH0_INDEX, &encecmode);
+	printf("Before uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
 	encecmode.attrCbr.uTargetBitRate = targetbit;
 	IMP_Encoder_SetChnAttrRcMode(CH0_INDEX, &encecmode);
 	IMP_Encoder_GetChnAttrRcMode(CH0_INDEX, &encecmode);
@@ -830,6 +831,8 @@ int video_init(void) {
 	// printf("2 fps_num:%d fps_den:%d\n", fps_num, fps_den);
 
 	// Mosaic_En = settings.SF.bits.per_face;
+
+	Set_Target_Bit(500);
 	///////////////////////////////////////////////////////////////////
 
 	return 0;

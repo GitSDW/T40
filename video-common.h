@@ -151,10 +151,10 @@ extern "C"
 #define ENC_VIDEO_CHANNEL		0
 #define ENC_JPEG_CHANNEL		1
 
-#define STREAM_FILE_PATH_PREFIX		"/vtmp"
+#define STREAM_FILE_PATH_PREFIX		"/dev/shm"
 #define STREAM_FIRST_PATH			STREAM_FILE_PATH_PREFIX
 #define STREAM_SECONED_PATH			STREAM_FILE_PATH_PREFIX
-#define SNAP_FILE_PATH_PREFIX		"/vtmp"
+#define SNAP_FILE_PATH_PREFIX		"/dev/shm"
 
 #define RESIZE_TIMESTAMP        0
 #define RESIZE_LOGO	            0

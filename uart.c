@@ -25,6 +25,7 @@
 #include "c_util.h"
 #include "setting.h"
 #include "audio.h"
+#include "video.h"
 
 const char default_path[] = "/dev/ttyS2";
 int fd_uart;
@@ -160,6 +161,7 @@ int uart_init(void) {
     // cfsetispeed(&tty, B2500000);
     // cfsetospeed(&tty, B115200);
     // cfsetispeed(&tty, B115200);
+    // B115200 B921600
 
     // 통신 속성 설정
     tty.c_cflag = B115200;
@@ -334,6 +336,7 @@ int Make_Packet_uart(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t major,
 }
 
 extern int gpio_LED_Set(int onoff);
+extern int gpio_LED_dimming (int onoff);
 
 static int Recv_Uart_Packet_live(uint8_t *rbuff) {
     int index, len, value_buf, ack_len, res;
@@ -343,6 +346,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
     uint8_t ack_data[256];
     // static int64_t rec_time_s = 0;
     int64_t rec_time_e = 0;
+    uint32_t br_buf;
     char* effect_file = NULL;
 
         
@@ -437,6 +441,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             ack_len = 0;
             ack_flag = true;
         break;
+        
         case REC_DATE:
             if (rbuff[index+9] > 0)     netwrok_busy = true;
             else                        netwrok_busy = false;
@@ -498,6 +503,20 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         break;
         case USTREAM_F_SEND:
             rec_end = true;
+            ack_len = 0;
+            ack_flag = true;
+        break;
+        case USTREAM_BITRATE:
+            if (rbuff[index+9] > 0 && rbuff[index+9] < 6) {
+                br_buf = rbuff[index+9]*100;
+                Set_Target_Bit(br_buf);
+            }
+            ack_len = 0;
+            ack_flag = true;
+        break;
+        case USTREAM_BLE_LT:
+            printf("Ble Light Set!\n");
+            gpio_LED_dimming(rbuff[index+9]);
             ack_len = 0;
             ack_flag = true;
         break;
@@ -975,6 +994,9 @@ void *uart_thread(void *argc)
                 if (len_p + res == len + 10) {
                     memcpy(&cmd_rx[len_p], uart_rx, res);
                     cmd_state = 2;
+                }
+                else {
+                    len_p += res;
                 }
             }
 

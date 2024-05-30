@@ -713,7 +713,7 @@ void *IMP_Audio_Play_Thread(void *argv)
 	// bool bufclear_flag = false;
 
 	int save_fd = 0;
-    save_fd = open("/vtmp/save_ao.pcm", O_RDWR | O_CREAT | O_TRUNC, 0777);
+    save_fd = open("/dev/shm/save_ao.pcm", O_RDWR | O_CREAT | O_TRUNC, 0777);
 
 	buf = (unsigned char *)malloc(1024);
 	if (buf == NULL) {
@@ -768,13 +768,17 @@ void *IMP_Audio_Play_Thread(void *argv)
 
 		if (play_status.chnBusyNum != 0 && asflg)  {
 			if ((sample_gettimeus() - as_time) > 200000){
+				printf("Audio Dummy Data Set!!\n");
 				memset (buf, 0, 1000);
 				datasize = 1000;
 				as_time = sample_gettimeus();
 			}
 		}
 
-		if (play_status.chnBusyNum == 0 && asflg) asflg = false;
+		if (play_status.chnBusyNum == 0 && asflg) {
+			printf("Audio Chn Busy Clear!!\n");
+			asflg = false;
+		}
 
 		// printf("CH Busy 0 !!! TotalNum %d, FreeNum %d, BusyNum %d\n",
 						// play_status.chnTotalNum, play_status.chnFreeNum, play_status.chnBusyNum);
@@ -815,7 +819,7 @@ void *IMP_Audio_Play_Thread(void *argv)
 		// 	}
 		// }
 		if (datasize > 0 && play_status.chnBusyNum < 18) {
-			printf("AO DS : %d ChnBusy : %d\n", datasize, play_status.chnBusyNum);
+			// printf("AO DS : %d ChnBusy : %d\n", datasize, play_status.chnBusyNum);
 
 			/* Step 5: send frame data. */
 			IMPAudioFrame frm;

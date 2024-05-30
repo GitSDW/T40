@@ -259,7 +259,7 @@ void *udp_recv_pthread(void *arg) {
 	buf = (uint8_t*)malloc(4000);
 
 	
-	test_out_fd = open("/vtmp/test_out.pcm", O_RDWR | O_CREAT | O_TRUNC, 0777);
+	test_out_fd = open("/dev/shm/test_out.pcm", O_RDWR | O_CREAT | O_TRUNC, 0777);
 	if (test_out_fd < 0) {
 		printf("test PCM open Out failed\n");
 		return ((void *)-1);
@@ -324,7 +324,7 @@ void *udp_send_pthread(void *arg) {
 	buf = (uint8_t*)malloc(2000);
 
 	int test_fd=0;
-	test_fd = open("/vtmp/test_in.pcm", O_RDWR | O_CREAT | O_TRUNC, 0777);
+	test_fd = open("/dev/shm/test_in.pcm", O_RDWR | O_CREAT | O_TRUNC, 0777);
 	if (test_fd < 0) {
 		printf("test PCM open In failed\n");
 		return ((void *)-1);

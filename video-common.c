@@ -2286,6 +2286,7 @@ int Send_Frame_Main_UDP(IMPEncoderStream *stream) {
 	// }
 
 	int len = 0;
+	// static tlen = 0;
 	int i, nr_pack = stream->packCount;
 	static bool start_flag = false;
 	
@@ -2335,6 +2336,14 @@ int Send_Frame_Main_UDP(IMPEncoderStream *stream) {
 	VM_Frame_Buff.index = (VM_Frame_Buff.index+1)%10;
 	VM_Frame_Buff.cnt++;
 	pthread_mutex_unlock(&buffMutex_vm);
+
+	// if (stream->pack[nr_pack-1].sliceType == IMP_ENC_SLICE_I) {
+	// 	printf("t frame len:%d\n", tlen);
+	// 	tlen = len;
+	// }
+	// else {
+	// 	tlen += len;
+	// }
 
 	// printf("V1:%d\n", len);
 

@@ -95,8 +95,8 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
         cv::equalizeHist(normalized_img1, normalized_img1);
         cv::equalizeHist(normalized_img2, normalized_img2);
 
-        cv::imwrite("/tmp/mnt/sdcard/before_hist.jpg", normalized_img1);
-        cv::imwrite("/tmp/mnt/sdcard/after_hist.jpg", normalized_img2);
+        // cv::imwrite("/tmp/mnt/sdcard/before_hist.jpg", normalized_img1);
+        // cv::imwrite("/tmp/mnt/sdcard/after_hist.jpg", normalized_img2);
         /////////////////////////////////////////////////////////////////////
 
         // cv_buf = (sample_gettimeus() - cv_time)/1000;
@@ -164,7 +164,7 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
 
     cerr << "find end! : " << endl;
 
-    cv::imwrite("/vtmp/box_result.jpg", img2);
+    cv::imwrite("/dev/shm/box_result.jpg", img2);
 
     return box_cnt;
 }
@@ -240,18 +240,18 @@ int package_sistic(char *imgpath1, char *imgpath2) {
             Mat correctedImage;
             warpPerspective(image1, correctedImage, H, image1.size());
 
-            imwrite("/vtmp/corimg1.jpg", correctedImage);
+            imwrite("/dev/shm/corimg1.jpg", correctedImage);
         } catch (Exception& e) {
             cerr << "Fail comparison points!" << endl;
 
-            imwrite("/vtmp/corimg1.jpg", image1);
+            imwrite("/dev/shm/corimg1.jpg", image1);
             ///////////////// Log Point /////////////////
         }
     }
     else {
         cerr << "Not enough comparison points:" << goodMatches.size() << endl;
 
-        imwrite("/vtmp/corimg1.jpg", image1);
+        imwrite("/dev/shm/corimg1.jpg", image1);
         ///////////////// Log Point /////////////////
     }
 #else
@@ -288,18 +288,18 @@ int package_sistic(char *imgpath1, char *imgpath2) {
             Mat correctedImage;
             warpPerspective(image1, correctedImage, H, image1.size());
 
-            imwrite("/vtmp/corimg1.jpg", correctedImage);
+            imwrite("/dev/shm/corimg1.jpg", correctedImage);
         } catch (Exception& e) {
             cerr << "Fail comparison points!" << endl;
 
-            imwrite("/vtmp/corimg1.jpg", image1);
+            imwrite("/dev/shm/corimg1.jpg", image1);
             ///////////////// Log Point /////////////////
         }
     }
     else {
         cerr << "Not enough comparison points!" << endl;
 
-        imwrite("/vtmp/corimg1.jpg", image1);
+        imwrite("/dev/shm/corimg1.jpg", image1);
     }
 #endif
     // 결과 이미지를 디스크에 저장
@@ -667,7 +667,7 @@ int calculateSimilarity2(char *imgpath1, char *imgpath2, Simil_t2* sim_t) {
 
 
 //     // 이미지 로드
-//     cv::String imagePath = "/vtmp/thumbnail.jpg";
+//     cv::String imagePath = "/dev/shm/thumbnail.jpg";
 //     cv::Mat originalImage = cv::imread(imagePath);
 
 //     printf("Thumbnail file load!\n");
@@ -693,7 +693,7 @@ int calculateSimilarity2(char *imgpath1, char *imgpath2, Simil_t2* sim_t) {
 //     resizeImage(processedImage, 640, 360);
 
 //     // 결과 이미지 저장
-//     cv::String outputPath = "/vtmp/thumbnail_last.jpg";
+//     cv::String outputPath = "/dev/shm/thumbnail_last.jpg";
 //     cv::imwrite(outputPath, processedImage);
 
 //     return 0;
@@ -707,8 +707,8 @@ void resizeImage(cv::Mat& image, int width, int height) {
 int thumbnail_make(Thum_Data_t cont) {
     int x, y, w, h;
     // 이미지 파일 경로
-    std::string inputImagePath = "/vtmp/thumbnail.jpg";
-    std::string outputImagePath = "/vtmp/thumbnail_last.jpg";
+    std::string inputImagePath = "/dev/shm/thumbnail.jpg";
+    std::string outputImagePath = "/dev/shm/thumbnail_last.jpg";
 
     // 좌표 및 크기 설정 (x, y, w, h)
     // int x = 100;
@@ -756,8 +756,8 @@ int thumbnail_make(Thum_Data_t cont) {
 int facecrop_make(Fdpd_Data_t cont) {
     int cx, cy, size, x, y;
     // 이미지 파일 경로
-    std::string inputImagePath = "/vtmp/face.jpg";
-    std::string outputImagePath = "/vtmp/face_crop" + std::to_string(face_crop_cnt) + ".jpg";
+    std::string inputImagePath = "/dev/shm/face.jpg";
+    std::string outputImagePath = "/dev/shm/face_crop" + std::to_string(face_crop_cnt) + ".jpg";
 
     cx = (cont.ul_x + cont.br_x)/2;
     cy = (cont.ul_y + cont.br_y)/2;
