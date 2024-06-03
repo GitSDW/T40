@@ -548,7 +548,7 @@ int Make_Spi_Packet_live_rtp(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_
                     break;
                 case STREAM_VEDIO_M:
                     memcpy(&tbuff[9+reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
-                    // printf("tbuf:\n0x%02x 0x%02x 0x%02x 0x%02x \n 0x%02x 0x%02x 0x%02x 0x%02x \n 0x%02x 0x%02x 0x%02x 0x%02x \n", 
+                    // printf("tbuf: %d\n    0x%02x 0x%02x 0x%02x%02x \n    0x%02x%02x%02x%02x \n    0x%02x%02x%02x%02x \n", len,
                     //          tbuff[0+reserv_cnt+9], tbuff[1+reserv_cnt+9], tbuff[2+reserv_cnt+9],tbuff[3+reserv_cnt+9],
                     //          tbuff[4+reserv_cnt+9], tbuff[5+reserv_cnt+9], tbuff[6+reserv_cnt+9],tbuff[7+reserv_cnt+9],
                     //          tbuff[8+reserv_cnt+9], tbuff[9+reserv_cnt+9], tbuff[10+reserv_cnt+9],tbuff[11+reserv_cnt+9]);
@@ -828,68 +828,68 @@ static int Recv_Spi_Packet_live(uint8_t *rbuff) {
  * */
 // static bool first_send = false;
 
-int spi_send_clip(int dly, int num)
-{
+// int spi_send_clip(int dly, int num)
+// {
     
-    int filed = 0, ret = -1;
-    char file1[] = "/mcam/clip1.mp4";
-    char file2[] = "/mcam/clip2.mp4";
-    char file3[] = "/mcam/clip3.mp4";
+//     int filed = 0, ret = -1;
+//     char file1[] = "/mcam/clip1.mp4";
+//     char file2[] = "/mcam/clip2.mp4";
+//     char file3[] = "/mcam/clip3.mp4";
 
-    if (num > 0 && num < 4) {
-        if (num == 2) {
-            filed = open(file2, O_RDONLY);
-            printf("File Num set : %s\n", file2);
-        }
-        else if (num == 3) {
-            filed = open(file3, O_RDONLY);
-            printf("File Num set : %s\n", file3);
-        }
-        else if (num == 1) {
-            filed = open(file1, O_RDONLY);
-            printf("File Num set : %s\n", file1);
-        }
-        else {
-            printf("Error: -n option file number 1~3 value.\n");
-            return -1;
-        }
-    }
-    printf("set parse is : device %s ,speed %d ,delay %d ,bpw %d, mode %d\n",device,speed,delay,bits,mode);
-    filed = open(file1, O_RDONLY);
-    read_buff[0] = 1;
-    Make_Spi_Packet(tx_buff, read_buff, 1, REC, REC_STREAM_STR);
-    // memset(tx_buff, 0, 1033);
-    // memcpy(&tx_buff[6], read_buff,1);
+//     if (num > 0 && num < 4) {
+//         if (num == 2) {
+//             filed = open(file2, O_RDONLY);
+//             printf("File Num set : %s\n", file2);
+//         }
+//         else if (num == 3) {
+//             filed = open(file3, O_RDONLY);
+//             printf("File Num set : %s\n", file3);
+//         }
+//         else if (num == 1) {
+//             filed = open(file1, O_RDONLY);
+//             printf("File Num set : %s\n", file1);
+//         }
+//         else {
+//             printf("Error: -n option file number 1~3 value.\n");
+//             return -1;
+//         }
+//     }
+//     printf("set parse is : device %s ,speed %d ,delay %d ,bpw %d, mode %d\n",device,speed,delay,bits,mode);
+//     filed = open(file1, O_RDONLY);
+//     read_buff[0] = 1;
+//     Make_Spi_Packet(tx_buff, read_buff, 1, REC, REC_STREAM_STR);
+//     // memset(tx_buff, 0, 1033);
+//     // memcpy(&tx_buff[6], read_buff,1);
 
-    // if (!first_send) {
-    //     spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
-    //     usleep(dly*1000);
-    //     first_send = true;
-    // }
+//     // if (!first_send) {
+//     //     spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
+//     //     usleep(dly*1000);
+//     //     first_send = true;
+//     // }
 
-    spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
-    usleep(dly*1000);
-    do {
-        ret = read(filed, read_buff, FILE_READ_LENGTH);
-        if(ret != 0) {
-            Make_Spi_Packet(tx_buff, read_buff, ret, REC, REC_CLIP_F);
-            // memset(tx_buff, 0, 1024);
-            // memcpy(&tx_buff[6], read_buff, ret);
-            spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
-            // printf("STX:0x%02x CMD:0x%02x%02x LEN:0x%02x%02x ETX:0x%02x\n", 
-                        // tx_buff[0], tx_buff[1], tx_buff[2], tx_buff[3], tx_buff[4], tx_buff[1023]);
-        }
-        usleep(dly*1000);
-    } while(ret != 0);
-    read_buff[0] = 1;
-    Make_Spi_Packet(tx_buff, read_buff, 1, REC, REC_STREAM_END);
-    // memset(tx_buff, 0, 1033);
-    // memcpy(&tx_buff[6], read_buff,1);
-    spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
-    usleep(dly*1000);
+//     spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
+//     usleep(dly*1000);
+//     do {
+//         ret = read(filed, read_buff, FILE_READ_LENGTH);
+//         if(ret != 0) {
+//             Make_Spi_Packet(tx_buff, read_buff, ret, REC, REC_CLIP_F);
+//             // memset(tx_buff, 0, 1024);
+//             // memcpy(&tx_buff[6], read_buff, ret);
+//             spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
+//             // printf("STX:0x%02x CMD:0x%02x%02x LEN:0x%02x%02x ETX:0x%02x\n", 
+//                         // tx_buff[0], tx_buff[1], tx_buff[2], tx_buff[3], tx_buff[4], tx_buff[1023]);
+//         }
+//         usleep(dly*1000);
+//     } while(ret != 0);
+//     read_buff[0] = 1;
+//     Make_Spi_Packet(tx_buff, read_buff, 1, REC, REC_STREAM_END);
+//     // memset(tx_buff, 0, 1033);
+//     // memcpy(&tx_buff[6], read_buff,1);
+//     spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
+//     usleep(dly*1000);
 
-    return ret;
-}
+//     return ret;
+// }
 
 int Ready_Busy_Check(void) {
     int ret = -1;
@@ -931,6 +931,10 @@ int spi_send_file(uint8_t minor, char *file)
     	return -1;
     }
     sz_file = file_info.st_size;
+    if (sz_file < 10*1024) {
+        printf("File Size Low!:%d\n", sz_file);
+        return -1;
+    }
     printf("**********FILE SEND START CMD************\n");
     // printf("d %s,s %d,d %d,b %d,m %d,f %s, size:%d\n",device,speed,delay,bits,mode,file,sz_file);
 
@@ -1164,6 +1168,11 @@ int spi_send_file_dual(uint8_t minor1, uint8_t minor2, char *file1, char *file2)
 
     
     sz_file = file_info1.st_size + file_info2.st_size;
+
+    if (sz_file < 10*1024) {
+        printf("File Size Low!:%d\n", sz_file);
+        return -1;
+    }
     printf("**********FILE SEND START CMD************\n");
     // printf("d %s,s %d,d %d,b %d,m %d,f %s, size:%d\n",device,speed,delay,bits,mode,file,sz_file);
 
@@ -1411,6 +1420,11 @@ int spi_send_save_file(char *path, char *file)
     parse_filename(file, &fileinfo);
 
     sz_file = file_info.st_size;
+
+    if (sz_file < 10*1024) {
+        printf("File Size Low!:%d\n", sz_file);
+        return -1;
+    }
 
     printf("size:%d date:%s order:%d topbot:%d type1:%d type2:%d\n", 
         sz_file, fileinfo.date, fileinfo.order, fileinfo.top_bottom, fileinfo.type1, fileinfo.type2);

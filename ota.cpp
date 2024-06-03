@@ -155,7 +155,7 @@ bool verify_md5(const std::string& file_path, const std::string& expected_md5) {
     try {
         actual_md5 = calculate_md5(file_path);
     } catch (const std::exception& e) {
-        std::cerr << "에러: " << e.what() << std::endl;
+        std::cerr << "error: " << e.what() << std::endl;
         return false;
     }
     return actual_md5 == expected_md5;

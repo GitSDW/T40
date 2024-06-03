@@ -93,6 +93,7 @@ typedef enum {
 	SET_DOOR_CAP 	= 0x4E,
 	SET_SAVE_SEND 	= 0x4F,
 	SET_FACTORY		= 0x50,
+	SET_BLE_LT 		= 0x51,
 	
 	SET_DATE  		= 0x7E,
 	SET_STOP  		= 0x7F,

@@ -252,6 +252,7 @@ static void *sample_ivs_move_get_result_process(void *arg)
 					// 	max_pixel_x = result->rects[j].br.x;
 					// 	max_pixel_y = result->rects[j].br.y;
 					// }
+					// printf("sx:%d sy:%d ex:%d ey:%d\n", result->rects[j].ul.x , result->rects[j].ul.y, result->rects[j].br.x, result->rects[j].br.x );
 					detect_flag = true;;
 				}
 			}

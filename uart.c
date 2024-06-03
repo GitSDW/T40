@@ -161,7 +161,7 @@ int uart_init(void) {
     // cfsetispeed(&tty, B2500000);
     // cfsetospeed(&tty, B115200);
     // cfsetispeed(&tty, B115200);
-    // B115200 B921600
+    // B115200 B921600 B460800 B576000 B921600
 
     // 통신 속성 설정
     tty.c_cflag = B115200;
@@ -715,6 +715,12 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             ack_len = 0;
             ack_flag = true;
             cmd_end_flag = true;
+        break;
+        case SET_BLE_LT:
+            printf("Ble Light Set!\n");
+            gpio_LED_dimming(rbuff[index+9]);
+            ack_len = 0;
+            ack_flag = true;
         break;
         }
     break;

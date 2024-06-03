@@ -2331,6 +2331,13 @@ int Send_Frame_Main_UDP(IMPEncoderStream *stream) {
 		VM_Frame_Buff.ftime[VM_Frame_Buff.index] = pack->timestamp;
 		// if (pack->sliceType == IMP_ENC_SLICE_I)
 			// printf("Main I Frame Find!!\n");
+		// if (stream->pack[nr_pack-1].sliceType == IMP_ENC_SLICE_I) {
+		// 	printf("pack:%d 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x \n", stream->virAddr + pack->offset,
+		// 															stream->virAddr + pack->offset + 1,
+		// 															stream->virAddr + pack->offset + 2,
+		// 															stream->virAddr + pack->offset + 3,
+		// 															stream->virAddr + pack->offset + 4);
+		// }
 	}
 	VM_Frame_Buff.len[VM_Frame_Buff.index] = len;
 	VM_Frame_Buff.index = (VM_Frame_Buff.index+1)%10;

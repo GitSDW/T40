@@ -369,12 +369,6 @@ int gpio_LED_dimming (int onoff) {
 		system("echo 0 > /sys/class/pwm/pwmchip0/pwm6/enable");
 		system("echo 1 > /sys/class/pwm/pwmchip0/pwm6/enable");
 		
-		ret = gpio_set_val(PORTD+6, 1);
-		if(ret < 0){
-			printf("Fail set Value GPIO : %d\n", PORTD+6);
-			return -1;
-		}
-
 		dimming = true;
 	}
 
@@ -630,12 +624,7 @@ int main(int argc, char **argv) {
 		spk_gain_buf = 15;
     Mosaic_En = settings.SF.bits.per_face;
 
-    move_det_xs = settings.move_ex_s_x;
-	move_det_ys = settings.move_ex_s_y;
-	move_det_xe = settings.move_ex_e_x;
-	move_det_ye = settings.move_ex_e_y;
-	printf("Move Ex : %d %d %d %d\n", settings.move_ex_s_x, settings.move_ex_s_y, settings.move_ex_e_x, settings.move_ex_e_y);
-
+   
 #ifndef	__TEST_FAKE_VEDIO__
 	video_init();
 #endif
@@ -657,8 +646,14 @@ int main(int argc, char **argv) {
     pthread_t tid_uart;
     printf("Ver : %s.%s.%s\n", MAJOR_VER, MINOR_VER, CAHR_VER);
 
-    
- 
+    if (settings.SF.bits.move_ex){
+ 		move_flag = true;
+ 		move_det_xs = settings.move_ex_s_x;
+		move_det_ys = settings.move_ex_s_y;
+		move_det_xe = settings.move_ex_e_x;
+		move_det_ye = settings.move_ex_e_y;
+		printf("Move Ex : %d %d %d %d\n", settings.move_ex_s_x, settings.move_ex_s_y, settings.move_ex_e_x, settings.move_ex_e_y);
+    }
 
     Set_Vol(100,25,spk_vol_buf,spk_gain_buf);
 
@@ -1837,7 +1832,7 @@ int clip_total(void) {
 	}
 
 	if (settings.SF.bits.led) {
-	    if (ExpVal > 1000) {
+	    if (ExpVal > 10000) { // Noh Change 1000 -> 10000 20240530
 	    	gpio_LED_Set(1);
 	    }
 	    else {
@@ -1850,7 +1845,9 @@ int clip_total(void) {
 	do {
 		if (start_flag == false) {
 		#ifndef __PHILL_REQ__
-			if ((face_cnt > 0) || (person_cnt > 0) || (main_motion_detect > 1) || bell_flag || temp_flag) {
+			// if ((face_cnt > 0) || (person_cnt > 0) || (main_motion_detect > 1) || bell_flag || temp_flag) {
+			if ((face_cnt > 0) || (main_motion_detect > 1) || bell_flag || temp_flag) {
+				printf("fc : %d Motion : %d\n", face_cnt, main_motion_detect);
 				printf("Start REC!!\n");
 				start_flag = true;
 				roaming_person = false;
@@ -2150,7 +2147,7 @@ int clip_total(void) {
 					}
 				}
 
-				if (rec_streaming_state == REC_STOP) {
+				if ((rec_streaming_state == REC_STOP) && (total_time2 > BELL_TIME_MIN)) {
 					rec_streaming_state = REC_MP4MAKE;
 					printf("BELL END:Steaming End! %lld\n", total_time);
 					bell_rec_state = REC_STOP;
@@ -2170,7 +2167,7 @@ int clip_total(void) {
 					}
 				}
 
-				if ((total_time2 > FACE_FIND_END_TIME) && (person_cnt == 0) && (main_motion_detect == 0) && (bell_rec_state < REC_STOP)) {
+				if ((total_time2 > BELL_TIME_MIN) && (person_cnt == 0) && (main_motion_detect == 0) && (bell_rec_state < REC_STOP)) {
 					if ((sample_gettimeus() - end_time2) > CLIP_CLOSE_TIME) {
 						printf("BELL END:Move End! %lld\n", total_time);
 						bell_rec_state = REC_STOP;
@@ -3434,6 +3431,7 @@ int stream_total(void) {
 				}
 			}
 		}
+		
 		if (streaming_rec_state >= REC_START && streaming_rec_state < REC_STOP) {
 			rec_now = sample_gettimeus() - rec_time_s;
 			if (rec_total + rec_now >= 60000000) {
@@ -3585,6 +3583,10 @@ int Setting_Total(void) {
     bool door1=false, door2=false;
     bool cap_start = false, ubi_start = false;
 
+    int64_t dimming_e = 0;
+    int dimming_val = 90;
+    bool dimming_up = true;
+
 
 #ifdef STREAMING_SPI
     // pthread_t tid_spi;
@@ -3695,6 +3697,25 @@ int Setting_Total(void) {
 	printf("Thread Start!\n");
 
 	do {
+		if (dimming) {
+			dimming_e =  sample_gettimeus() - dimming_s;
+			if ((dimming_e > 30000) & dimming_up) {
+				dimming_s = sample_gettimeus();
+				dimming_val -= 1;
+				LED_dimming (dimming_val);
+				if (dimming_val <= 10) {
+					dimming_up = false;
+				}
+			}
+			else if ((dimming_e > 30000) & !dimming_up) {
+				dimming_s = sample_gettimeus();
+				dimming_val += 1;
+				LED_dimming (dimming_val);
+				if (dimming_val >= 90) {
+					dimming_up = true;
+				}
+			}
+		}
 
 		if (door_cap_flag){
 			if (!cap_start) {
