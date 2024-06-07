@@ -10,7 +10,7 @@ extern "C" {
 
 #define MAJOR_VER	"0"
 #define MINOR_VER	"5"	
-#define CAHR_VER	"l"
+#define CAHR_VER	"n"
 
 typedef struct CIRCULAR_BUFF
 {
@@ -26,12 +26,12 @@ typedef struct CIRCULAR_BUFF
 
 typedef struct CIRCULAR_BUFF2
 {
-	unsigned char *tx[10];
-	int len[10];
+	unsigned char *tx[20];
+	int len[20];
 	int index;
 	int Rindex;
 	int cnt;
-	int64_t ftime[10];
+	int64_t ftime[20];
 	// unsigned char *buff;
 	// int blen;
 } Buff2_t;
@@ -73,7 +73,8 @@ int move_det_xs, move_det_ys, move_det_xe, move_det_ye;
 #else
 	// #define V_SEND_SIZE 					868
 	// #define V_SEND_SIZE 					992
-	#define V_SEND_SIZE 					978
+	// #define V_SEND_SIZE 					978 // Ver 0.5.l
+	#define V_SEND_SIZE 					974	// Test Pack Error!
 #endif
 
 

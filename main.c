@@ -54,8 +54,8 @@ int memory_init(void) {
 	// VM_Frame_Buff.len[2] = 0;
 	// VM_Frame_Buff.len[3] = 0;
 	// VM_Frame_Buff.len[4] = 0;
-	for (i=0; i<10; i++) {
-		VM_Frame_Buff.tx[i] = (unsigned char *)malloc(256*1024);
+	for (i=0; i<20; i++) {
+		VM_Frame_Buff.tx[i] = (unsigned char *)malloc(128*1024);
 		VM_Frame_Buff.len[i] = 0;
 	}
 	VM_Frame_Buff.index = 0;
@@ -72,8 +72,8 @@ int memory_init(void) {
 	// VB_Frame_Buff.len[2] = 0;
 	// VB_Frame_Buff.len[3] = 0;
 	// VB_Frame_Buff.len[4] = 0;
-	for (i=0; i<10; i++) {
-		VB_Frame_Buff.tx[i] = (unsigned char *)malloc(256*1024);
+	for (i=0; i<20; i++) {
+		VB_Frame_Buff.tx[i] = (unsigned char *)malloc(128*1024);
 		VB_Frame_Buff.len[i] = 0;
 	}
 	VB_Frame_Buff.index = 0;
@@ -3478,7 +3478,10 @@ int stream_total(void) {
 					memset(file_sep, 0, 256);
 					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/rec-3-%d.h264 -c copy /dev/shm/rec3_%d.mp4", i+1, i+1);
 					system(file_sep);
+					sprintf(file_sep, "cp /dev/shm/rec0_%d.mp4 /tmp/mnt/sdcard/pcktest.mp4", i+1);
+					system(file_sep);
 				#endif
+
 					if (rec_each_time[i] < 23000000)
 						file_cnt_rec = 1;
 					else if(rec_each_time[i] < 43000000)
@@ -3533,6 +3536,7 @@ int stream_total(void) {
 						}
 					}
 				}
+				system("sync");
 			}
 			device_end(STREAMING);
 			printf("Streaming Mode End!!\n");

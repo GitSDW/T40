@@ -929,7 +929,7 @@ int sample_encoder_init(int ch)
                     						imp_chn_attr_tmp->outFrmRateNum, 
                     						imp_chn_attr_tmp->outFrmRateDen,
                     						imp_chn_attr_tmp->outFrmRateNum / imp_chn_attr_tmp->outFrmRateDen, 
-                    						2,
+                    						1,
                     						(S_RC_METHOD == IMP_ENC_RC_MODE_FIXQP) ? 35 : -1,
                     						uTargetBitRate);
         if (ret < 0) {
@@ -2290,6 +2290,7 @@ int Send_Frame_Main_UDP(IMPEncoderStream *stream) {
 	int i, nr_pack = stream->packCount;
 	static bool start_flag = false;
 	
+	
 	if (!start_flag) {
 		printf("m nr_pack:%d\n", nr_pack);
 		if ((nr_pack > 1)) {
@@ -2297,10 +2298,10 @@ int Send_Frame_Main_UDP(IMPEncoderStream *stream) {
 				printf("m Stream Start:%d %d\n", nr_pack, stream->pack[nr_pack-1].sliceType);
 				start_flag = true;
 				VM_Frame_Buff.len[VM_Frame_Buff.index] = 1;
-				VM_Frame_Buff.index = (VM_Frame_Buff.index+1)%10;
+				VM_Frame_Buff.index = (VM_Frame_Buff.index+1)%20;
 				VM_Frame_Buff.cnt++;
 				VM_Frame_Buff.len[VM_Frame_Buff.index] = 1;
-				VM_Frame_Buff.index = (VM_Frame_Buff.index+1)%10;
+				VM_Frame_Buff.index = (VM_Frame_Buff.index+1)%20;
 				VM_Frame_Buff.cnt++;
 				// return 0;
 			}
@@ -2315,34 +2316,36 @@ int Send_Frame_Main_UDP(IMPEncoderStream *stream) {
 
 	// printf("nr_pack:%d\n", nr_pack);
 
-	if(VM_Frame_Buff.cnt >= 10){
+	if(VM_Frame_Buff.cnt >= 20){
 		printf("VM Frame Buffer Full!\n");
 		return -1;
 	}
+	
 	pthread_mutex_lock(&buffMutex_vm);
-	memset(VM_Frame_Buff.tx[VM_Frame_Buff.index], 0, 256*1024);
+	memset(VM_Frame_Buff.tx[VM_Frame_Buff.index], 0, 128*1024);
 	for(i = 0; i < nr_pack; i++) {
 		IMPEncoderPack *pack = &stream->pack[i];
 		if(pack->length){
 			memcpy(VM_Frame_Buff.tx[VM_Frame_Buff.index]+len, (void *)(stream->virAddr + pack->offset), pack->length);
 			len += pack->length;
 		}
-		// printf("[%d/%d]fram time:%lld\n", i+1, nr_pack, pack->timestamp);
+		// printf("[%d/%d]fram time:%lld seq:%d \n", i+1, nr_pack, pack->timestamp, stream->seq);
 		VM_Frame_Buff.ftime[VM_Frame_Buff.index] = pack->timestamp;
 		// if (pack->sliceType == IMP_ENC_SLICE_I)
 			// printf("Main I Frame Find!!\n");
 		// if (stream->pack[nr_pack-1].sliceType == IMP_ENC_SLICE_I) {
-		// 	printf("pack:%d 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x \n", stream->virAddr + pack->offset,
-		// 															stream->virAddr + pack->offset + 1,
-		// 															stream->virAddr + pack->offset + 2,
-		// 															stream->virAddr + pack->offset + 3,
-		// 															stream->virAddr + pack->offset + 4);
+		// test = stream->virAddr + pack->offset;
+			// printf("pack[%d/%d] 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x \n", i+1, nr_pack, test[0], test[1], test[2], test[3], test[4]);
 		// }
 	}
 	VM_Frame_Buff.len[VM_Frame_Buff.index] = len;
-	VM_Frame_Buff.index = (VM_Frame_Buff.index+1)%10;
+	VM_Frame_Buff.index = (VM_Frame_Buff.index+1)%20;
 	VM_Frame_Buff.cnt++;
 	pthread_mutex_unlock(&buffMutex_vm);
+
+	// if (stream->pack[nr_pack-1].sliceType == IMP_ENC_SLICE_I) {
+	// 	printf("I Frame Len : %d\n", len);
+	// }
 
 	// if (stream->pack[nr_pack-1].sliceType == IMP_ENC_SLICE_I) {
 	// 	printf("t frame len:%d\n", tlen);
@@ -2400,10 +2403,10 @@ int Send_Frame_Box_UDP(IMPEncoderStream *stream) {
 				printf("b Stream Start:%d %d\n", nr_pack, stream->pack[nr_pack-1].sliceType);
 				start_flag = true;
 				VB_Frame_Buff.len[VB_Frame_Buff.index] = 1;
-				VB_Frame_Buff.index = (VB_Frame_Buff.index+1)%10;
+				VB_Frame_Buff.index = (VB_Frame_Buff.index+1)%20;
 				VB_Frame_Buff.cnt++;
 				VB_Frame_Buff.len[VB_Frame_Buff.index] = 1;
-				VB_Frame_Buff.index = (VB_Frame_Buff.index+1)%10;
+				VB_Frame_Buff.index = (VB_Frame_Buff.index+1)%20;
 				VB_Frame_Buff.cnt++;
 				// return 0;
 			}
@@ -2416,12 +2419,12 @@ int Send_Frame_Box_UDP(IMPEncoderStream *stream) {
 		}
 	}
 
-	if(VB_Frame_Buff.cnt >= 10){
+	if(VB_Frame_Buff.cnt >= 20){
 		printf("VB Frame Buffer Full!\n");
 		return -1;
 	}
 	pthread_mutex_lock(&buffMutex_vb);
-	memset(VB_Frame_Buff.tx[VB_Frame_Buff.index], 0, 256 *1024);
+	memset(VB_Frame_Buff.tx[VB_Frame_Buff.index], 0, 128 *1024);
 	for(i = 0; i < nr_pack; i++) {
 		IMPEncoderPack *pack = &stream->pack[i];
 		if(pack->length){
@@ -2433,7 +2436,7 @@ int Send_Frame_Box_UDP(IMPEncoderStream *stream) {
 			// printf("Box I Frame Find!!\n");
 	}
 	VB_Frame_Buff.len[VB_Frame_Buff.index] = len;
-	VB_Frame_Buff.index = (VB_Frame_Buff.index+1)%10;
+	VB_Frame_Buff.index = (VB_Frame_Buff.index+1)%20;
 	VB_Frame_Buff.cnt++;
 	pthread_mutex_unlock(&buffMutex_vb);
 

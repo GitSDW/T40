@@ -426,6 +426,28 @@ int Set_Target_Bit(uint32_t targetbit) {
 	return 0;
 }
 
+int Set_Target_Bit2(uint32_t targetbit) {
+	IMPEncoderAttrRcMode encecmode;
+
+	IMP_Encoder_GetChnAttrRcMode(CH0_INDEX, &encecmode);
+	// printf("Before uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
+	encecmode.attrCbr.uTargetBitRate = targetbit;
+	IMP_Encoder_SetChnAttrRcMode(CH0_INDEX, &encecmode);
+	IMP_Encoder_GetChnAttrRcMode(CH0_INDEX, &encecmode);
+
+	// printf("enc rc mode:%d\n", encecmode.rcMode);
+	// printf("enc rc CBR uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
+	// printf("enc rc CBR iInitialQP:%d\n", encecmode.attrCbr.iInitialQP);
+	// printf("enc rc CBR iMinQP:%d\n", encecmode.attrCbr.iMinQP);
+	// printf("enc rc CBR iMaxQP:%d\n", encecmode.attrCbr.iMaxQP);
+	// printf("enc rc CBR iIPDelta:%d\n", encecmode.attrCbr.iIPDelta);
+	// printf("enc rc CBR iPBDelta:%d\n", encecmode.attrCbr.iPBDelta);
+	// printf("enc rc CBR eRcOptions:%d\n", encecmode.attrCbr.eRcOptions);
+	// printf("enc rc CBR uMaxPictureSize:%d\n", encecmode.attrCbr.uMaxPictureSize);
+
+	return 0;
+}
+
 IMPCell osdcell;
 
 int video_init(void) {
