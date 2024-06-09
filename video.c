@@ -27,29 +27,29 @@ static int osd_show(void)
 {
 	int ret, i;
 
-	if (move_flag) {
-		IMPOSDRgnAttr rect_rAttr;
-		rect_rAttr.type = OSD_REG_RECT;
-		rect_rAttr.rect.p0.x = move_det_xs;
-		rect_rAttr.rect.p0.y = move_det_ys;
-		rect_rAttr.rect.p1.x = move_det_xe - 1;
-		rect_rAttr.rect.p1.y = move_det_ye - 1;
-		rect_rAttr.fmt = PIX_FMT_MONOWHITE;
-		rect_rAttr.data.lineRectData.color = OSD_RED;
-		rect_rAttr.data.lineRectData.linewidth = 3;
-		IMP_OSD_SetRgnAttr(prHander[TEST_RECT_INDEX], &rect_rAttr);
-		ret = IMP_OSD_ShowRgn(prHander[TEST_RECT_INDEX], mosdgrp, 1);
-		if (ret != 0) {
-			IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
-			return -1;
-		}
+	// if (move_flag) {
+	// 	IMPOSDRgnAttr rect_rAttr;
+	// 	rect_rAttr.type = OSD_REG_RECT;
+	// 	rect_rAttr.rect.p0.x = move_det_xs;
+	// 	rect_rAttr.rect.p0.y = move_det_ys;
+	// 	rect_rAttr.rect.p1.x = move_det_xe - 1;
+	// 	rect_rAttr.rect.p1.y = move_det_ye - 1;
+	// 	rect_rAttr.fmt = PIX_FMT_MONOWHITE;
+	// 	rect_rAttr.data.lineRectData.color = OSD_RED;
+	// 	rect_rAttr.data.lineRectData.linewidth = 3;
+	// 	IMP_OSD_SetRgnAttr(prHander[TEST_RECT_INDEX], &rect_rAttr);
+	// 	ret = IMP_OSD_ShowRgn(prHander[TEST_RECT_INDEX], mosdgrp, 1);
+	// 	if (ret != 0) {
+	// 		IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
+	// 		return -1;
+	// 	}
 
-		ret = IMP_OSD_ShowRgn(prHander[TEST_COVER_INDEX], mosdgrp, 0);
-		if (ret != 0) {
-			IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Test Cover error\n");
-			return -1;
-		}
-	}
+	// 	ret = IMP_OSD_ShowRgn(prHander[TEST_COVER_INDEX], mosdgrp, 0);
+	// 	if (ret != 0) {
+	// 		IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Test Cover error\n");
+	// 		return -1;
+	// 	}
+	// }
 
 	// for (i=0; i<27; i++) {
 	// 	printf("grid[%d]:0x%02x\n", i, settings.user_grid[i]);

@@ -733,8 +733,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         usleep(50*1000);
         uart_tx = malloc(ack_len+10);
         res = Make_Uart_Ack(uart_tx, ack_len, ack_data, ack_major, ack_minor);
-        uart_send(fd_uart, uart_tx, res);
-        printf("Ack Major:0x%02x Minor0x%02x\n", uart_tx[1], uart_tx[2]);
+        // uart_send(fd_uart, uart_tx, res);
+        // printf("Ack Major:0x%02x Minor0x%02x\n", uart_tx[1], uart_tx[2]);
         ack_flag = false;
         free(uart_tx);
     }
@@ -753,20 +753,21 @@ int device_star(uint8_t major) {
     uart_tx[1] = (major & 0x7F) & 0xFF;
     uart_tx[2] = 0x01;
     uart_tx[3] = 0;
-    uart_tx[4] = 5;
+    uart_tx[4] = 0; //5; 
     uart_tx[5] = 0x00;
     uart_tx[6] = 0x00;
     uart_tx[7] = 0x00;
     uart_tx[8] = 0x00;
 
-    sprintf((char*)&uart_tx[9], "%s.%s.%s", MAJOR_VER, MINOR_VER, CAHR_VER);
+    // sprintf((char*)&uart_tx[9], "%s.%s.%s", MAJOR_VER, MINOR_VER, CAHR_VER);
     
-    uart_tx[14] = 0x03;
+    // uart_tx[14] = 0x03;
+    uart_tx[9] = 0x03;
 
     uart_send(fd_uart, uart_tx, 15);
     
     printf("Device Start Major:0x%02x\n", uart_tx[1]);
-    printf("%c%c%c%c%c\n",(char) uart_tx[9],(char) uart_tx[10],(char) uart_tx[11],(char) uart_tx[12],(char) uart_tx[13]);
+    // printf("%c%c%c%c%c\n",(char) uart_tx[9],(char) uart_tx[10],(char) uart_tx[11],(char) uart_tx[12],(char) uart_tx[13]);
     
     free(uart_tx);
 

@@ -2289,6 +2289,7 @@ int Send_Frame_Main_UDP(IMPEncoderStream *stream) {
 	// static tlen = 0;
 	int i, nr_pack = stream->packCount;
 	static bool start_flag = false;
+	static int64_t old_ftime = 0;
 	
 	
 	if (!start_flag) {
@@ -2344,7 +2345,16 @@ int Send_Frame_Main_UDP(IMPEncoderStream *stream) {
 	pthread_mutex_unlock(&buffMutex_vm);
 
 	// if (stream->pack[nr_pack-1].sliceType == IMP_ENC_SLICE_I) {
-	// 	printf("I Frame Len : %d\n", len);
+	// 	if (old_ftime > 0) {
+	// 		printf("I Frame Time : %lld\n", stream->pack[0].timestamp-old_ftime);
+	// 		old_ftime = stream->pack[0].timestamp;
+	// 	}
+	// 	else {
+	// 		old_ftime = stream->pack[0].timestamp;
+	// 	}
+	// }
+	
+	// 	printf("I Frame Len : %d time : %d\n", len, VM_Frame_Buff.ftime[VM_Frame_Buff.index]);
 	// }
 
 	// if (stream->pack[nr_pack-1].sliceType == IMP_ENC_SLICE_I) {

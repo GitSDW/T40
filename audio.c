@@ -821,9 +821,9 @@ void *IMP_Audio_Play_Thread(void *argv)
 				asflg = true;
 				as_time = sample_gettimeus();
 				datasize = (AO_Cir_Buff.WIndex - AO_Cir_Buff.RIndex + A_BUFF_SIZE) % (500*1024);
-				if (datasize >= 640) {
+				if (datasize >= 320) {
 					// datasize = datasize > AUDIO_SAMPLE_BUF_SIZE) ? AUDIO_SAMPLE_BUF_SIZE : datasize;
-					datasize = 640;
+					datasize = 320;
 					// printf("[CIR_BUFF_AO]AO_SIZE:%d datasize:%d WIndex:%d RIndex%d\n", AUDIO_SAMPLE_BUF_SIZE, datasize, AO_Cir_Buff.WIndex, AO_Cir_Buff.RIndex);
 				}
 				// else {
@@ -849,15 +849,15 @@ void *IMP_Audio_Play_Thread(void *argv)
 
 		if (play_status.chnBusyNum != 0 && asflg)  {
 			if ((sample_gettimeus() - as_time) > 200000){
-				printf("Audio Dummy Data Set!!\n");
-				memset (buf, 0, 640);
-				datasize = 640;
+				// printf("Audio Dummy Data Set!!\n");
+				memset (buf, 0, 320);
+				datasize = 320;
 				as_time = sample_gettimeus();
 			}
 		}
 
 		if (play_status.chnBusyNum == 0 && asflg) {
-			printf("Audio Chn Busy Clear!!\n");
+			// printf("Audio Chn Busy Clear!!\n");
 			asflg = false;
 		}
 
@@ -913,7 +913,7 @@ void *IMP_Audio_Play_Thread(void *argv)
 			}
 			else {
 				// udp_ao_rolling_dcnt();
-				usleep(20*1000);
+				// usleep(20*1000);
 				// printf("[AO] sindex:%d windex:%d dcnt:%d\n", Audio_Ao_Attr.sindex, Audio_Ao_Attr.windex, Audio_Ao_Attr.dcnt);
 				ret = write(save_fd, buf, datasize);
 				datasize = 0;

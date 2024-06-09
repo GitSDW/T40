@@ -519,7 +519,7 @@ int Make_Spi_Packet_live_rtp(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_
         cal_time = (time - test_time);
         if (gap_time > 100000 || ((cal_time > 80000) && fm_end)){
             printf("Real Main RTP GAP:%lld cal_time:%lld\n", gap_time, cal_time);
-            if (bitrate_change != 300) {
+            if ((bitrate_change != 300) && ((cal_time > 80000) && fm_end)) {
                 bitrate_change = 300;
                 Set_Target_Bit2(bitrate_change);
                 bitrate_cnt = sample_gettimeus();
@@ -721,7 +721,7 @@ static int Recv_Spi_Packet_live(uint8_t *rbuff) {
 
     // printf("spi cnt:%d %d %d\n", spicnt, rbuff[index+8], len);
 
-    if (len != 1000){
+    if (len < 640){
         return -1;
     }
     
@@ -782,8 +782,8 @@ static int Recv_Spi_Packet_live(uint8_t *rbuff) {
                     memcpy(&AO_Cir_Buff.tx[AO_Cir_Buff.WIndex], &rbuff[index+9], len);
                     AO_Cir_Buff.WIndex = (AO_Cir_Buff.WIndex+len) % (500*1024);
                     // printf("[CIR_BUFF Audio Out]buff_space:%d WIndex:%d RIndex%d\n", buff_space, AO_Cir_Buff.WIndex, AO_Cir_Buff.RIndex);
-                    printf("M : 0x%02x m : 0x%02x len : %d seq : %d\n", major, minor, len, rbuff[index+8]);
-                    printf("Rindex : %d Windex : %d space : %d\n", AO_Cir_Buff.RIndex, AO_Cir_Buff.WIndex, buff_space);
+                    // printf("M : 0x%02x m : 0x%02x len : %d seq : %d\n", major, minor, len, rbuff[index+8]);
+                    // printf("Rindex : %d Windex : %d space : %d\n", AO_Cir_Buff.RIndex, AO_Cir_Buff.WIndex, buff_space);
                 }
                 else {
                     printf("AO Cir Buff Overflow!1\n");
@@ -945,6 +945,12 @@ int spi_send_file(uint8_t minor, char *file)
         len = 7;
         read_buff[5] = CLIP_CAUSE_STREM;
         read_buff[6] = CLIP_STREAM_REC;
+    }
+    else if (minor == REC_SNAPSHOT) {
+        uint8_t *uart_tx;
+        len = 10;
+        sprintf((char*)&read_buff[5], "%s.%s.%s", MAJOR_VER, MINOR_VER, CAHR_VER);
+    
     }
     else {
         len = 5;
@@ -1762,42 +1768,41 @@ void *spi_send_stream (void *arg)
 
         /////////// Vedio Box IN -> UDP Out //////////////////////////////////////////
         if (VB_Frame_Buff.cnt > 0 && (main_first >= 10)) {
-            framesize2 = VB_Frame_Buff.len[VB_Frame_Buff.Rindex]-(V_SEND_SIZE*frame_ptr2);
-            // for(int i=0; framesize2 > 0; i++){
-                pthread_mutex_lock(&buffMutex_vb);
-                datasize = (framesize2 > V_SEND_SIZE) ? V_SEND_SIZE : framesize2;
-                // udp_vm_send(VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*frame_ptr2), datasize);
-                framesize2 -= datasize;
-                // printf("cnt:%d, total:%d, dsize:%d\n", frame_ptr2, framesize2, datasize);
-                pthread_mutex_unlock(&buffMutex_vb);
-                // printf("[CIR_BUFF_VM]datasize:%d WIndex:%d RIndex%d\n", datasize, VM_Cir_Buff.WIndex, VM_Cir_Buff.RIndex);
-            #ifdef __H265__
-                Make_Spi_Packet_live(tx_buff, VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*frame_ptr2), datasize, STREAMING, STREAM_VEDIO_B);
-            #else
-                if (framesize2 < V_SEND_SIZE)    frame_end = true;
-                else                            frame_end = false;
-                Make_Spi_Packet_live_rtp(tx_buff, VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*frame_ptr2), 
-                                            datasize, STREAMING, STREAM_VEDIO_B, VB_Frame_Buff.ftime[VB_Frame_Buff.Rindex], frame_end);
-            #endif
-                
-                // memset(tx_buff, 0, 1024);
-                // memcpy(&tx_buff[6], read_buff, ret);
-                ///////////////// SPI Send //////////////////////////
-                if (data_sel == 2 || data_sel == 4) {
-                    // ret = spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
-                    ret = spi_rw_bytes(fd,tx_buff,rx_buff,SPI_SEND_LENGTH);
-                    // ret = 0;
-                    if (ret != 0) {
-                        printf("Fail Send SPI Data!\n");
-                    }
-                    else {
-                        frame_ptr2++;
-                        // printf("cnt:%d total:%d dsize%d\n", frame_ptr2, framesize2, datasize);
-                        // printf("V2\n");
-                        usleep(mv_delay*1000);
-                    }
+            if (frame_ptr2 == 0)
+                framesize2 = VB_Frame_Buff.len[VB_Frame_Buff.Rindex]-(V_SEND_SIZE*frame_ptr2);
+            pthread_mutex_lock(&buffMutex_vb);
+            datasize = (framesize2 > V_SEND_SIZE) ? V_SEND_SIZE : framesize2;
+            // udp_vm_send(VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*frame_ptr2), datasize);
+            framesize2 -= datasize;
+            // printf("cnt:%d, total:%d, dsize:%d\n", frame_ptr2, framesize2, datasize);
+            pthread_mutex_unlock(&buffMutex_vb);
+            // printf("[CIR_BUFF_VM]datasize:%d WIndex:%d RIndex%d\n", datasize, VM_Cir_Buff.WIndex, VM_Cir_Buff.RIndex);
+        #ifdef __H265__
+            Make_Spi_Packet_live(tx_buff, VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*frame_ptr2), datasize, STREAMING, STREAM_VEDIO_B);
+        #else
+            if (framesize2 < V_SEND_SIZE)    frame_end = true;
+            else                            frame_end = false;
+            Make_Spi_Packet_live_rtp(tx_buff, VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*frame_ptr2), 
+                                        datasize, STREAMING, STREAM_VEDIO_B, VB_Frame_Buff.ftime[VB_Frame_Buff.Rindex], frame_end);
+        #endif
+            
+            // memset(tx_buff, 0, 1024);
+            // memcpy(&tx_buff[6], read_buff, ret);
+            ///////////////// SPI Send //////////////////////////
+            if (data_sel == 2 || data_sel == 4) {
+                // ret = spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
+                ret = spi_rw_bytes(fd,tx_buff,rx_buff,SPI_SEND_LENGTH);
+                // ret = 0;
+                if (ret != 0) {
+                    printf("Fail Send SPI Data!\n");
                 }
-            // }
+                else {
+                    frame_ptr2++;
+                    // printf("cnt:%d total:%d dsize%d\n", frame_ptr2, framesize2, datasize);
+                    // printf("V2\n");
+                    usleep(mv_delay*1000);
+                }
+            }
             if (framesize2 <= 0) {
                 VB_Frame_Buff.Rindex = (VB_Frame_Buff.Rindex+1)%20;
                 VB_Frame_Buff.cnt--;
