@@ -108,11 +108,11 @@ extern "C"
 /* dual sensor joint mode only channel (0/1/2) */
 #define CHN0_EN                	1
 #define CHN1_EN              	0
-#define CHN2_EN                	1
+#define CHN2_EN                	0
 
 #define CHN3_EN					1
 #define CHN4_EN					0
-#define CHN5_EN					1
+#define CHN5_EN					0
 
 #define CHN6_EN					0
 
@@ -144,11 +144,11 @@ extern "C"
 
 
 // #define BITRATE_720P_Kbs        1000
-#define BITRATE_720P_Kbs        450
+#define BITRATE_720P_Kbs        400
 #define NR_FRAMES_TO_SAVE		200
 #define STREAM_BUFFER_SIZE		(3 * 1024 * 1024)
 
-#define ENC_VIDEO_CHANNEL		0
+#define ENC_VIDEO_CHANNEL		1
 #define ENC_JPEG_CHANNEL		1
 
 #define STREAM_FILE_PATH_PREFIX		"/dev/shm"

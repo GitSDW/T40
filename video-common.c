@@ -2289,7 +2289,7 @@ int Send_Frame_Main_UDP(IMPEncoderStream *stream) {
 	// static tlen = 0;
 	int i, nr_pack = stream->packCount;
 	static bool start_flag = false;
-	static int64_t old_ftime = 0;
+	// static int64_t old_ftime = 0;
 	
 	
 	if (!start_flag) {

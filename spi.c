@@ -439,6 +439,8 @@ int Make_Spi_Packet_live(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t ma
 int bitrate_change = 500;
 int64_t bitrate_cnt = 0;
 
+extern int Set_Target_Bit2(uint32_t targetbit);
+
 int Make_Spi_Packet_live_rtp(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t major, uint8_t minor, int64_t time, bool fm_end)
 {
     int reserv_cnt = V_SEND_RESERV;
@@ -517,9 +519,9 @@ int Make_Spi_Packet_live_rtp(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_
     if (minor == STREAM_VEDIO_M) {
         gap_time = sample_gettimeus()-real_time_gap;
         cal_time = (time - test_time);
-        if (gap_time > 100000 || ((cal_time > 80000) && fm_end)){
+        if ((cal_time > 80000) && fm_end){
             printf("Real Main RTP GAP:%lld cal_time:%lld\n", gap_time, cal_time);
-            if ((bitrate_change != 300) && ((cal_time > 80000) && fm_end)) {
+            if ((bitrate_change != 300) && fm_end) {
                 bitrate_change = 300;
                 Set_Target_Bit2(bitrate_change);
                 bitrate_cnt = sample_gettimeus();
@@ -724,6 +726,7 @@ static int Recv_Spi_Packet_live(uint8_t *rbuff) {
     if (len < 640){
         return -1;
     }
+
     
     if (spicnt == rbuff[index+8]) {
         // printf("C\n");
@@ -947,7 +950,6 @@ int spi_send_file(uint8_t minor, char *file)
         read_buff[6] = CLIP_STREAM_REC;
     }
     else if (minor == REC_SNAPSHOT) {
-        uint8_t *uart_tx;
         len = 10;
         sprintf((char*)&read_buff[5], "%s.%s.%s", MAJOR_VER, MINOR_VER, CAHR_VER);
     
@@ -1665,7 +1667,7 @@ void *spi_send_stream_bak (void *arg)
     return ((void*)0);
 }
 
-extern int Set_Target_Bit2(uint32_t targetbit);
+
 
 
 void *spi_send_stream (void *arg)
@@ -1680,7 +1682,7 @@ void *spi_send_stream (void *arg)
     int frame_ptr2 = 0;
     bool frame_end = false;
     int main_first = 0;
-    int delay_state = 0;
+    // int delay_state = 0;
     int mv_delay = 2;
     // bool stream_start1 = false;
 
@@ -1715,6 +1717,7 @@ void *spi_send_stream (void *arg)
             //         delay_state = 3;
             //     }
             // }
+
             if (bitrate_change != 500 && (sample_gettimeus()-bitrate_cnt)>3000000) {
                 bitrate_change = 500;
                 Set_Target_Bit2(bitrate_change);
@@ -1780,7 +1783,7 @@ void *spi_send_stream (void *arg)
         #ifdef __H265__
             Make_Spi_Packet_live(tx_buff, VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*frame_ptr2), datasize, STREAMING, STREAM_VEDIO_B);
         #else
-            if (framesize2 < V_SEND_SIZE)    frame_end = true;
+            if (datasize < V_SEND_SIZE)    frame_end = true;
             else                            frame_end = false;
             Make_Spi_Packet_live_rtp(tx_buff, VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*frame_ptr2), 
                                         datasize, STREAMING, STREAM_VEDIO_B, VB_Frame_Buff.ftime[VB_Frame_Buff.Rindex], frame_end);
@@ -1814,20 +1817,39 @@ void *spi_send_stream (void *arg)
        
         /////////// Audio IN -> UDP Out //////////////////////////////////////////////
         if (AI_Cir_Buff.RIndex != AI_Cir_Buff.WIndex) {
-            pthread_mutex_lock(&buffMutex_ai);
-            datasize = (AI_Cir_Buff.WIndex - AI_Cir_Buff.RIndex + A_BUFF_SIZE) % (500*1024);
-            datasize = (datasize > A_SEND_SIZE) ? A_SEND_SIZE : datasize;
-            for (int i = 0; i < datasize; ++i) {
-                buf[i] = AI_Cir_Buff.tx[AI_Cir_Buff.RIndex];
-                AI_Cir_Buff.RIndex = (AI_Cir_Buff.RIndex+1) % (500*1024);
-                if (AI_Cir_Buff.RIndex == AI_Cir_Buff.GIndex){
-                    // printf("[CIR_BUFF_AI]datasize:%d WIndex:%d RIndex%d GIndex%d\n", datasize, AI_Cir_Buff.WIndex, AI_Cir_Buff.RIndex, AI_Cir_Buff.GIndex);
-                    datasize = i+1;
-                    break;
-                }
+            
+            if (AI_Cir_Buff.WIndex >= AI_Cir_Buff.RIndex)
+                datasize = (AI_Cir_Buff.WIndex - AI_Cir_Buff.RIndex) % (500*1024);
+            else
+                // datasize = (AI_Cir_Buff.WIndex - AI_Cir_Buff.RIndex + A_BUFF_SIZE) % (500*1024);
+                datasize = 0;
+
+            if (datasize > 0) {
+                pthread_mutex_lock(&buffMutex_ai);
+                datasize = (datasize > A_SEND_SIZE) ? A_SEND_SIZE : datasize;
+                // for (int i = 0; i < datasize; ++i) {
+                //     buf[i] = AI_Cir_Buff.tx[AI_Cir_Buff.RIndex];
+                //     AI_Cir_Buff.RIndex = (AI_Cir_Buff.RIndex+1) % (500*1024);
+                //     if (AI_Cir_Buff.RIndex == AI_Cir_Buff.GIndex){
+                //         // printf("[CIR_BUFF_AI]datasize:%d WIndex:%d RIndex%d GIndex%d\n", datasize, AI_Cir_Buff.WIndex, AI_Cir_Buff.RIndex, AI_Cir_Buff.GIndex);
+                //         datasize = i+1;
+                //         break;
+                //     }
+                // }
+                // printf("Audio Rec Len : %d\n", datasize);
+                printf("[CIR_BUFF_AI]datasize:%d WIndex:%d RIndex%d len\n", datasize, AI_Cir_Buff.WIndex, AI_Cir_Buff.RIndex);
+                memset(buf, 0, datasize);
+                memcpy(buf, &AI_Cir_Buff.tx[AI_Cir_Buff.RIndex], datasize);
+                AI_Cir_Buff.RIndex = (AI_Cir_Buff.RIndex+datasize) % (500*1024);
+                // if (AI_Cir_Buff.RIndex == AI_Cir_Buff.WIndex) {
+                //     AI_Cir_Buff.RIndex = (AI_Cir_Buff.RIndex+1) % (500*1024);
+                // }
+                pthread_mutex_unlock(&buffMutex_ai);
             }
+
+
             // printf("[CIR_BUFF_VM]datasize:%d WIndex:%d RIndex%d\n", datasize, AI_Cir_Buff.WIndex, AI_Cir_Buff.RIndex);
-            pthread_mutex_unlock(&buffMutex_ai);
+            
             // udp_vm_send(buf, datasize);
             Make_Spi_Packet_live(tx_buff, buf, datasize, STREAMING, STREAM_AUDIO_F);
             // memset(tx_buff, 0, 1024);
@@ -1841,7 +1863,7 @@ void *spi_send_stream (void *arg)
                     printf("Fail Send SPI Data!\n");
                 }
                 else {
-                    // printf("AUDIO Send Data : 0x%02X%02X\n", tx_buff[3], tx_buff[4]);
+                    // printf("AUDIO Send Data : 0x%02X%02X\n", tx_buff[3+5], tx_buff[4+5]);
                     // printf("A\n");
                     usleep(mv_delay*1000);
                 }
@@ -2024,6 +2046,297 @@ void test_spi_onekbytes(int dly){
     }while(1);
 }
 
+int ota_fd = 0;
+uint16_t ota_seq = 0;
+char md5_hash_code[32] = {0};
+
+int OTA_Recv_Packet(uint8_t *rbuff) {
+    int len, ret = -1, res = 0;
+    uint8_t major, minor;
+    uint16_t seq_buf;
+    int buff_space = 0;
+    int recv_type = 0;
+    // static uint8_t data[10]= {0};
+    int bad_cnt = 0;
+    uint8_t *ota_buf;
+    static uint16_t seqcnt = 0xFFFF;
+
+#if 0
+    static int filefd = 0;
+    if (filefd == 0) {
+        filefd = open("/dev/shm/test.pcm", O_RDWR | O_CREAT | O_TRUNC, 0777);
+    }
+
+    major = rbuff[1];
+    minor = rbuff[2];
+    if (rbuff[0] != 0x02) {
+        // printf("S\n");
+        // return -1;
+        bad_cnt++;
+    }
+    
+    if (major != 0x82) {
+        bad_cnt++;
+    } 
+
+    if (minor != 0x07) {
+        bad_cnt++;
+    }
+
+    if (bad_cnt > 1) {
+        return -1;
+    }
+
+    len = rbuff[3]*256 + rbuff[4];
+
+    // printf("spi cnt:%d %d\n", rbuff[8], len);
+
+    printf("M : 0x%02x m : 0x%02x len : %d seq : %d\n", major, minor, len, rbuff[8]);
+
+    printf("rbuff:0x%02x 0x%02x 0x%02x 0x%02x\n", rbuff[1009], rbuff[1010], rbuff[1023], rbuff[1024]);
+
+    // for (int i=0; i<1000; i++) {
+    //     if (i%10 == 0) printf("\n");
+    //     printf("0x%02x ", rbuff[9+i]);
+    // }
+    // printf("\n");
+    
+#else
+    major = rbuff[1];
+    minor = rbuff[2];
+
+    if (rbuff[0] != 0x02) {
+        bad_cnt++;
+    }
+    
+    if (major != 0x83) {
+        bad_cnt++;
+    } 
+
+    if (minor != SET_FW_START && minor != SET_FW_DATA && minor != SET_FW_END) {
+        bad_cnt++;
+    }
+
+    if (bad_cnt > 1) {
+        return -1;
+    }
+
+    len = rbuff[3]*256 + rbuff[4];
+
+    // printf("spi cnt:%d %d %d\n", spicnt, rbuff[8], len);
+
+    if (rbuff[1023] != 0x03){
+        printf("[OTA_Recv] Length Worng!\n");
+        return -2;
+    }
+
+    
+
+    if(minor == SET_FW_DATA) {
+        seq_buf = rbuff[5]*256 + rbuff[6];
+        if (seqcnt == seq_buf) {
+            printf("[OTA_Recv] Seq Worng1! %d %d\n", seqcnt, seq_buf);
+            return -3;
+        }
+        else {
+            if (((seqcnt+1)%0x10000) == rbuff[8]) {
+                seqcnt = rbuff[8];
+                ota_seq = seqcnt;
+            }
+            else {
+                printf("[OTA_Recv] Seq Worng2! %d %d\n", seqcnt, seq_buf);
+                return -3;
+            }
+            
+        }
+    }
+    
+    switch(major) {
+    case DTEST_BACK:
+    case REC_BACK:
+    case STREAMING_BACK:
+    break;
+    case SETTING_BACK:
+        switch(minor) {
+            case SET_FW_START:
+                printf("OTA Start\n");
+                recv_type = read_buff[9];
+                memset(md5_hash_code, 0, 32);
+                memcpy(md5_hash_code, &read_buff[10], 32);
+                char print_buf[35] = {0};
+                memcpy(print_buf, md5_hash_code, 32);
+                print_buf[32] = '\n';
+                printf("hash:%s", print_buf);
+                ota_fd = open("/dev/shm/testfile", O_RDWR | O_CREAT | O_TRUNC, 0777);
+                if (ota_fd < 0) {
+                    printf("File Open Fail!\n");
+                    return -4;
+                }
+                res = 1;
+            break;
+            case SET_FW_DATA:
+                // ota_buf = malloc(1024);
+                printf("OTA Data Seq : %d\n", ota_seq);
+                // memset(ota_buf, 0, 1024);
+                // memcpy(ota_buf, &read_buff[9], len);
+                ret = write(ota_fd, &read_buff[9], len);
+                if (ret < 0) {
+                    printf("Write Fail\n");
+                    return -4;
+                }
+                // free(ota_buf);
+                res = 2;
+            break;
+            case SET_FW_END:
+                printf("OTA End\n");
+                if (ota_fd > 0) {
+                    close(ota_fd);
+                }
+                res = 3;
+            break;
+            default:
+            break;
+        }
+    break;
+    default:
+        return -1;
+    break;        
+    }
+#endif
+
+    return res;
+}
 
 
 
+int Make_OTA_Dummy_Packet(uint8_t *tbuff, uint8_t type, uint8_t state, uint8_t endstate) {
+    uint16_t len;
+
+    memset (tbuff, 0, 1024);
+    
+    tbuff[0] = 0x02;
+    tbuff[1] = SETTING;
+    tbuff[5] = 0;
+    tbuff[6] = 0;
+    tbuff[7] = 0;
+    tbuff[8] = 0;
+    
+
+    if (state == OTA_STATE_START) {
+        len = 1;
+        tbuff[2] = SET_START_DUMMY;
+        tbuff[3] = (len&0xFF00) >> 8;
+        tbuff[4] = len&0xFF;
+        tbuff[9] = type;
+    }
+    else if (state == OTA_STATE_DATA) {
+        len = 1;
+        tbuff[2] = SET_DATA_DUMMY;
+        tbuff[3] = (len&0xFF00) >> 8;
+        tbuff[4] = len&0xFF;
+        tbuff[5] = (ota_seq&0xFF00) >> 8;
+        tbuff[6] = ota_seq&0xFF;
+        tbuff[9] = type;
+
+    }
+    else if (state == OTA_STATE_END) {
+        len = 2;
+        tbuff[2] = SET_END_DUMMY;
+        tbuff[3] = (len&0xFF00) >> 8;
+        tbuff[4] = len&0xFF;
+        tbuff[9] = type;
+        tbuff[10] = endstate;
+    }
+    else {
+        printf("State Error! : %d\n", state);
+        return -1;
+    }
+
+    tbuff[1023] = 0x03;
+   
+    return 0;
+}
+
+void *OTA_Thread(void * argc) {
+    int ota_state = OTA_STATE_READY;
+    int64_t timeout_t = sample_gettimeus();
+    int ret = -1;
+    uint8_t err_state = OTA_END_SUCCESS;
+
+    ret = spi_init();
+    if(ret < 0){
+        printf("[OTA]spi init error\n");
+        return NULL;
+    }
+
+    // tx_buff
+    // rx_buff
+
+    do {
+        if (ota_state == OTA_STATE_READY){
+            printf("OTA Ready!\n");
+            ota_state = OTA_STATE_START;
+        }
+        else if (ota_state == OTA_STATE_START) {
+            printf("OTA Start!\n");
+            ret = Make_OTA_Dummy_Packet(tx_buff, ota_type_u, ota_state, 0);
+            if (ret < 0) {
+                // ota_state = OTA_STATE_END;
+                // err_state = OTA_END_DISCON;
+            }
+            ret = spi_rw_bytes(fd, tx_buff, rx_buff, SPI_SEND_LENGTH);
+            if (ret != 0) {
+                printf("Fail Send SPI Start!\n");
+            }
+            ret = OTA_Recv_Packet(rx_buff);
+            if (ret == 1) {
+                ota_state = OTA_STATE_DATA;
+            }
+            else {
+                // ota_state = OTA_STATE_END;
+                // err_state = OTA_END_DISCON;
+            }
+        }
+        else if (ota_state == OTA_STATE_DATA) {
+            printf("OTA Data!\n");
+            ret = Make_OTA_Dummy_Packet(tx_buff, ota_type_u, ota_state, 0);
+            if (ret < 0) {
+                // err_state = OTA_END_DISCON;
+            }
+            ret = spi_rw_bytes(fd, tx_buff, rx_buff, SPI_SEND_LENGTH);
+            if (ret != 0) {
+                printf("Fail Send SPI Data!\n");
+            }
+            ret = OTA_Recv_Packet(rx_buff);
+            if (ret == 2) {
+            }
+            else if (ret == 3) {
+            // if (ret == 3) {
+                ota_state = OTA_STATE_END;
+            }
+            else {
+                // ota_state = OTA_STATE_END;
+                // err_state = OTA_END_DISCON;
+            }
+        }
+        else if (ota_state == OTA_STATE_END) {
+            ret = Make_OTA_Dummy_Packet(tx_buff, ota_type_u, ota_state, err_state);
+            if (ret < 0) {
+                // err_state = OTA_END_DISCON;
+            }
+            ret = spi_rw_bytes(fd, tx_buff, rx_buff, SPI_SEND_LENGTH);
+            if (ret != 0) {
+                printf("Fail Send SPI End!\n");
+            }
+
+            ota_state = OTA_STATE_SHUTDN;
+        }
+        else {
+            printf("OTA Finish!\n");
+            cmd_end_flag = true;
+            return NULL;
+        }
+        usleep(3*1000);
+    } while (!bOTA);
+    return NULL;
+}

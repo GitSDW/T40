@@ -10,7 +10,7 @@ extern "C" {
 
 #define MAJOR_VER	"0"
 #define MINOR_VER	"5"	
-#define CAHR_VER	"o"
+#define CAHR_VER	"v"
 
 typedef struct CIRCULAR_BUFF
 {
@@ -73,8 +73,8 @@ int move_det_xs, move_det_ys, move_det_xe, move_det_ye;
 #else
 	// #define V_SEND_SIZE 					868
 	// #define V_SEND_SIZE 					992
-	// #define V_SEND_SIZE 					978 // Ver 0.5.l
-	#define V_SEND_SIZE 					974	// Test Pack Error!
+	#define V_SEND_SIZE 					978 // Ver 0.5.l
+	// #define V_SEND_SIZE 					974	// Test Pack Error!
 #endif
 
 
@@ -108,7 +108,7 @@ char ip[30];
 Buff_t AO_Cir_Buff;
 Buff_t AI_Cir_Buff;
 
-#define A_SEND_SIZE 882
+#define A_SEND_SIZE 640
 #define A_BUFF_SIZE 500*1024
 #define A_BUFF_MARGIN 100*1024
 
@@ -217,6 +217,7 @@ uint8_t *tx_buff;
 uint8_t *tx_tbuff;
 uint8_t *rx_buff;
 uint8_t *read_buff;
+uint8_t ota_type_u;
 
 int64_t start_time;
 uint32_t ExpVal;
@@ -283,6 +284,7 @@ bool cmd_end_flag;
 bool cfile_flag;
 bool bfile_flag;
 bool dimming;
+bool bOTA, ota_flag;
 
 
 extern int bExit;

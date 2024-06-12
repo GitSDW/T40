@@ -36,11 +36,11 @@ int64_t dimming_s = 0;
 
 int memory_init(void) {
 	int i=0;
-	AO_Cir_Buff.tx = (unsigned char *)malloc((size_t)500*1024);
+	AO_Cir_Buff.tx = (unsigned char *)malloc((size_t)512*1024);
 	AO_Cir_Buff.WIndex = 0;
 	AO_Cir_Buff.RIndex = 0;
 
-	AI_Cir_Buff.tx = (unsigned char *)malloc((size_t)500*1024);
+	AI_Cir_Buff.tx = (unsigned char *)malloc((size_t)512*1024);
 	AI_Cir_Buff.WIndex = 0;
 	AI_Cir_Buff.RIndex = 0;
 
@@ -168,6 +168,7 @@ int global_value_init(void) {
 	cfile_flag = false;
 	bfile_flag = false;
 	dimming = false;
+	ota_flag = false;
 
 	for(i=0;i<10;i++){
 		fdpd_data[i].flag = false;
@@ -328,7 +329,7 @@ int start_up_mode(void){
 
 int gpio_LED_dimming (int onoff) {
 	static bool led_flag=false;
-	int led_duty = 0, ret = 0;;
+	int led_duty = 0;
 	char file_sep[100] = {0};
 
 	if (!led_flag) {
@@ -376,7 +377,7 @@ int gpio_LED_dimming (int onoff) {
 }
 
 int LED_dimming (int duty) {
-	int led_duty = 0, ret = 0;;
+	int led_duty = 0;
 	char file_sep[100] = {0};
 
 	led_duty = duty;
@@ -616,7 +617,7 @@ int main(int argc, char **argv) {
 	global_value_init();
 
 	Setting_Init();
-	spk_vol_buf = (20 * settings.spk_vol) + 40;
+	spk_vol_buf = (10 * settings.spk_vol) + 55;
 	if (settings.spk_vol == 4){
 		spk_gain_buf = 15;
 	}
@@ -1760,7 +1761,7 @@ int clip_total(void) {
 	pthread_t tid_ao, tid_ai;
     // pthread_t tid_udp_in, tid_udp_out, tid_spi;
     pthread_t tid_stream, tid_snap, tid_move, tim_osd, tid_fdpd;
-    pthread_t tid_uart, tid_live;
+    pthread_t tid_uart;//, tid_live;
 
 
     // Init_Audio_Out();
@@ -1825,11 +1826,11 @@ int clip_total(void) {
 		return -1;
 	}
 
-	ret = pthread_create(&tid_live, NULL, device_live_thread, NULL);
-	if(ret != 0) {
-		IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create device_live_thread failed\n", __func__);
-		return -1;
-	}
+	// ret = pthread_create(&tid_live, NULL, device_live_thread, NULL);
+	// if(ret != 0) {
+		// IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create device_live_thread failed\n", __func__);
+		// return -1;
+	// }
 
 	if (settings.SF.bits.led) {
 	    if (ExpVal > 10000) { // Noh Change 1000 -> 10000 20240530
@@ -2775,7 +2776,7 @@ int clip_total(void) {
 	pthread_join(tid_fdpd, NULL);
 	pthread_join(tid_snap, NULL);
 	pthread_join(tid_uart, NULL);
-	pthread_join(tid_live, NULL);
+	// pthread_join(tid_live, NULL);
 
 	return 0;
 }
@@ -2892,7 +2893,7 @@ int stream_total(void) {
 
 	pthread_t tid_ao, tid_ai;
     pthread_t tid_stream, tid_snap, tid_move, tim_osd, tid_fdpd;
-    pthread_t tid_uart, tid_live;
+    pthread_t tid_uart;//, tid_live;
 
     // pthread_t adc_thread_id, tid_clip;
 
@@ -3000,11 +3001,11 @@ int stream_total(void) {
 		return -1;
 	}
 
-	ret = pthread_create(&tid_live, NULL, device_live_thread, NULL);
-	if(ret != 0) {
-		IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create device_live_thread failed\n", __func__);
-		return -1;
-	}
+	// ret = pthread_create(&tid_live, NULL, device_live_thread, NULL);
+	// if(ret != 0) {
+		// IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create device_live_thread failed\n", __func__);
+		// return -1;
+	// }
 
 	// system("rm /tmp/mnt/sdcard/main*.jpg");
 	// system("rm /tmp/mnt/sdcard/box*.jpg");
@@ -3568,7 +3569,7 @@ int stream_total(void) {
 	pthread_join(tid_spi, NULL);
 #endif
 	pthread_join(tid_uart, NULL);
-	pthread_join(tid_live, NULL);
+	// pthread_join(tid_live, NULL);
 
 
 	return 0;
@@ -3580,7 +3581,7 @@ int Setting_Total(void) {
 
 	// pthread_t tid_ao, tid_ai;
     // pthread_t tid_stream, tid_clip, tid_snap, tid_move, tim_osd, tid_fdpd, adc_thread_id;
-    pthread_t tid_uart, tid_snap, tid_live;
+    pthread_t tid_uart, tid_snap, tid_live, tid_ota;
     // pthread_t tid_spi;
     char file_path[64] = {0};
 
@@ -3590,6 +3591,7 @@ int Setting_Total(void) {
     int64_t dimming_e = 0;
     int dimming_val = 90;
     bool dimming_up = true;
+    bool ota_thread_flag = false;
 
 
 #ifdef STREAMING_SPI
@@ -3690,11 +3692,11 @@ int Setting_Total(void) {
 		return -1;
 	}
 
-	ret = pthread_create(&tid_live, NULL, device_live_thread, NULL);
-	if(ret != 0) {
-		IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create device_live_thread failed\n", __func__);
-		return -1;
-	}
+	// ret = pthread_create(&tid_live, NULL, device_live_thread, NULL);
+	// if(ret != 0) {
+		// IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create device_live_thread failed\n", __func__);
+		// return -1;
+	// }
 
 
 	// usleep(1000*1000);
@@ -3809,6 +3811,15 @@ int Setting_Total(void) {
 			device_end(SETTING);
 			save_send_flag = false;
 		}
+		if (ota_flag) {
+			ret = pthread_create(&tid_ota, NULL, OTA_Thread, NULL);
+			if(ret != 0) {
+				IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create OTA_Thread failed\n", __func__);
+				return -1;
+			}
+			ota_thread_flag = true;
+			ota_flag = false;
+		}
 
 		if (cmd_end_flag) {
 			system("sync");
@@ -3816,6 +3827,7 @@ int Setting_Total(void) {
 			printf("[END] CMD Send!\n");
 			device_end(SETTING);
 			cmd_end_flag = false;
+			break;
 		}
 
 			
@@ -3827,7 +3839,7 @@ int Setting_Total(void) {
 
 	pthread_join(tid_uart, NULL);
 	pthread_join(tid_live, NULL);
-
+	if (ota_thread_flag) pthread_join(tid_ota, NULL);
 
 	return 0;
 }

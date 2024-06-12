@@ -1,5 +1,5 @@
-#ifndef __OTA_H__
-#define __OTA_H__
+#ifndef __HASH_H__
+#define __HASH_H__
 
 
 #ifdef __cplusplus
@@ -12,4 +12,4 @@ int test_hash222(char *path);
 }
 #endif
 
-#endif /* __OTA_H__ */
+#endif /* __HASH_H__ */

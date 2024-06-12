@@ -28,6 +28,49 @@ int64_t sample_gettimeus(void)
     return (sttime.tv_sec  * 1000000 + (sttime.tv_usec));
 }
 
+int64_t set_time = 0;
+int64_t cnt_time = 0;
+
+int check_delay_time(void)
+{
+    if (set_time != 0 && cnt_time != 0) {
+        if ((sample_gettimeus()-set_time) >= cnt_time) {
+            set_time = 0;
+            cnt_time = 0;
+            return 1;
+        }
+        else {
+            return 0;
+        }
+    }
+    else {
+        // printf("Not Set Timer!\n");
+        return 1;
+    }
+}
+
+void set_delay_time(int64_t ti)
+{
+    if (set_time == 0 && cnt_time == 0 && ti != 0) {
+        set_time = sample_gettimeus();
+        cnt_time = ti;
+
+    }
+    else {
+        if (check_delay_time() == 1)
+        {
+            set_time = sample_gettimeus();
+            cnt_time = ti;
+            printf("Set Timer:%lld\n", cnt_time);
+        }
+        else {
+            printf("Already Set!\n");
+        }
+    }
+}
+
+
+
 // 동적 할당된 자원 해제 함수
 void freeFileList(char** fileList, int fileCount) {
     for (int i = 0; i < fileCount; ++i) {

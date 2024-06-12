@@ -24,7 +24,8 @@ void set_system_time_from_file();
 int file_ck(const char* filename);
 int old_file_del(void);
 int file_name_get(SaveFile *filelist, int topbot);
-
+int check_delay_time(void);
+void set_delay_time(int64_t ti);
 
 
 #if __cplusplus

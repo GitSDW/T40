@@ -76,6 +76,9 @@ typedef enum {
 	SET_FILE_START  = 0x01,
 	SET_FILE_SEND  	= 0x02,
 	SET_FILE_END  	= 0x03,
+	SET_START_DUMMY = 0x12,
+	SET_DATA_DUMMY  = 0x13,
+	SET_END_DUMMY   = 0x14,
 
 	SET_LED			= 0x41,
 	SET_BELL_VOL	= 0x42,
@@ -94,6 +97,10 @@ typedef enum {
 	SET_SAVE_SEND 	= 0x4F,
 	SET_FACTORY		= 0x50,
 	SET_BLE_LT 		= 0x51,
+	SET_FW_START    = 0x52,
+	SET_FW_DATA     = 0x53,
+	SET_FW_END      = 0x54,	// SPI
+	SET_OTA_START   = 0x55, // Uart
 	
 	SET_DATE  		= 0x7E,
 	SET_STOP  		= 0x7F,
@@ -111,6 +118,28 @@ typedef enum {
 
 	UREC_STOP  		= 0x7F
 } MINOR_UART_REC;
+
+typedef enum {
+	OTA_TYPE_APP	= 0x01,
+	OTA_TYPE_TAG	= 0x02,
+	OTA_TYPE_KERNEL = 0x03,
+} OTA_TYPE;
+
+typedef enum {
+	OTA_STATE_READY = 0x00,
+	OTA_STATE_START	= 0x01,
+	OTA_STATE_DATA	= 0x02,
+	OTA_STATE_END 	= 0x03,
+	OTA_STATE_SHUTDN= 0x04,
+} OTA_STATE;
+
+typedef enum {
+	OTA_END_NULL 	= 0x00,
+	OTA_END_SUCCESS	= 0x01,
+	OTA_END_DISCON	= 0x02,
+	OTA_END_FILE_CK	= 0x03,
+
+} OTA_END;
 
 typedef struct FILEINFO {
     char date[13];       // YYMMDDhhmmss 형식의 날짜
@@ -134,6 +163,7 @@ int Ready_Busy_Check(void);
 int spi_send_file_dual(uint8_t minor1, uint8_t minor2, char *file1, char *file2);
 int spi_send_save_file(char *path, char *file);
 int spi_send_file_face(uint8_t minor, int fcnt);
+void *OTA_Thread(void * argc);
 
 #ifdef __cplusplus
 }

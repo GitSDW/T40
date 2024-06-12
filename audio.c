@@ -691,6 +691,7 @@ void * IMP_Audio_Record_AEC_Thread(void *argv)
 {
 	int ret = -1;
 	int buff_space = 0;
+	int datasize = 0;
 	uint8_t *buff_u8;
 
 	uint8_t *buf_pcm = NULL;
@@ -701,17 +702,20 @@ void * IMP_Audio_Record_AEC_Thread(void *argv)
 		return NULL;
 	}
 
+	int save_fd = 0;
+    save_fd = open("/tmp/mnt/sdcard/save_ai.pcm", O_RDWR | O_CREAT | O_TRUNC, 0777);
+
 	/* audio encode create channel. */
-	int AeChn = 0;
-	IMPAudioEncChnAttr attr;
-	// attr.type = handle_g711a; /* Use the My method to encoder. if use the system method is attr.type = PT_G711A; */
-	attr.type = Encode_Type; /* Use the My method to encoder. if use the system method is attr.type = PT_G711A; */
-	attr.bufSize = 20;
-	ret = IMP_AENC_CreateChn(AeChn, &attr);
-	if(ret != 0) {
-		IMP_LOG_ERR(TAG, "imp audio encode create channel failed\n");
-		return NULL;
-	}
+	// int AeChn = 0;
+	// IMPAudioEncChnAttr attr;
+	// // attr.type = handle_g711a; /* Use the My method to encoder. if use the system method is attr.type = PT_G711A; */
+	// attr.type = Encode_Type; /* Use the My method to encoder. if use the system method is attr.type = PT_G711A; */
+	// attr.bufSize = 20;
+	// ret = IMP_AENC_CreateChn(AeChn, &attr);
+	// if(ret != 0) {
+	// 	IMP_LOG_ERR(TAG, "imp audio encode create channel failed\n");
+	// 	return NULL;
+	// }
 
 	do {
 		if (bExit) break;
@@ -728,20 +732,36 @@ void * IMP_Audio_Record_AEC_Thread(void *argv)
 			return NULL;
 		}
 
-		// printf("frm.len : %d buf size : %d\n", frm.len, AUDIO_SAMPLE_BUF_SIZE);
+		printf("frm.len : %d buf size : %d timestamp : %lld\n", frm.len, AUDIO_SAMPLE_BUF_SIZE, frm.timeStamp);
 
 		if (frm.len > 0){
 			pthread_mutex_lock(&buffMutex_ai);
-			buff_space = (AI_Cir_Buff.RIndex - AI_Cir_Buff.WIndex - 1 + A_BUFF_SIZE) % (500*1024);
+			if (AI_Cir_Buff.RIndex == AI_Cir_Buff.WIndex) {
+				buff_space = 500*1024;
+				AI_Cir_Buff.RIndex = 0;
+				AI_Cir_Buff.WIndex = 0;
+			}
+			else {
+				if (AI_Cir_Buff.WIndex >= AI_Cir_Buff.RIndex)
+                	datasize = (AI_Cir_Buff.WIndex - AI_Cir_Buff.RIndex) % (500*1024);
+            	else
+	                datasize = 0;
+				buff_space = (500*1024) - datasize;	
+			}
+			
 			if (buff_space >= frm.len) {
 				buff_u8 = (uint8_t*)frm.virAddr;
-				for(int j = 0; j < frm.len; ++j) {
-					AI_Cir_Buff.tx[AI_Cir_Buff.WIndex] = buff_u8[j];
-					AI_Cir_Buff.WIndex = (AI_Cir_Buff.WIndex+1) % (500*1024);
-					if (AI_Cir_Buff.WIndex == AI_Cir_Buff.RIndex) {
-						AI_Cir_Buff.RIndex = (AI_Cir_Buff.RIndex+1) % (500*1024);
-					}
-				}
+				// for(int j = 0; j < frm.len; ++j) {
+				// 	AI_Cir_Buff.tx[AI_Cir_Buff.WIndex] = buff_u8[j];
+				// 	AI_Cir_Buff.WIndex = (AI_Cir_Buff.WIndex+1) % (500*1024);
+				// 	if (AI_Cir_Buff.WIndex == AI_Cir_Buff.RIndex) {
+				// 		AI_Cir_Buff.RIndex = (AI_Cir_Buff.RIndex+1) % (500*1024);
+				// 	}
+				// }
+				memset (&AI_Cir_Buff.tx[AI_Cir_Buff.WIndex], 0, frm.len);
+				memcpy (&AI_Cir_Buff.tx[AI_Cir_Buff.WIndex], buff_u8, frm.len);
+				ret = write(save_fd, &AI_Cir_Buff.tx[AI_Cir_Buff.WIndex], frm.len);
+				AI_Cir_Buff.WIndex = (AI_Cir_Buff.WIndex+frm.len);// % (500*1024);
 				// printf("[CIR_BUFF Audio In]buff_space:%d WIndex:%d RIndex%d\n", buff_space, AI_Cir_Buff.WIndex, AI_Cir_Buff.RIndex);
 			}
 			else {

@@ -722,6 +722,13 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             ack_len = 0;
             ack_flag = true;
         break;
+        case SET_OTA_START:
+            bOTA = false;
+            ota_type_u = rbuff[index+9];
+            ota_flag = true;
+            ack_len = 0;
+            ack_flag = true;
+        break;
         }
     break;
     default:
@@ -764,7 +771,7 @@ int device_star(uint8_t major) {
     // uart_tx[14] = 0x03;
     uart_tx[9] = 0x03;
 
-    uart_send(fd_uart, uart_tx, 15);
+    uart_send(fd_uart, uart_tx, 10);
     
     printf("Device Start Major:0x%02x\n", uart_tx[1]);
     // printf("%c%c%c%c%c\n",(char) uart_tx[9],(char) uart_tx[10],(char) uart_tx[11],(char) uart_tx[12],(char) uart_tx[13]);
