@@ -494,3 +494,41 @@ int file_name_get(SaveFile *filelist, int topbot) {
 
     return 0;
 }
+
+#define BUFF_SIZE 1024
+int md5_get(char *filepath, char *md5_char) 
+{
+    char  buff[BUFF_SIZE];
+    FILE *fp;
+
+    sprintf(buff, "md5sum %s", filepath);
+    printf("filepath:%s\n", buff);
+    fp = popen(buff, "r");
+    if (NULL == fp)
+    {
+           perror("popen() 실패");
+           return -1;
+    }
+
+    while (fgets(buff, BUFF_SIZE, fp))
+
+    for(int i=0; i<1024; i++) {
+        if (buff[i] != ' ') {
+            md5_char[i] = buff[i];
+            // printf("i:%d char:%c\n", i, md5_char[i]);
+        }
+        else {
+            md5_char[i] = 0;
+            break;
+        }
+    }
+
+    printf("hash : %s\n", md5_char);
+
+    pclose(fp);
+
+    return 0;
+}
+
+
+

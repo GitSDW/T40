@@ -785,7 +785,7 @@ static int Recv_Spi_Packet_live(uint8_t *rbuff) {
                     memcpy(&AO_Cir_Buff.tx[AO_Cir_Buff.WIndex], &rbuff[index+9], len);
                     AO_Cir_Buff.WIndex = (AO_Cir_Buff.WIndex+len) % (500*1024);
                     // printf("[CIR_BUFF Audio Out]buff_space:%d WIndex:%d RIndex%d\n", buff_space, AO_Cir_Buff.WIndex, AO_Cir_Buff.RIndex);
-                    // printf("M : 0x%02x m : 0x%02x len : %d seq : %d\n", major, minor, len, rbuff[index+8]);
+                    printf("M : 0x%02x m : 0x%02x len : %d seq : %d\n", major, minor, len, rbuff[index+8]);
                     // printf("Rindex : %d Windex : %d space : %d\n", AO_Cir_Buff.RIndex, AO_Cir_Buff.WIndex, buff_space);
                 }
                 else {
@@ -1687,6 +1687,9 @@ void *spi_send_stream (void *arg)
     // bool stream_start1 = false;
 
     buf = (uint8_t*)malloc(2000);
+
+    int save_fd = 0;
+    save_fd = open("/tmp/mnt/sdcard/spi_ai.pcm", O_RDWR | O_CREAT | O_TRUNC, 0777);
   
     do {
         /////////// Vedio Main IN -> UDP Out //////////////////////////////////////////
@@ -1837,13 +1840,14 @@ void *spi_send_stream (void *arg)
                 //     }
                 // }
                 // printf("Audio Rec Len : %d\n", datasize);
-                printf("[CIR_BUFF_AI]datasize:%d WIndex:%d RIndex%d len\n", datasize, AI_Cir_Buff.WIndex, AI_Cir_Buff.RIndex);
+                // printf("[CIR_BUFF_AI]datasize:%d WIndex:%d RIndex%d len\n", datasize, AI_Cir_Buff.WIndex, AI_Cir_Buff.RIndex);
                 memset(buf, 0, datasize);
                 memcpy(buf, &AI_Cir_Buff.tx[AI_Cir_Buff.RIndex], datasize);
                 AI_Cir_Buff.RIndex = (AI_Cir_Buff.RIndex+datasize) % (500*1024);
-                // if (AI_Cir_Buff.RIndex == AI_Cir_Buff.WIndex) {
+                if (AI_Cir_Buff.RIndex == AI_Cir_Buff.WIndex) {
                 //     AI_Cir_Buff.RIndex = (AI_Cir_Buff.RIndex+1) % (500*1024);
-                // }
+                    AI_Cir_Buff.RIndex = AI_Cir_Buff.WIndex = 0;
+                }
                 pthread_mutex_unlock(&buffMutex_ai);
             }
 
@@ -1865,6 +1869,8 @@ void *spi_send_stream (void *arg)
                 else {
                     // printf("AUDIO Send Data : 0x%02X%02X\n", tx_buff[3+5], tx_buff[4+5]);
                     // printf("A\n");
+                    ret = write(save_fd, buf, datasize);
+                    datasize = 0;
                     usleep(mv_delay*1000);
                 }
             }
@@ -1878,6 +1884,8 @@ void *spi_send_stream (void *arg)
         
     } while(!bStrem);
     
+    close(save_fd);
+
     return ((void*)0);
 }
 
@@ -2048,18 +2056,19 @@ void test_spi_onekbytes(int dly){
 
 int ota_fd = 0;
 uint16_t ota_seq = 0;
-char md5_hash_code[32] = {0};
+char md5_hash_code[33] = {0};
+char md5_madk_hash[33] = {0};
 
 int OTA_Recv_Packet(uint8_t *rbuff) {
     int len, ret = -1, res = 0;
     uint8_t major, minor;
     uint16_t seq_buf;
-    int buff_space = 0;
     int recv_type = 0;
     // static uint8_t data[10]= {0};
     int bad_cnt = 0;
-    uint8_t *ota_buf;
+    // uint8_t *ota_buf;
     static uint16_t seqcnt = 0xFFFF;
+    bool hash_ck = true;
 
 #if 0
     static int filefd = 0;
@@ -2139,8 +2148,10 @@ int OTA_Recv_Packet(uint8_t *rbuff) {
             return -3;
         }
         else {
-            if (((seqcnt+1)%0x10000) == rbuff[8]) {
-                seqcnt = rbuff[8];
+            if (seqcnt == 0xFFFF) seqcnt = 1;
+            else seqcnt++;
+            if (seqcnt == seq_buf) {
+                seqcnt = seq_buf;
                 ota_seq = seqcnt;
             }
             else {
@@ -2160,14 +2171,27 @@ int OTA_Recv_Packet(uint8_t *rbuff) {
         switch(minor) {
             case SET_FW_START:
                 printf("OTA Start\n");
-                recv_type = read_buff[9];
+                recv_type = rbuff[9];
                 memset(md5_hash_code, 0, 32);
-                memcpy(md5_hash_code, &read_buff[10], 32);
-                char print_buf[35] = {0};
-                memcpy(print_buf, md5_hash_code, 32);
-                print_buf[32] = '\n';
-                printf("hash:%s", print_buf);
-                ota_fd = open("/dev/shm/testfile", O_RDWR | O_CREAT | O_TRUNC, 0777);
+                memcpy(md5_hash_code, &rbuff[10], 32);
+                // char print_buf[35] = {0};
+                // memcpy(print_buf, md5_hash_code, 32);
+                // print_buf[32] = '\n';
+                // printf("hash:%s\n", md5_hash_code);
+                // for (int i=0; i<32; i++) {
+                //     printf ("0x%02x ",rbuff[10+i]);
+                // }
+                printf("\n");
+                if (recv_type == 0) 
+                    ota_fd = open("/dev/shm/isc.zip", O_RDWR | O_CREAT | O_TRUNC, 0777);
+                else if (recv_type == 1) 
+                    ota_fd = open("/dev/shm/tag.bin", O_RDWR | O_CREAT | O_TRUNC, 0777);
+                else if (recv_type == 2) 
+                    ota_fd = open("/dev/shm/uImage.lzo", O_RDWR | O_CREAT | O_TRUNC, 0777);
+                else {
+                    printf("OTA Start Error! Type!\n");
+                    return -4;
+                }
                 if (ota_fd < 0) {
                     printf("File Open Fail!\n");
                     return -4;
@@ -2176,10 +2200,10 @@ int OTA_Recv_Packet(uint8_t *rbuff) {
             break;
             case SET_FW_DATA:
                 // ota_buf = malloc(1024);
-                printf("OTA Data Seq : %d\n", ota_seq);
+                printf("OTA Data Seq : %d len : %d\n", ota_seq, len);
                 // memset(ota_buf, 0, 1024);
-                // memcpy(ota_buf, &read_buff[9], len);
-                ret = write(ota_fd, &read_buff[9], len);
+                // memcpy(ota_buf, &rbuff[9], len);
+                ret = write(ota_fd, &rbuff[9], len);
                 if (ret < 0) {
                     printf("Write Fail\n");
                     return -4;
@@ -2189,10 +2213,45 @@ int OTA_Recv_Packet(uint8_t *rbuff) {
             break;
             case SET_FW_END:
                 printf("OTA End\n");
+                md5_get("/dev/shm/isc.zip", md5_madk_hash);
+                printf("Get Hash : %s\n", md5_hash_code);
+                for (int i=0; i<32; i++) {
+                    if (md5_madk_hash[i] != md5_hash_code[i]) {
+                        hash_ck = false;
+                    }
+                }
+                recv_type = rbuff[9];
+                if (!hash_ck) {
+                    printf("Hash Check Fail!\n");
+                    system("rm /tmp/mnt/sdcard/isc.zip");
+                    system("cp /dev/shm/isc.zip /tmp/mnt/sdcard/isc.zip");
+                    res = -5;
+                }
+                else if (recv_type == 0) {
+                    system("rm /tmp/mnt/sdcard/isc.zip");
+                    system("rm /tmp/mnt/sdcard/isc_bak");
+                    system("mv /tmp/mnt/sdcard/isc /tmp/mnt/sdcard/isc_bak");
+                    system("cp /dev/shm/isc.zip /tmp/mnt/sdcard/isc.zip");
+                    system("unzip /tmp/mnt/sdcard/isc.zip -d /tmp/mnt/sdcard");
+                    // system("unzip /dev/shm/isc.zip -d /tmp/mnt/sdcard");
+                    
+                    res = 3;
+                }
+                // else if (recv_type == 1) {
+
+                // } 
+                // else if (recv_type == 2) {
+
+                // }
+                // else {
+                //     printf("OTA End Error! Type!\n");
+                //     return -4;
+                // }
+                system("sync");
                 if (ota_fd > 0) {
                     close(ota_fd);
                 }
-                res = 3;
+                
             break;
             default:
             break;
@@ -2259,7 +2318,7 @@ int Make_OTA_Dummy_Packet(uint8_t *tbuff, uint8_t type, uint8_t state, uint8_t e
 
 void *OTA_Thread(void * argc) {
     int ota_state = OTA_STATE_READY;
-    int64_t timeout_t = sample_gettimeus();
+    // int64_t timeout_t = sample_gettimeus();
     int ret = -1;
     uint8_t err_state = OTA_END_SUCCESS;
 
@@ -2291,6 +2350,7 @@ void *OTA_Thread(void * argc) {
             ret = OTA_Recv_Packet(rx_buff);
             if (ret == 1) {
                 ota_state = OTA_STATE_DATA;
+                printf("OTA Data!\n");
             }
             else {
                 // ota_state = OTA_STATE_END;
@@ -2298,7 +2358,7 @@ void *OTA_Thread(void * argc) {
             }
         }
         else if (ota_state == OTA_STATE_DATA) {
-            printf("OTA Data!\n");
+            // printf("OTA Data!\n");
             ret = Make_OTA_Dummy_Packet(tx_buff, ota_type_u, ota_state, 0);
             if (ret < 0) {
                 // err_state = OTA_END_DISCON;
@@ -2314,9 +2374,9 @@ void *OTA_Thread(void * argc) {
             // if (ret == 3) {
                 ota_state = OTA_STATE_END;
             }
-            else {
-                // ota_state = OTA_STATE_END;
-                // err_state = OTA_END_DISCON;
+            else if (ret == -5){
+                ota_state = OTA_STATE_END;
+                err_state = OTA_END_DISCON;
             }
         }
         else if (ota_state == OTA_STATE_END) {

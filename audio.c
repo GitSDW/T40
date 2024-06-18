@@ -706,16 +706,16 @@ void * IMP_Audio_Record_AEC_Thread(void *argv)
     save_fd = open("/tmp/mnt/sdcard/save_ai.pcm", O_RDWR | O_CREAT | O_TRUNC, 0777);
 
 	/* audio encode create channel. */
-	// int AeChn = 0;
-	// IMPAudioEncChnAttr attr;
-	// // attr.type = handle_g711a; /* Use the My method to encoder. if use the system method is attr.type = PT_G711A; */
-	// attr.type = Encode_Type; /* Use the My method to encoder. if use the system method is attr.type = PT_G711A; */
-	// attr.bufSize = 20;
-	// ret = IMP_AENC_CreateChn(AeChn, &attr);
-	// if(ret != 0) {
-	// 	IMP_LOG_ERR(TAG, "imp audio encode create channel failed\n");
-	// 	return NULL;
-	// }
+	int AeChn = 0;
+	IMPAudioEncChnAttr attr;
+	// attr.type = handle_g711a; /* Use the My method to encoder. if use the system method is attr.type = PT_G711A; */
+	attr.type = Encode_Type; /* Use the My method to encoder. if use the system method is attr.type = PT_G711A; */
+	attr.bufSize = 20;
+	ret = IMP_AENC_CreateChn(AeChn, &attr);
+	if(ret != 0) {
+		IMP_LOG_ERR(TAG, "imp audio encode create channel failed\n");
+		return NULL;
+	}
 
 	do {
 		if (bExit) break;
@@ -732,7 +732,8 @@ void * IMP_Audio_Record_AEC_Thread(void *argv)
 			return NULL;
 		}
 
-		printf("frm.len : %d buf size : %d timestamp : %lld\n", frm.len, AUDIO_SAMPLE_BUF_SIZE, frm.timeStamp);
+		
+		// printf("frm.len : %d buf size : %d timestamp : %lld\n", frm.len, AUDIO_SAMPLE_BUF_SIZE, frm.timeStamp);
 
 		if (frm.len > 0){
 			pthread_mutex_lock(&buffMutex_ai);
@@ -770,6 +771,71 @@ void * IMP_Audio_Record_AEC_Thread(void *argv)
 			pthread_mutex_unlock(&buffMutex_ai);
 		}
 
+		// printf("stream.len : %d buf size : %d timestamp : %lld\n", stream.len, AUDIO_SAMPLE_BUF_SIZE, stream.timeStamp);
+
+		// ret = IMP_AENC_SendFrame(AeChn, &frm);
+		// if(ret != 0) {
+		// 	IMP_LOG_ERR(TAG, "imp audio encode send frame failed\n");
+		// 	return NULL;
+		// }
+
+		// /* get audio encode frame. */
+		// IMPAudioStream stream;
+		// ret = IMP_AENC_PollingStream(AeChn, 1000);
+		// if (ret != 0) {
+		// 	IMP_LOG_ERR(TAG, "imp audio encode polling stream failed\n");
+		// }
+
+		// ret = IMP_AENC_GetStream(AeChn, &stream, BLOCK);
+		// if(ret != 0) {
+		// 	IMP_LOG_ERR(TAG, "imp audio encode get stream failed\n");
+		// 	return NULL;
+		// }
+
+
+		// if (stream.len > 0){
+		// 	pthread_mutex_lock(&buffMutex_ai);
+		// 	if (AI_Cir_Buff.RIndex == AI_Cir_Buff.WIndex) {
+		// 		buff_space = 500*1024;
+		// 		AI_Cir_Buff.RIndex = 0;
+		// 		AI_Cir_Buff.WIndex = 0;
+		// 	}
+		// 	else {
+		// 		if (AI_Cir_Buff.WIndex >= AI_Cir_Buff.RIndex)
+        //         	datasize = (AI_Cir_Buff.WIndex - AI_Cir_Buff.RIndex) % (500*1024);
+        //     	else
+	    //             datasize = 0;
+		// 		buff_space = (500*1024) - datasize;	
+		// 	}
+			
+		// 	if (buff_space >= stream.len) {
+		// 		buff_u8 = (uint8_t*)stream.stream;
+		// 		// for(int j = 0; j < stream.len; ++j) {
+		// 		// 	AI_Cir_Buff.tx[AI_Cir_Buff.WIndex] = buff_u8[j];
+		// 		// 	AI_Cir_Buff.WIndex = (AI_Cir_Buff.WIndex+1) % (500*1024);
+		// 		// 	if (AI_Cir_Buff.WIndex == AI_Cir_Buff.RIndex) {
+		// 		// 		AI_Cir_Buff.RIndex = (AI_Cir_Buff.RIndex+1) % (500*1024);
+		// 		// 	}
+		// 		// }
+		// 		memset (&AI_Cir_Buff.tx[AI_Cir_Buff.WIndex], 0, stream.len);
+		// 		memcpy (&AI_Cir_Buff.tx[AI_Cir_Buff.WIndex], buff_u8, stream.len);
+		// 		ret = write(save_fd, &AI_Cir_Buff.tx[AI_Cir_Buff.WIndex], stream.len);
+		// 		AI_Cir_Buff.WIndex = (AI_Cir_Buff.WIndex+stream.len);// % (500*1024);
+		// 		// printf("[CIR_BUFF Audio In]buff_space:%d WIndex:%d RIndex%d\n", buff_space, AI_Cir_Buff.WIndex, AI_Cir_Buff.RIndex);
+		// 	}
+		// 	else {
+		// 		printf("AI Cir Buff Overflow!1\n");
+		// 	}
+		// 	pthread_mutex_unlock(&buffMutex_ai);
+		// }
+
+		// /* release stream. */
+		// ret = IMP_AENC_ReleaseStream(AeChn, &stream);
+		// if(ret != 0) {
+		// 	IMP_LOG_ERR(TAG, "imp audio encode release stream failed\n");
+		// 	return NULL;
+		// }
+
 		/* step 8. release the audio record frame. */
 		ret = IMP_AI_ReleaseFrame(ai_devID, ai_chnID, &frm);
 		if(ret != 0) {
@@ -802,6 +868,7 @@ void * IMP_Audio_Record_AEC_Thread(void *argv)
 }
 
 extern int64_t sample_gettimeus(void);
+extern void amp_on(void);
 
 void *IMP_Audio_Play_Thread(void *argv)
 {
@@ -821,13 +888,37 @@ void *IMP_Audio_Play_Thread(void *argv)
 		IMP_LOG_ERR(TAG, "[ERROR] %s: malloc audio buf error\n", __func__);
 		return NULL;
 	}
+
+	int adChn = 0;
+	IMPAudioDecChnAttr attr;
+	attr.type = Encode_Type;
+	attr.bufSize = 20;
+	attr.mode = ADEC_MODE_STREAM;
+	ret = IMP_ADEC_CreateChn(adChn, &attr);
+	if(ret != 0) {
+		IMP_LOG_ERR(TAG, "imp audio decoder create channel failed\n");
+		return NULL;
+	}
+
+	ret = IMP_ADEC_ClearChnBuf(adChn);
+	if(ret != 0) {
+		IMP_LOG_ERR(TAG, "IMP_ADEC_ClearChnBuf failed\n");
+		return NULL;
+	}
+
 	
 	IMPAudioOChnState play_status;
 	play_status.chnBusyNum = 0;
 	bool asflg = false;
 	uint64_t as_time = 0;
+	bool ao_start_f = false;
+	int64_t ao_start_t = sample_gettimeus();
 	do {
 		if (bExit) break;
+
+		if (!ao_start_f && ((sample_gettimeus()- ao_start_t)>1000000)) {
+			amp_on();
+		}
 
 		ret = IMP_AO_QueryChnStat(ao_devID, ao_chnID, &play_status);
 		if(ret != 0) {
@@ -844,19 +935,26 @@ void *IMP_Audio_Play_Thread(void *argv)
 				if (datasize >= 320) {
 					// datasize = datasize > AUDIO_SAMPLE_BUF_SIZE) ? AUDIO_SAMPLE_BUF_SIZE : datasize;
 					datasize = 320;
-					// printf("[CIR_BUFF_AO]AO_SIZE:%d datasize:%d WIndex:%d RIndex%d\n", AUDIO_SAMPLE_BUF_SIZE, datasize, AO_Cir_Buff.WIndex, AO_Cir_Buff.RIndex);
+					printf("[CIR_BUFF_AO] datasize:%d WIndex:%d RIndex%d\n", datasize, AO_Cir_Buff.WIndex, AO_Cir_Buff.RIndex);
+					memset (buf, 0, datasize);
+					memcpy (buf, &AO_Cir_Buff.tx[AO_Cir_Buff.RIndex], datasize);
+					AO_Cir_Buff.RIndex = (AO_Cir_Buff.RIndex+datasize) % (500*1024);
+					if (AO_Cir_Buff.RIndex == AO_Cir_Buff.WIndex) {
+						// printf("Buffer Clear!! : %d\n", datasize);
+						AO_Cir_Buff.RIndex = AO_Cir_Buff.WIndex = 0;
+					}
 				}
 				// else {
 				// 	datasize = 0;
 				// }
-				for (int i = 0; i < datasize; ++i) {
-					buf[i] = AO_Cir_Buff.tx[AO_Cir_Buff.RIndex];
-					AO_Cir_Buff.RIndex = (AO_Cir_Buff.RIndex+1) % (500*1024);
-				}
-				if (AO_Cir_Buff.RIndex == AO_Cir_Buff.WIndex) {
-					// printf("Buffer Clear!! : %d\n", datasize);
-					AO_Cir_Buff.RIndex = AO_Cir_Buff.WIndex = 0;
-				}
+				// for (int i = 0; i < datasize; ++i) {
+				// 	buf[i] = AO_Cir_Buff.tx[AO_Cir_Buff.RIndex];
+				// 	AO_Cir_Buff.RIndex = (AO_Cir_Buff.RIndex+1) % (500*1024);
+				// }
+				// if (AO_Cir_Buff.RIndex == AO_Cir_Buff.WIndex) {
+				// 	// printf("Buffer Clear!! : %d\n", datasize);
+				// 	AO_Cir_Buff.RIndex = AO_Cir_Buff.WIndex = 0;
+				// }
 				// memset(buf, 0, datasize);
 				// memcpy(buf, &AO_Cir_Buff.tx[AO_Cir_Buff.RIndex], datasize);
 				// AO_Cir_Buff.RIndex = (AO_Cir_Buff.RIndex + datasize) % (500&1024);
@@ -920,9 +1018,35 @@ void *IMP_Audio_Play_Thread(void *argv)
 		// 	}
 		// }
 		if (datasize > 0 && play_status.chnBusyNum < 20) {
-			// printf("AO DS : %d ChnBusy : %d\n", datasize, play_status.chnBusyNum);
+			// IMPAudioStream stream_in;
+			// stream_in.stream = (uint8_t *)buf;
+			// stream_in.len = datasize;
+			// ret = IMP_ADEC_SendStream(adChn, &stream_in, BLOCK);
+			// if(ret != 0) {
+			// 	IMP_LOG_ERR(TAG, "imp audio encode send frame failed\n");
+			// 	return NULL;
+			// }
 
-			/* Step 5: send frame data. */
+			// /* get audio decoder frame. */
+			// IMPAudioStream stream_out;
+			// ret = IMP_ADEC_PollingStream(adChn, 1000);
+			// if(ret != 0) {
+			// 	IMP_LOG_ERR(TAG, "imp audio encode polling stream failed\n");
+			// }
+
+			// ret = IMP_ADEC_GetStream(adChn, &stream_out, BLOCK);
+			// if(ret != 0) {
+			// 	IMP_LOG_ERR(TAG, "imp audio decoder get stream failed\n");
+			// 	return NULL;
+			// }
+
+			// // printf("AO DS : %d ChnBusy : %d\n", datasize, play_status.chnBusyNum);
+
+			// /* Step 5: send frame data. */
+			// IMPAudioFrame frm;
+			// frm.virAddr = (uint32_t *)stream_out.stream;
+			// frm.len = stream_out.len;
+
 			IMPAudioFrame frm;
 			frm.virAddr = (uint32_t *)buf;
 			frm.len = datasize;
@@ -935,13 +1059,20 @@ void *IMP_Audio_Play_Thread(void *argv)
 				// udp_ao_rolling_dcnt();
 				// usleep(20*1000);
 				// printf("[AO] sindex:%d windex:%d dcnt:%d\n", Audio_Ao_Attr.sindex, Audio_Ao_Attr.windex, Audio_Ao_Attr.dcnt);
-				ret = write(save_fd, buf, datasize);
+				// ret = write(save_fd, buf, datasize);
 				datasize = 0;
 			}
 			
 			// ret = IMP_AO_QueryChnStat(ao_devID, ao_chnID, &play_status);
 			// if(ret != 0) {
 			// 	IMP_LOG_ERR(TAG, "IMP_AO_QueryChnStat error\n");
+			// 	return NULL;
+			// }
+
+			/* release stream. */
+			// ret = IMP_ADEC_ReleaseStream(adChn, &stream_out);
+			// if(ret != 0) {
+			// 	IMP_LOG_ERR(TAG, "imp audio decoder release stream failed\n");
 			// 	return NULL;
 			// }
 
@@ -952,6 +1083,7 @@ void *IMP_Audio_Play_Thread(void *argv)
 		}
 	}while(!bStrem);
 
+	// close(save_fd);
 	printf("[Audio] AO Thread END!\n");
 	free(buf);
 	pthread_exit(0);

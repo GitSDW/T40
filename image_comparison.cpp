@@ -1,5 +1,10 @@
 #include <opencv2/opencv.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 #include <iostream>
+#include <stdio.h>
+#include <fstream>
+#include <math.h>
 // #include <unistd.h>
 
 #include "image_comparison.h"
@@ -119,7 +124,9 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
         cv::Mat bin_img;
         cv::threshold(diff_image, bin_img, thhold, 255, cv::THRESH_BINARY);
 
-        // imwrite("bin.jpg", bin_img);
+        // cv::adaptiveThreshold(diff_image, bin_img, 255, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, 467, 37);
+
+        imwrite("/tmp/mnt/sdcard/bin.jpg", bin_img);
 
         // printf("box2\n");
         // cv_buf = (sample_gettimeus() - cv_time)/1000;
@@ -884,3 +891,120 @@ int focus_and_sharpness_cal(char *imgpath1, Focus_Sharpness2 *fs_t) {
         return -1;
     }
 }
+
+#ifdef __BOX_ALGORITH__
+
+#define _RESIZE_RATIO           0.5
+#define _IMAGE_X                1600                        // 원본 영상의 가로 크기
+#define _IMAGE_Y                900                         // 원본 영상의 세로 크기
+
+#define _REF_IMG                "/tmp/mnt/sdcard/box_origin.jpg"    // 초기 비교 영상
+
+#define _OUTPUT_PATH_LABEL      "/tmp/mnt/sdcard/"
+
+// std::vector<std::string> get_files_inDirectory(const std::string& _path, const std::string& _filter);
+
+int test_box_al(void)
+{
+    // int _IMAGE_COUNT =0;
+    // std::vector<std::string> img_files = get_files_inDirectory(_IMG_PATH, _IMG_EXTENSION);
+    // std::vector<std::string> img_files = "/dev/shm/box.jpg"
+    // std::vector<std::string> img_path;
+    // _IMAGE_COUNT = img_files.size();
+    // for (int i = 0; i < _IMAGE_COUNT; ++i) img_path.push_back(_IMG_PATH + img_files[i]);
+
+    std::vector<cv::Mat> img_array;
+    cv::Mat img_ref = imread(_REF_IMG, cv::IMREAD_COLOR);
+    cv::resize(img_ref, img_ref, cv::Size(img_ref.cols * _RESIZE_RATIO, img_ref.rows * _RESIZE_RATIO), 0, 0, cv::INTER_AREA);
+    cv::Mat bilateral_ref;
+    cv::bilateralFilter(img_ref, bilateral_ref, 5, 100, 100);
+
+    cv::Mat dil_kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(25, 25));
+    cv::Mat erd_kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(23, 23));
+
+    // for (int i = 0; i < _IMAGE_COUNT; ++i) {
+        std::string path = "/dev/shm/box0.jpg";
+        std::cout << path << std::endl;
+        cv::Mat tmp = imread(path, cv::IMREAD_COLOR);
+
+        cv::Mat resize_tmp = tmp;
+        cv::resize(tmp, resize_tmp, cv::Size(tmp.cols * _RESIZE_RATIO, tmp.rows * _RESIZE_RATIO), 0, 0, cv::INTER_AREA);
+        
+        cv::Mat bilateral;
+        cv::bilateralFilter(resize_tmp, bilateral, 5, 100, 100);
+
+        cv::Mat sub;
+        cv::absdiff(bilateral_ref, bilateral, sub);
+
+        cv::Mat channels[3];
+        cv::cvtColor(sub, sub, cv::COLOR_BGR2HSV);
+        cv::split(sub, channels);
+        cv::Mat blue = channels[2];
+        //cv::cvtColor(sub, blue, cv::COLOR_BGR2HSV);
+
+        cv::Mat threshold;
+        cv::threshold(blue, threshold, 25, 255, cv::THRESH_BINARY);
+
+        cv::Mat median;
+        cv::medianBlur(threshold, median, 11);
+
+        cv::Mat dilate, erode;
+        cv::dilate(median, dilate, dil_kernel);
+        cv::erode(dilate, erode, erd_kernel);
+        cv::dilate(erode, dilate, dil_kernel);
+        cv::erode(dilate, erode, erd_kernel);
+
+        cv::Mat img_labels, stats, centroids;
+        int numOfLables = cv::connectedComponentsWithStats(erode, img_labels, stats, centroids, 8, CV_32S);
+        std::cout << stats << std::endl;
+    
+        for (int j = 1; j < numOfLables; j++) {
+            int area = stats.at<int>(j, cv::CC_STAT_AREA);
+            if (area < 1000) continue;
+            int left = stats.at<int>(j, cv::CC_STAT_LEFT);
+            int top = stats.at<int>(j, cv::CC_STAT_TOP);
+            int width = stats.at<int>(j, cv::CC_STAT_WIDTH);
+            int height = stats.at<int>(j, cv::CC_STAT_HEIGHT);
+
+            cv::rectangle(resize_tmp, cv::Point(left, top), cv::Point(left + width, top + height), cv::Scalar(0, 0, 255), 1);
+            cv::putText(resize_tmp, std::to_string(j), cv::Point(left + 20, top + 20), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 0, 0), 1);
+        }
+
+        std::string img_name = "find_box.jpg";
+        cv::imwrite(_OUTPUT_PATH_LABEL + img_name, resize_tmp);
+        cv::imwrite(_OUTPUT_PATH_LABEL + img_name, erode);
+
+        img_array.push_back(erode);
+    
+    // }
+    printf("image loaded!\n");
+
+
+
+    return 0;
+}
+
+// 폴더 내 파일이름 불러오기
+// std::vector<std::string> get_files_inDirectory(const std::string& _path, const std::string& _filter) {
+//     std::string searching = _path + _filter;
+
+//     std::vector<std::string> return_;
+
+//     struct _finddata_t fd;
+//     intptr_t handle;
+
+//     if ((handle = _findfirst(searching.c_str(), &fd)) == -1L)
+//         std::cout << "No file in directory!" << std::endl;
+
+//     do
+//     {
+//         if (fd.name[0] == '.') continue;
+//         if (fd.name[0] == '.') continue;
+//         return_.push_back(fd.name);
+//     } while (_findnext(handle, &fd) == 0);
+
+//     _findclose(handle);
+//     return return_;
+// }
+
+#endif

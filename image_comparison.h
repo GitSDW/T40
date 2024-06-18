@@ -31,6 +31,7 @@ int facecrop_make(Fdpd_Data_t cont);
 int calculateSimilarity2(char *imgpath1, char *imgpath2, Simil_t2* sim_t);
 // double Sharpness_cal(char *imgpath1);
 int focus_and_sharpness_cal(char *imgpath1, Focus_Sharpness2 *fs_t);
+int test_box_al(void);
 
 #if __cplusplus
 }

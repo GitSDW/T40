@@ -10,6 +10,7 @@ int scanf_cmd(void);
 int scanf_index(void);
 int scanf_string(char *buf);
 int test_hash222(char *filepath);
+int check_hash(char *filepath, char *hashchar);
 
 #if __cplusplus
 }

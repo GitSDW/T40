@@ -203,3 +203,17 @@ int test_hash222(char *filepath) {
 
     return 0;
 }
+
+int check_hash(char *filepath, char *hashchar) {
+    try {
+        std::string file_path = filepath;
+        std::string hash_code = hashchar;
+        std::string make_md5 = calculate_md5(file_path);
+        std::cout << file_path << " HASH : " << make_md5 << std::endl;
+        std::cout << "Get Hashcod : " << hash_code << std::endl;
+    } catch (Exception& e) {
+        std::cout << "Fail to Get Hash!" << std::endl;
+    }
+
+    return 0;
+}

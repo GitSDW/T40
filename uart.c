@@ -759,14 +759,15 @@ int device_star(uint8_t major) {
     uart_tx[0] = 0x02;
     uart_tx[1] = (major & 0x7F) & 0xFF;
     uart_tx[2] = 0x01;
-    uart_tx[3] = 0;
-    uart_tx[4] = 0; //5; 
-    uart_tx[5] = 0x00;
-    uart_tx[6] = 0x00;
-    uart_tx[7] = 0x00;
-    uart_tx[8] = 0x00;
+    // uart_tx[3] = 0;
+    // uart_tx[4] = 0; //5; 
+    // uart_tx[5] = 0x00;
+    // uart_tx[6] = 0x00;
+    // uart_tx[7] = 0x00;
 
-    // sprintf((char*)&uart_tx[9], "%s.%s.%s", MAJOR_VER, MINOR_VER, CAHR_VER);
+    sprintf((char*)&uart_tx[3], "%s.%s.%s", MAJOR_VER, MINOR_VER, CAHR_VER);
+
+    uart_tx[8] = 0x00;
     
     // uart_tx[14] = 0x03;
     uart_tx[9] = 0x03;

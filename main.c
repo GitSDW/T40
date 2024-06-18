@@ -40,7 +40,7 @@ int memory_init(void) {
 	AO_Cir_Buff.WIndex = 0;
 	AO_Cir_Buff.RIndex = 0;
 
-	AI_Cir_Buff.tx = (unsigned char *)malloc((size_t)512*1024);
+	AI_Cir_Buff.tx = (unsigned char *)malloc((size_t)10*1024);
 	AI_Cir_Buff.WIndex = 0;
 	AI_Cir_Buff.RIndex = 0;
 
@@ -234,20 +234,35 @@ int gpio_init(void) {
 
 	ret = gpio_export(PORTD+6);	// Box LED Gpio
 	if(ret < 0){
-		printf("Fail Export GPIO : %d\n", PORTB+19);
+		printf("Fail Export GPIO : %d\n", PORTD+6);
 		return -1;
 	}
 
 	ret = gpio_set_dir(PORTD+6, GPIO_OUTPUT, GPIO_HIGH);
 	// ret = gpio_set_dir(PORTD+6, GPIO_OUTPUT, GPIO_LOW);
 	if(ret < 0){
-		printf("Fail get dir GPIO : %d\n", PORTB+17);
+		printf("Fail get dir GPIO : %d\n", PORTD+6);
 		return -1;
 	}
 
 	ret = gpio_set_val(PORTD+6, 1);
 	if(ret < 0){
 		printf("Fail set Value GPIO : %d\n", PORTD+6);
+		return -1;
+	}
+
+
+	// 
+	ret = gpio_export(PORTD+21);	// Box LED Gpio
+	if(ret < 0){
+		printf("Fail Export GPIO : %d\n", PORTD+21);
+		return -1;
+	}
+
+	ret = gpio_set_dir(PORTD+21, GPIO_OUTPUT, GPIO_LOW);
+	// ret = gpio_set_dir(PORTD+6, GPIO_OUTPUT, GPIO_LOW);
+	if(ret < 0){
+		printf("Fail get dir GPIO : %d\n", PORTD+21);
 		return -1;
 	}
 
@@ -271,6 +286,15 @@ int gpio_init(void) {
 	// }
 
 	return 0;
+}
+
+void amp_on(void) {
+	int ret = -1;
+
+	ret = gpio_set_val(PORTD+21, 1);
+	if(ret < 0){
+		printf("Fail set Value GPIO : %d\n", PORTD+21);
+	}
 }
 
 int gpio_deinit(void) {
@@ -660,7 +684,7 @@ int main(int argc, char **argv) {
 
     // isd_crop(0, 0, 1920, 1080, 0);
 
-    isd_crop(160, 180, 1600, 900, 1);
+    // isd_crop(160, 180, 1600, 900, 1);
 
     printf("expval : %d\n", ExpVal);
 
@@ -1523,7 +1547,14 @@ int main(int argc, char **argv) {
 			Set_Target_Bit(targetbit);
 		}
 		else if (cmd == 34) {
-			test_hash222("/tmp/mnt/sdcard/isc");
+			char filepath1[] = "/tmp/mnt/sdcard/isc.zip";
+			char md5_hash_code1[33] = {0};
+			// // test_hash222(filepath1);
+			// test_md5(filepath1);
+			// system("cp /tmp/mnt/sdcard/isc.zip /dev/shm/isc.zip");
+			// char filepath2[] = "/dev/shm/isc.zip";
+			// test_md5(filepath2);
+			md5_get(filepath1, md5_hash_code1);
 		}
 		else if (cmd == 35) {
 			printf("cmd 35 Save File Test!\n");
@@ -2341,7 +2372,9 @@ int clip_total(void) {
 				// if (box_n != -1 && box_o != -1 && box_b != -1) {
 
 				if (box_n != -1 && box_b != -1) {
-					
+					#ifdef __BOX_ALGORITH__
+						test_box_al();
+					#endif
     				printf("box Sistic!\n");
     				ret = package_sistic(before_img, after_img);
 					if(ret < 0) {
@@ -3581,7 +3614,7 @@ int Setting_Total(void) {
 
 	// pthread_t tid_ao, tid_ai;
     // pthread_t tid_stream, tid_clip, tid_snap, tid_move, tim_osd, tid_fdpd, adc_thread_id;
-    pthread_t tid_uart, tid_snap, tid_live, tid_ota;
+    pthread_t tid_uart, tid_snap, tid_ota;// ,tid_live;
     // pthread_t tid_spi;
     char file_path[64] = {0};
 
@@ -3698,6 +3731,14 @@ int Setting_Total(void) {
 		// return -1;
 	// }
 
+	if (settings.SF.bits.led) {
+	    if (ExpVal > 10000) { // Noh Change 1000 -> 10000 20240530
+	    	gpio_LED_Set(1);
+	    }
+	    else {
+	    	gpio_LED_Set(0);
+	    }
+	}
 
 	// usleep(1000*1000);
 	printf("Thread Start!\n");
@@ -3838,7 +3879,7 @@ int Setting_Total(void) {
 	bStrem = true;
 
 	pthread_join(tid_uart, NULL);
-	pthread_join(tid_live, NULL);
+	// pthread_join(tid_live, NULL);
 	if (ota_thread_flag) pthread_join(tid_ota, NULL);
 
 	return 0;
