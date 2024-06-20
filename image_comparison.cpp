@@ -71,8 +71,13 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
     cerr << "find try! : " << endl;
     try {
         cv::Mat gray1, gray2;
-        cv::cvtColor(img1, gray1, cv::COLOR_BGR2GRAY);
-        cv::cvtColor(img2, gray2, cv::COLOR_BGR2GRAY);
+        // cv::cvtColor(img1, gray1, cv::COLOR_BGR2GRAY);
+        // cv::cvtColor(img2, gray2, cv::COLOR_BGR2GRAY);
+
+        cv::cvtColor(img1, gray1, cv::COLOR_BGR2HSV);
+        cv::cvtColor(img2, gray2, cv::COLOR_BGR2HSV);
+
+        
 
 
         // Clahe al /////////////////////////////////////////////////////////
@@ -970,9 +975,10 @@ int test_box_al(void)
             cv::putText(resize_tmp, std::to_string(j), cv::Point(left + 20, top + 20), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(255, 0, 0), 1);
         }
 
-        std::string img_name = "find_box.jpg";
+        std::string img_name = "find_box_tmp.jpg";
+        std::string img_erode = "find_box_erode.jpg";
         cv::imwrite(_OUTPUT_PATH_LABEL + img_name, resize_tmp);
-        cv::imwrite(_OUTPUT_PATH_LABEL + img_name, erode);
+        cv::imwrite(_OUTPUT_PATH_LABEL + img_erode, erode);
 
         img_array.push_back(erode);
     

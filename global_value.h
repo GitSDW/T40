@@ -10,7 +10,7 @@ extern "C" {
 
 #define MAJOR_VER	"0"
 #define MINOR_VER	"6"	
-#define CAHR_VER	"f"
+#define CAHR_VER	"k"
 
 typedef struct CIRCULAR_BUFF
 {
@@ -224,6 +224,7 @@ uint32_t ExpVal;
 int64_t rec_total;
 int64_t rec_time_s;
 int64_t rec_each_time[10];
+int64_t audio_timeout;
 
 int stream_state;
 int thumbnail_state;
@@ -285,6 +286,7 @@ bool cfile_flag;
 bool bfile_flag;
 bool dimming;
 bool bOTA, ota_flag;
+bool audio_start_flag;
 
 
 extern int bExit;
@@ -391,6 +393,7 @@ enum REC_TYPE {
 // #define __TEST_FAKE_VEDIO__
 // #define __STREAMING_CMD__
 // #define __BOX_ALGORITH__
+// #define __G726__
 
 #ifdef __TEST_FAKE_VEDIO__
 	int led_cnt;

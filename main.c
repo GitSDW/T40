@@ -128,6 +128,7 @@ int global_value_init(void) {
 	save_pcm = 0;
 	face_crop_cnt = 0;
 	rec_total = 0;
+	audio_timeout = 0;
 
 	// rec_state = REC_READY;
 	clip_rec_state = REC_READY;
@@ -169,6 +170,7 @@ int global_value_init(void) {
 	bfile_flag = false;
 	dimming = false;
 	ota_flag = false;
+	audio_start_flag = false;
 
 	for(i=0;i<10;i++){
 		fdpd_data[i].flag = false;
@@ -684,7 +686,7 @@ int main(int argc, char **argv) {
 
     // isd_crop(0, 0, 1920, 1080, 0);
 
-    // isd_crop(160, 180, 1600, 900, 1);
+    isd_crop(286, 322, 1350, 758, 1);
 
     printf("expval : %d\n", ExpVal);
 
@@ -1946,19 +1948,6 @@ int clip_total(void) {
 				else if (fr_state != FR_END && total_time > FACE_FIND_END_TIME) {
 					fr_state = FR_END;	// fr_state 5 / Time out
 					// Make File Send
-					// for (int l=0; l<face_crop_cnt; l++) {
-					// 	if (!netwrok_busy) {
-					// 		if (Ready_Busy_Check()){
-					// 			printf("Face Crop %d JPG Send!\n", l);
-					// 			memset(file_path, 0, 64);
-					// 			sprintf(file_path, "/dev/shm/face_crop%d.jpg", l);
-					// 			spi_send_file(REC_FACESHOT, file_path);
-					// 		}
-					// 		else {
-					// 			printf("Fail to Face Crop %d JPG Send.\n", l);
-					// 		}
-					// 	}
-					// }
 					if (Ready_Busy_Check() && face_crop_cnt > 0){
 						spi_send_file_face(REC_FACESHOT, face_crop_cnt);
 					}
@@ -1979,7 +1968,7 @@ int clip_total(void) {
 							printf("Thumbnail Send!\n");
 							memset(file_path, 0, 64);
 							sprintf(file_path, "/dev/shm/thumbnail_last.jpg");
-							spi_send_file(REC_SNAPSHOT, file_path);
+							spi_send_file(REC_SNAPSHOT, file_path, 0, 0, 0);
 						}
 					}
 					// else {
@@ -2100,27 +2089,6 @@ int clip_total(void) {
 				if (!bell_snap_m && !bell_snap_b && bl_state < BSS_SEND) bl_state = BSS_SEND;
 
 				if (bl_state == BSS_SEND) {
-					// if (Ready_Busy_Check()){
-					// 	printf("Bell Main JPG Send!\n");
-					// 	memset(file_path, 0, 64);
-					// 	sprintf(file_path, "/dev/shm/bell_m.jpg");
-					// 	spi_send_file(REC_BELL_SNAP_M, file_path);
-					// }
-					// else {
-					// 	printf("Fail to BELL Main JPG Send.\n");
-					// }
-
-					// if (Ready_Busy_Check()){
-					// 	printf("Bell Box JPG Send!\n");
-					// 	memset(file_path, 0, 64);
-					// 	sprintf(file_path, "/dev/shm/bell_b.jpg");
-					// 	spi_send_file(REC_BELL_SNAP_B, file_path);
-					// }
-					// else {
-					// 	printf("Fail to BELL Box JPG Send.\n");
-					// }
-
-
 					if (temp_flag) {
 						major_buf1 = REC_TEMP_SNAP_M;
 						major_buf2 = REC_TEMP_SNAP_B;
@@ -2479,7 +2447,7 @@ int clip_total(void) {
 									sprintf(file_path, "/dev/shm/box_result.jpg");
 									printf("box send!\n");
 									
-									spi_send_file(REC_BOX_ALM, file_path);
+									spi_send_file(REC_BOX_ALM, file_path, 0, 0, 0);
 								}
 							}
 						}
@@ -2586,12 +2554,6 @@ int clip_total(void) {
 					int save_cnt=0;
 					char file_name[20];
 
-					// memset(file_path, 0, 64);
-					// sprintf(file_path, "/dev/shm/faceperson.data");
-					// spi_send_file(REC_FACE, file_path);
-
-					
-
 					for (int i=0; i<file_cnt; i++) {
 						sprintf(file_name, "main%d", i);
 						
@@ -2600,7 +2562,7 @@ int clip_total(void) {
 								printf("File %d-1 Start!\n", i+1);
 								memset(file_path, 0, 64);
 								sprintf(file_path, "/dev/shm/main%d.mp4", i);
-								spi_send_file(REC_CLIP_F, file_path);
+								spi_send_file(REC_CLIP_F, file_path, 0, i+1, 1);
 								}
 							else {
 								printf("Fail to Send %d-1\n", i+1);
@@ -2611,7 +2573,7 @@ int clip_total(void) {
 								memset(file_path, 0, 64);
 								sprintf(file_path, "/dev/shm/box%d.mp4", i);
 								// sprintf(file_path, "/dev/shm/box%d.mkv", i);
-								spi_send_file(REC_CLIP_B, file_path);
+								spi_send_file(REC_CLIP_B, file_path, 0, i+1, 2);
 								}
 							else {
 								printf("Fail to Send %d-2\n", i+1);
@@ -2705,7 +2667,7 @@ int clip_total(void) {
 								printf("File %d-1 Start!\n", i+1);
 								memset(file_path, 0, 64);
 								sprintf(file_path, "/dev/shm/bell_m%d.mp4", i);
-								spi_send_file(REC_CLIP_F, file_path);
+								spi_send_file(REC_CLIP_F, file_path, 0, i+1, 1);
 								}
 							else {
 								printf("Fail to Send %d-1\n", i+1);
@@ -2716,7 +2678,7 @@ int clip_total(void) {
 								memset(file_path, 0, 64);
 								sprintf(file_path, "/dev/shm/bell_b%d.mp4", i);
 								// sprintf(file_path, "/dev/shm/box%d.mkv", i);
-								spi_send_file(REC_CLIP_B, file_path);
+								spi_send_file(REC_CLIP_B, file_path, 0, i+1, 2);
 								}
 							else {
 								printf("Fail to Send %d-2\n", i+1);
@@ -2843,12 +2805,6 @@ int clip_total_fake(void) {
 				// int save_cnt=0;
 				char file_name[20];
 
-				// memset(file_path, 0, 64);
-				// sprintf(file_path, "/dev/shm/faceperson.data");
-				// spi_send_file(REC_FACE, file_path);
-
-				
-
 				for (int i=0; i<file_cnt; i++) {
 					sprintf(file_name, "main%d", i);
 					
@@ -2857,7 +2813,7 @@ int clip_total_fake(void) {
 							printf("File %d-1 Start!\n", i+1);
 							memset(file_path, 0, 64);
 							sprintf(file_path, "/tmp/mnt/sdcard/mp4/main%d.mp4", i);
-							spi_send_file(REC_CLIP_F, file_path);
+							spi_send_file(REC_CLIP_F, file_path, 0, i+1, 1);
 							}
 						else {
 							printf("Fail to Send %d-1\n", i+1);
@@ -2868,7 +2824,7 @@ int clip_total_fake(void) {
 							memset(file_path, 0, 64);
 							sprintf(file_path, "/tmp/mnt/sdcard/mp4/box%d.mp4", i);
 							// sprintf(file_path, "/dev/shm/box%d.mkv", i);
-							spi_send_file(REC_CLIP_B, file_path);
+							spi_send_file(REC_CLIP_B, file_path, 0, i+1, 1);
 							}
 					}
 				}
@@ -3043,6 +2999,14 @@ int stream_total(void) {
 	// system("rm /tmp/mnt/sdcard/main*.jpg");
 	// system("rm /tmp/mnt/sdcard/box*.jpg");
 
+	if (settings.SF.bits.led) {
+	    if (ExpVal > 10000) { // Noh Change 1000 -> 10000 20240530
+	    	gpio_LED_Set(1);
+	    }
+	    else {
+	    	gpio_LED_Set(0);
+	    }
+	}
 
 	usleep(1000*1000);
 
@@ -3367,7 +3331,7 @@ int stream_total(void) {
 						printf("rec0_%d.mp4 Start!\n", i+1);
 						memset(file_path, 0, 128);
 						sprintf(file_path, "/dev/shm/rec0_%d.mp4", i+1);
-						spi_send_file(REC_STREAMING_M, file_path);
+						spi_send_file(REC_STREAMING_M, file_path, 0, i+1, 1);
 					}
 					else {
 						printf("Fail to Send rec0_%d.mp4\n", i+1);
@@ -3377,7 +3341,7 @@ int stream_total(void) {
 						printf("rec1_%d.mp4 Start!\n", i+1);
 						memset(file_path, 0, 128);
 						sprintf(file_path, "/dev/shm/rec1_%d.mp4", i+1);
-						spi_send_file(REC_STREAMING_B, file_path);
+						spi_send_file(REC_STREAMING_B, file_path, 0, i+1, 2);
 					}
 					else {
 						printf("Fail to Send rec0_%d.mp4\n", i+1);
@@ -3551,7 +3515,7 @@ int stream_total(void) {
 							printf("rec0_%d_%d.mp4 Start!\n", i+1, j);
 							memset(file_path, 0, 128);
 							sprintf(file_path, "/dev/shm/rec0_%d_%d.mp4", i+1, j);
-							spi_send_file(REC_STREAMING_M, file_path);
+							spi_send_file(REC_STREAMING_M, file_path, i, j+1, 1);
 							// spi_send_fake_file(REC_STREAMING_M);
 						}
 						else {
@@ -3562,7 +3526,7 @@ int stream_total(void) {
 							printf("rec3_%d_%d.mp4 Start!\n", i+1, j);
 							memset(file_path, 0, 128);
 							sprintf(file_path, "/dev/shm/rec3_%d_%d.mp4", i+1, j);
-							spi_send_file(REC_STREAMING_B, file_path);
+							spi_send_file(REC_STREAMING_B, file_path, i, j+1, 2);
 							// spi_send_fake_file(REC_STREAMING_B);
 						}
 						else {
@@ -3731,14 +3695,7 @@ int Setting_Total(void) {
 		// return -1;
 	// }
 
-	if (settings.SF.bits.led) {
-	    if (ExpVal > 10000) { // Noh Change 1000 -> 10000 20240530
-	    	gpio_LED_Set(1);
-	    }
-	    else {
-	    	gpio_LED_Set(0);
-	    }
-	}
+
 
 	// usleep(1000*1000);
 	printf("Thread Start!\n");
@@ -3795,7 +3752,7 @@ int Setting_Total(void) {
 					printf("doorCap Send Start!\n");
 					memset(file_path, 0, 128);
 					sprintf(file_path, "/dev/shm/main0.jpg");
-					spi_send_file(REC_DOOR_SNAP, file_path);
+					spi_send_file(REC_DOOR_SNAP, file_path, 0, 0, 0);
 				}
 				else {
 					printf("Fail to Send main0.jpg\n");

@@ -152,7 +152,7 @@ typedef struct FILEINFO {
 int spi_init(void);
 void spi_deinit(void);
 int spi_send_clip(int dly, int num);
-int spi_send_file(uint8_t minor, char *file);
+int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, uint8_t camnum);
 int spi_send_fake_file(uint8_t minor);
 void *spi_send_stream (void *arg);
 void *spi_test_send_stream (void *arg);
