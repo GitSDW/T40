@@ -944,8 +944,8 @@ void *IMP_Audio_Play_Thread(void *argv)
 					}
 				}
 				else if (datasize != 0){
-					datasize = 640;
-					memset(buf, 0, 640);
+					datasize = definesize;
+					memset(buf, 0, datasize);
 					memcpy(buf, &AO_Cir_Buff.tx[AO_Cir_Buff.RIndex], datasize);
 					AO_Cir_Buff.RIndex = AO_Cir_Buff.WIndex = 0;
 					audio_start_flag = false;
@@ -956,6 +956,20 @@ void *IMP_Audio_Play_Thread(void *argv)
 		else {
 			printf("AO Busy : %d\n", play_status.chnBusyNum);
 			continue;
+		}
+
+		if (play_status.chnBusyNum != 0 && asflg)  {
+			if ((sample_gettimeus() - as_time) > 200000){
+				// printf("Audio Dummy Data Set!!\n");
+				memset (buf, 0, definesize);
+				datasize = definesize;
+				as_time = sample_gettimeus();
+			}
+		}
+
+		if (play_status.chnBusyNum == 0 && asflg) {
+			// printf("Audio Chn Busy Clear!!\n");
+			asflg = false;
 		}
 
 		if (datasize > 0 && play_status.chnBusyNum < 20) {
@@ -1061,6 +1075,8 @@ void ao_file_play_thread(void *argv)
 	if (size < 80)
 		return;
 	else printf("wav header read!!\n");
+
+	amp_on();
 
 	do {
 		if (bExit) break;

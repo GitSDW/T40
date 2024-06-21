@@ -374,11 +374,11 @@ uint8_t BLC_User(void) {
 		auto_flag = true;
 	}
 
-	if (ae_mean > 160) {
-		if ((ae_mean-150) > 200) {
+	if (ae_mean > 120) {
+		if (ae_mean > 350) {
 			AeIntegrationTime -= 10;
 		}
-		else if ((ae_mean-120) > 100){
+		else if (ae_mean > 220){
 			AeIntegrationTime -= 5;
 		}
 		else{
@@ -392,7 +392,7 @@ uint8_t BLC_User(void) {
 		
 		printf("Set Value : %d\n", AeIntegrationTime);
 	}
-	else if (ae_mean < 60 && auto_flag) {
+	else if (ae_mean < 30 && auto_flag) {
 		expose_inf.AeMode = IMPISP_TUNING_OPS_TYPE_AUTO;
 		expose_inf.AeIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_AUTO;
 		expose_inf.AeIntegrationTime = AeIntegrationTime = 120;

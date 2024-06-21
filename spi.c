@@ -2230,7 +2230,7 @@ int OTA_Recv_Packet(uint8_t *rbuff) {
                     system("rm /tmp/mnt/sdcard/isc_bak");
                     system("mv /tmp/mnt/sdcard/isc /tmp/mnt/sdcard/isc_bak");
                     system("cp /dev/shm/isc.zip /tmp/mnt/sdcard/isc.zip");
-                    system("unzip /tmp/mnt/sdcard/isc.zip -d /tmp/mnt/sdcard");
+                    system("unzip -o /tmp/mnt/sdcard/isc.zip -d /tmp/mnt/sdcard");
                     // system("unzip /dev/shm/isc.zip -d /tmp/mnt/sdcard");
                     
                     res = 3;

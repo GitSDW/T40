@@ -387,9 +387,10 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         switch(minor) {
         case UREC_BELL:
             
-            if (settings.bell_type == 0) effect_file = "/tmp/mnt/sdcard/effects/ready_16.wav";
-            else if (settings.bell_type == 1) effect_file = "/tmp/mnt/sdcard/effects/start2c.wav";
-            else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/start3c.wav";;
+            if (settings.bell_type == 0) effect_file = "/tmp/mnt/sdcard/effects/bell1.wav";
+            else if (settings.bell_type == 1) effect_file = "/tmp/mnt/sdcard/effects/bell2.wav";
+            else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/bell3.wav";
+            else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/bell4.wav";
             printf("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
             // clip_cause_t.Major = CLIP_CAUSE_BOX;
@@ -428,7 +429,10 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             ack_flag = true;
         break;
         case UREC_TEMPER:
-            effect_file = "/tmp/mnt/sdcard/effects/end1c.wav";
+            if (rbuff[index+9] == 0)
+                effect_file = "/tmp/mnt/sdcard/effects/dev_takeoff.wav";
+            else if (rbuff[index+9] == 1)
+                effect_file = "/tmp/mnt/sdcard/effects/dev_takeon.wav";
             printf("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
             // clip_cause_t.Major = CLIP_CAUSE_MOUNT;
@@ -556,9 +560,10 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 ack_len = 0;
                 ack_flag = true;
 
-                if (settings.bell_type == 0) effect_file = "/tmp/mnt/sdcard/effects/ready_16.wav";
-                else if (settings.bell_type == 1) effect_file = "/tmp/mnt/sdcard/effects/start2c.wav";
-                else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/start3c.wav";;
+                if (settings.bell_type == 0) effect_file = "/tmp/mnt/sdcard/effects/bell1.wav";
+                else if (settings.bell_type == 1) effect_file = "/tmp/mnt/sdcard/effects/bell2.wav";
+                else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/bell3.wav";
+                else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/bell4.wav";
                 printf("play : %s\n", effect_file);
                 ao_file_play_thread(effect_file);
                 cmd_end_flag = true;
@@ -712,6 +717,9 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         break;
         case SET_FACTORY:
             Setting_Reinit();
+            effect_file = "/tmp/mnt/sdcard/effects/dev_start.wav";
+            printf("play : %s\n", effect_file);
+            ao_file_play_thread(effect_file);
             ack_len = 0;
             ack_flag = true;
             cmd_end_flag = true;
@@ -719,6 +727,11 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         case SET_BLE_LT:
             printf("Ble Light Set!\n");
             gpio_LED_dimming(rbuff[index+9]);
+            if (rbuff[index+9] == 1) {
+                effect_file = "/tmp/mnt/sdcard/effects/dev_start.wav";
+                printf("play : %s\n", effect_file);
+                ao_file_play_thread(effect_file);
+            }
             ack_len = 0;
             ack_flag = true;
         break;
@@ -728,6 +741,55 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             ota_flag = true;
             ack_len = 0;
             ack_flag = true;
+        break;
+        case SET_DEV_START:
+            ack_len = 0;
+            ack_flag = true;
+
+            effect_file = "/tmp/mnt/sdcard/effects/dev_start.wav";
+            printf("play : %s\n", effect_file);
+            ao_file_play_thread(effect_file);
+            cmd_end_flag = true;
+        break;
+        case SET_DEV_OFF:
+            ack_len = 0;
+            ack_flag = true;
+
+            effect_file = "/tmp/mnt/sdcard/effects/dev_end.wav";
+            printf("play : %s\n", effect_file);
+            ao_file_play_thread(effect_file);
+            sleep(5);
+            cmd_end_flag = true;
+        break;
+        case SET_DEV_BATT:
+            ack_len = 0;
+            ack_flag = true;
+            
+            if (rbuff[index+9] == 1) effect_file = "/tmp/mnt/sdcard/effects/batt01.wav";
+            else if (rbuff[index+9] == 2) effect_file = "/tmp/mnt/sdcard/effects/batt02.wav";
+            else if (rbuff[index+9] == 3) effect_file = "/tmp/mnt/sdcard/effects/batt03.wav";
+            else if (rbuff[index+9] == 4) effect_file = "/tmp/mnt/sdcard/effects/batt04.wav";
+            else if (rbuff[index+9] == 5) effect_file = "/tmp/mnt/sdcard/effects/batt05.wav";
+            else if (rbuff[index+9] == 6) effect_file = "/tmp/mnt/sdcard/effects/batt06.wav";
+            else if (rbuff[index+9] == 7) effect_file = "/tmp/mnt/sdcard/effects/batt07.wav";
+            else if (rbuff[index+9] == 8) effect_file = "/tmp/mnt/sdcard/effects/batt08.wav";
+            else if (rbuff[index+9] == 9) effect_file = "/tmp/mnt/sdcard/effects/batt09.wav";
+            else if (rbuff[index+9] == 10) effect_file = "/tmp/mnt/sdcard/effects/batt10.wav";
+            else if (rbuff[index+9] == 11) effect_file = "/tmp/mnt/sdcard/effects/batt11.wav";
+            else if (rbuff[index+9] == 12) effect_file = "/tmp/mnt/sdcard/effects/batt12.wav";
+            else if (rbuff[index+9] == 13) effect_file = "/tmp/mnt/sdcard/effects/batt13.wav";
+            else if (rbuff[index+9] == 14) effect_file = "/tmp/mnt/sdcard/effects/batt14.wav";
+            else if (rbuff[index+9] == 15) effect_file = "/tmp/mnt/sdcard/effects/batt15.wav";
+            else if (rbuff[index+9] == 16) effect_file = "/tmp/mnt/sdcard/effects/batt16.wav";
+            else if (rbuff[index+9] == 17) effect_file = "/tmp/mnt/sdcard/effects/batt17.wav";
+            else if (rbuff[index+9] == 18) effect_file = "/tmp/mnt/sdcard/effects/batt18.wav";
+            else if (rbuff[index+9] == 19) effect_file = "/tmp/mnt/sdcard/effects/batt19.wav";
+            else if (rbuff[index+9] == 20) effect_file = "/tmp/mnt/sdcard/effects/batt20.wav";
+            else effect_file = "/tmp/mnt/sdcard/effects/batt01.wav";
+            printf("play : %s\n", effect_file);
+            ao_file_play_thread(effect_file);
+            sleep(5);
+            cmd_end_flag = true;
         break;
         }
     break;

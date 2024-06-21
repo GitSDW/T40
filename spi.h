@@ -101,6 +101,9 @@ typedef enum {
 	SET_FW_DATA     = 0x53,
 	SET_FW_END      = 0x54,	// SPI
 	SET_OTA_START   = 0x55, // Uart
+	SET_DEV_START   = 0x56,
+	SET_DEV_OFF 	= 0x57,
+	SET_DEV_BATT	= 0x58,
 	
 	SET_DATE  		= 0x7E,
 	SET_STOP  		= 0x7F,
