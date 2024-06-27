@@ -782,7 +782,7 @@ static int Recv_Spi_Packet_live(uint8_t *rbuff) {
                     memset(&AO_Cir_Buff.tx[AO_Cir_Buff.WIndex], 0x00, len);
                     memcpy(&AO_Cir_Buff.tx[AO_Cir_Buff.WIndex], &rbuff[index+9], len);
                     AO_Cir_Buff.WIndex = (AO_Cir_Buff.WIndex+len) % (500*1024);
-                    printf("[SPIAO]buff_space:%d WIndex:%d RIndex%d\n", buff_space, AO_Cir_Buff.WIndex, AO_Cir_Buff.RIndex);
+                    // printf("[SPIAO]buff_space:%d WIndex:%d RIndex%d\n", buff_space, AO_Cir_Buff.WIndex, AO_Cir_Buff.RIndex);
                     // printf("M : 0x%02x m : 0x%02x len : %d seq : %d\n", major, minor, len, rbuff[index+8]);
                     // printf("Rindex : %d Windex : %d space : %d\n", AO_Cir_Buff.RIndex, AO_Cir_Buff.WIndex, buff_space);
                 }
@@ -1014,6 +1014,390 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
     printf("**********FILE SEND END CMD************\n");
     return ret;
 }
+
+#ifdef __FILE_SEND_CHANGE__
+    int spi_send_total_clip(FileSend *fs)
+    {
+        struct stat file_info1, file_info2;
+        int ret = -1, cnt = 0, scnt = 0;
+        int sz_file[6] = {0}, total_size = 0;
+        int len = 0;
+        int wcnt = 0;
+        int filed[6] = {0};
+        char file[128] = {0};
+
+        printf("m:%d t1:%d t2:%d fn:%d fc:%d\n", fs->minor, fs->tag1, fs->tag2, fs->filenum, fs->filecnt);
+
+        for (cnt=0; cnt<(fs->filecnt); cnt++) {
+            memset(file, 0, 128);
+            if (fs->tag1 == CLIP_CAUSE_BELL) {
+                sprintf(file, "/dev/shm/bell_m%d.mp4", cnt);
+            }
+            else {
+                sprintf(file, "/dev/shm/main%d.mp4", cnt);
+            }
+        
+            
+            if ( 0 > stat(file, &file_info1)) {
+                printf("File Size Not Check!!\n");
+                break;
+            }
+
+            filed[(cnt*2)] = open(file, O_RDONLY);
+            if (filed[(cnt*2)] == -1) {
+                printf("File %s Open Fail!\n", file);
+                break;
+            }
+            printf("file[%d]:%s\n", (cnt*2), file);
+            
+            if (file_info1.st_size < 10*1024) {
+                printf("File Size Low!:%ld\n", file_info1.st_size);
+                break;
+            }
+
+            memset(file, 0, 128);
+            if (fs->tag1 == CLIP_CAUSE_BELL) {
+                sprintf(file, "/dev/shm/bell_b%d.mp4", cnt);
+            }
+            else {
+                sprintf(file, "/dev/shm/box%d.mp4", cnt);
+            }
+        
+            if ( 0 > stat(file, &file_info2)) {
+                printf("File Size Not Check!!\n");
+                break;
+            }
+
+            filed[(cnt*2)+1] = open(file, O_RDONLY);
+            if (filed[(cnt*2)+1] == -1) {
+                printf("File %s Open Fail!\n", file);
+                break;
+            }
+            printf("file[%d]:%s\n", (cnt*2)+1, file);
+            
+            if (file_info2.st_size < 10*1024) {
+                printf("File Size Low!:%ld\n", file_info2.st_size);
+                break;
+            }
+
+            sz_file[(cnt*2)]    += file_info1.st_size;
+            sz_file[(cnt*2)+1]  += file_info2.st_size;
+            total_size += (file_info1.st_size+file_info2.st_size);
+
+        }
+
+        if (cnt == 0) return -1;
+      
+        printf("**********FILE SEND START CMD : %d ************\n", cnt);
+        // printf("d %s,s %d,d %d,b %d,m %d,f %s, size:%d\n",device,speed,delay,bits,mode,file,sz_file);
+        len = 8;
+
+        read_buff[0] = fs->minor;
+        read_buff[1] = (total_size>>24)&0xFF;
+        read_buff[2] = (total_size>>16)&0xFF;
+        read_buff[3] = (total_size>>8)&0xFF;
+        read_buff[4] = total_size&0xFF;
+        read_buff[5] = cnt*2;
+        read_buff[6] = fs->tag1;
+        read_buff[7] = fs->tag2;
+        printf("S 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", 
+            read_buff[0], read_buff[1], read_buff[2], read_buff[3],
+            read_buff[4], read_buff[5], read_buff[6], read_buff[7]);
+        Make_Spi_Packet(tx_buff, read_buff, len, REC, REC_STREAM_STR);
+      
+        if (Ready_Busy_Check()){
+            // printf("File Send Start!\n");
+        }
+        else{
+            printf("FS\n");
+            return -1;
+        }
+        spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
+
+        for (scnt=0; scnt<cnt; scnt++) {
+            printf("SendFile:%d-1\n", scnt+1);
+            wcnt = 0;
+            do {
+                ret = read(filed[(scnt*2)], read_buff, FILE_READ_LENGTH);
+                // printf("RC:%d\n", ret);
+                if(ret != 0) {
+                    if (Ready_Busy_Check()){
+                        // printf("RB Checked!\n");
+                    }
+                    else{
+                        printf("F:%d\n", wcnt);
+                        return -1;
+                    }
+                    Make_Spi_Packet(tx_buff, read_buff, ret, REC, fs->minor);
+                    spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
+                }
+                wcnt++;
+                // usleep(dly*1000);
+            } while(ret != 0);
+            
+            len = 9;
+            read_buff[0] = fs->minor;
+            read_buff[1] = (sz_file[(scnt*2)]>>24)&0xFF;
+            read_buff[2] = (sz_file[(scnt*2)]>>16)&0xFF;
+            read_buff[3] = (sz_file[(scnt*2)]>>8)&0xFF;
+            read_buff[4] = sz_file[(scnt*2)]&0xFF;
+            read_buff[5] = (scnt*2)+1;
+            read_buff[6] = fs->filenum;
+            read_buff[7] = scnt+1;
+            read_buff[8] = 1;
+            printf("E1 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", 
+                read_buff[0], read_buff[1], read_buff[2], read_buff[3],
+                read_buff[4], read_buff[5], read_buff[6], read_buff[7], read_buff[8]);
+            Make_Spi_Packet(tx_buff, read_buff, len, REC, REC_STREAM_END);
+            // memset(tx_buff, 0, 1033);
+            // memcpy(&tx_buff[6], read_buff,1);
+            if (Ready_Busy_Check()){
+                // printf("RB Checked!\n");
+            }
+            else{
+                printf("FE\n");
+                return -1;
+            }
+            spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
+
+            printf("SendFile:%d-2\n", scnt+1);
+            wcnt = 0;
+            do {
+                ret = read(filed[(scnt*2)+1], read_buff, FILE_READ_LENGTH);
+                // printf("RC:%d\n", ret);
+                if(ret != 0) {
+                    if (Ready_Busy_Check()){
+                        // printf("RB Checked!\n");
+                    }
+                    else{
+                        printf("F:%d\n", wcnt);
+                        return -1;
+                    }
+                    Make_Spi_Packet(tx_buff, read_buff, ret, REC, fs->minor+1);
+                    spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
+                }
+                wcnt++;
+                // usleep(dly*1000);
+            } while(ret != 0);
+
+            
+            len = 9;
+            read_buff[0] = fs->minor;
+            read_buff[1] = (sz_file[(scnt*2)+1]>>24)&0xFF;
+            read_buff[2] = (sz_file[(scnt*2)+1]>>16)&0xFF;
+            read_buff[3] = (sz_file[(scnt*2)+1]>>8)&0xFF;
+            read_buff[4] = sz_file[(scnt*2)+1]&0xFF;
+            read_buff[5] = (scnt*2)+2;
+            read_buff[6] = fs->filenum;
+            read_buff[7] = scnt+1;
+            read_buff[8] = 2;
+            printf("E2 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", 
+                read_buff[0], read_buff[1], read_buff[2], read_buff[3],
+                read_buff[4], read_buff[5], read_buff[6], read_buff[7], read_buff[8]);
+            Make_Spi_Packet(tx_buff, read_buff, len, REC, REC_STREAM_END);
+            memset(tx_buff, 0, 1033);
+            memcpy(&tx_buff[6], read_buff,1);
+            if (Ready_Busy_Check()){
+                // printf("RB Checked!\n");
+            }
+            else{
+                printf("FE\n");
+                return -1;
+            }
+            spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
+        }
+        
+        usleep(100*1000);
+        printf("**********FILE SEND END CMD************\n");
+        return ret;
+    }
+
+    int spi_send_total_stream_clip(FileSend *fs)
+    {
+        struct stat file_info1, file_info2;
+        int ret = -1, cnt = 0, scnt = 0;
+        int sz_file[6] = {0}, total_size = 0;
+        int len = 0;
+        int wcnt = 0;
+        int filed[6] = {0};
+        char file[128] = {0};
+
+        printf("m:%d t1:%d t2:%d fn:%d fc:%d\n", fs->minor, fs->tag1, fs->tag2, fs->filenum, fs->filecnt);
+
+        for (cnt=0; cnt<(fs->filecnt); cnt++) {
+            memset(file, 0, 128);
+            sprintf(file, "/dev/shm/rec0_%d_%d.mp4", fs->filenum+1, cnt);
+            
+            if ( 0 > stat(file, &file_info1)) {
+                printf("File Size Not Check!!\n");
+                break;
+            }
+
+            filed[(cnt*2)] = open(file, O_RDONLY);
+            if (filed[(cnt*2)] == -1) {
+                printf("File %s Open Fail!\n", file);
+                break;
+            }
+            printf("file[%d]:%s\n", (cnt*2), file);
+            
+            if (file_info1.st_size < 10*1024) {
+                printf("File Size Low!:%ld\n", file_info1.st_size);
+                break;
+            }
+
+            memset(file, 0, 128);
+            sprintf(file, "/dev/shm/rec3_%d_%d.mp4", fs->filenum+1, cnt);
+        
+            if ( 0 > stat(file, &file_info2)) {
+                printf("File Size Not Check!!\n");
+                break;
+            }
+
+            filed[(cnt*2)+1] = open(file, O_RDONLY);
+            if (filed[(cnt*2)+1] == -1) {
+                printf("File %s Open Fail!\n", file);
+                break;
+            }
+            printf("file[%d]:%s\n", (cnt*2)+1, file);
+            
+            if (file_info2.st_size < 10*1024) {
+                printf("File Size Low!:%ld\n", file_info2.st_size);
+                break;
+            }
+
+            sz_file[(cnt*2)]    += file_info1.st_size;
+            sz_file[(cnt*2)+1]  += file_info2.st_size;
+            total_size += (file_info1.st_size+file_info2.st_size);
+
+        }
+
+        if (cnt == 0) return -1;
+      
+        printf("**********FILE SEND START CMD : %d ************\n", cnt);
+        // printf("d %s,s %d,d %d,b %d,m %d,f %s, size:%d\n",device,speed,delay,bits,mode,file,sz_file);
+        len = 8;
+
+        read_buff[0] = fs->minor;
+        read_buff[1] = (total_size>>24)&0xFF;
+        read_buff[2] = (total_size>>16)&0xFF;
+        read_buff[3] = (total_size>>8)&0xFF;
+        read_buff[4] = total_size&0xFF;
+        read_buff[5] = cnt*2;
+        read_buff[6] = fs->tag1;
+        read_buff[7] = fs->tag2;
+        printf("S 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", 
+            read_buff[0], read_buff[1], read_buff[2], read_buff[3],
+            read_buff[4], read_buff[5], read_buff[6], read_buff[7]);
+        Make_Spi_Packet(tx_buff, read_buff, len, REC, REC_STREAM_STR);
+      
+        if (Ready_Busy_Check()){
+            // printf("File Send Start!\n");
+        }
+        else{
+            printf("FS\n");
+            return -1;
+        }
+        spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
+
+        for (scnt=0; scnt<cnt; scnt++) {
+            printf("SendFile:%d-1\n", scnt+1);
+            wcnt = 0;
+            do {
+                ret = read(filed[(scnt*2)], read_buff, FILE_READ_LENGTH);
+                // printf("RC:%d\n", ret);
+                if(ret != 0) {
+                    if (Ready_Busy_Check()){
+                        // printf("RB Checked!\n");
+                    }
+                    else{
+                        printf("F:%d\n", wcnt);
+                        return -1;
+                    }
+                    Make_Spi_Packet(tx_buff, read_buff, ret, REC, fs->minor);
+                    spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
+                }
+                wcnt++;
+                // usleep(dly*1000);
+            } while(ret != 0);
+            
+            len = 9;
+            read_buff[0] = fs->minor;
+            read_buff[1] = (sz_file[(scnt*2)]>>24)&0xFF;
+            read_buff[2] = (sz_file[(scnt*2)]>>16)&0xFF;
+            read_buff[3] = (sz_file[(scnt*2)]>>8)&0xFF;
+            read_buff[4] = sz_file[(scnt*2)]&0xFF;
+            read_buff[5] = (scnt*2)+1;
+            read_buff[6] = fs->filenum;
+            read_buff[7] = scnt+1;
+            read_buff[8] = 1;
+            printf("E1 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", 
+                read_buff[0], read_buff[1], read_buff[2], read_buff[3],
+                read_buff[4], read_buff[5], read_buff[6], read_buff[7], read_buff[8]);
+            Make_Spi_Packet(tx_buff, read_buff, len, REC, REC_STREAM_END);
+            // memset(tx_buff, 0, 1033);
+            // memcpy(&tx_buff[6], read_buff,1);
+            if (Ready_Busy_Check()){
+                // printf("RB Checked!\n");
+            }
+            else{
+                printf("FE\n");
+                return -1;
+            }
+            spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
+
+            printf("SendFile:%d-2\n", scnt+1);
+            wcnt = 0;
+            do {
+                ret = read(filed[(scnt*2)+1], read_buff, FILE_READ_LENGTH);
+                // printf("RC:%d\n", ret);
+                if(ret != 0) {
+                    if (Ready_Busy_Check()){
+                        // printf("RB Checked!\n");
+                    }
+                    else{
+                        printf("F:%d\n", wcnt);
+                        return -1;
+                    }
+                    Make_Spi_Packet(tx_buff, read_buff, ret, REC, fs->minor+1);
+                    spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
+                }
+                wcnt++;
+                // usleep(dly*1000);
+            } while(ret != 0);
+
+            
+            len = 9;
+            read_buff[0] = fs->minor;
+            read_buff[1] = (sz_file[(scnt*2)+1]>>24)&0xFF;
+            read_buff[2] = (sz_file[(scnt*2)+1]>>16)&0xFF;
+            read_buff[3] = (sz_file[(scnt*2)+1]>>8)&0xFF;
+            read_buff[4] = sz_file[(scnt*2)+1]&0xFF;
+            read_buff[5] = (scnt*2)+2;
+            read_buff[6] = fs->filenum;
+            read_buff[7] = scnt+1;
+            read_buff[8] = 2;
+            printf("E2 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", 
+                read_buff[0], read_buff[1], read_buff[2], read_buff[3],
+                read_buff[4], read_buff[5], read_buff[6], read_buff[7], read_buff[8]);
+            Make_Spi_Packet(tx_buff, read_buff, len, REC, REC_STREAM_END);
+            memset(tx_buff, 0, 1033);
+            memcpy(&tx_buff[6], read_buff,1);
+            if (Ready_Busy_Check()){
+                // printf("RB Checked!\n");
+            }
+            else{
+                printf("FE\n");
+                return -1;
+            }
+            spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
+        }
+        
+        usleep(100*1000);
+        printf("**********FILE SEND END CMD************\n");
+        return ret;
+    }
+
+#endif
 
 int spi_send_file_face(uint8_t minor, int fcnt)
 {

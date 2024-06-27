@@ -131,7 +131,7 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
 
         // cv::adaptiveThreshold(diff_image, bin_img, 255, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, 467, 37);
 
-        imwrite("/tmp/mnt/sdcard/bin.jpg", bin_img);
+        // imwrite("/tmp/mnt/sdcard/bin.jpg", bin_img);
 
         // printf("box2\n");
         // cv_buf = (sample_gettimeus() - cv_time)/1000;

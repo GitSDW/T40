@@ -10,7 +10,7 @@ extern "C" {
 
 #define MAJOR_VER	"0"
 #define MINOR_VER	"6"	
-#define CAHR_VER	"m"
+#define CAHR_VER	"q"
 
 typedef struct CIRCULAR_BUFF
 {
@@ -394,6 +394,7 @@ enum REC_TYPE {
 // #define __STREAMING_CMD__
 // #define __BOX_ALGORITH__
 // #define __G726__
+#define __FILE_SEND_CHANGE__
 
 #ifdef __TEST_FAKE_VEDIO__
 	int led_cnt;

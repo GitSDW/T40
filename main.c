@@ -297,6 +297,8 @@ void amp_on(void) {
 	if(ret < 0){
 		printf("Fail set Value GPIO : %d\n", PORTD+21);
 	}
+
+	printf("Set AMP On!\n");
 }
 
 int gpio_deinit(void) {
@@ -523,6 +525,26 @@ void *make_mp4_clip(void *argc) {
 	file_cnt = mfd-> cnt;
 
 	printf("[%s] Type : %d Cnt : %d\n", __func__, type, file_cnt);
+
+	int main_filed = 0, bottom_filed = 0;
+
+	main_filed = open("/dev/shm/stream-0.h264", O_RDONLY);
+    if (main_filed < 0) {
+        printf("Fail Main Clip!!\n");
+        return (void*) 0;
+    }
+    else {
+    	close(main_filed);
+    }
+
+    bottom_filed = open("/dev/shm/stream-3.h264", O_RDONLY);
+    if (bottom_filed < 0) {
+        printf("Fail bottom Clip!!\n");
+        return (void*) 0;
+    }
+    else {
+    	close(bottom_filed);
+    }
 
 	if (file_cnt > 0 && type == 0) {
 		#ifdef __H265__			
@@ -2262,6 +2284,9 @@ int clip_total(void) {
 				IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Record_AEC_Thread failed\n", __func__);
 				return -1;
 			}
+
+			sleep(1);
+
 			if (file_cnt2 > 0) {
 				Make_File mfd2;
 				mfd2.type = 1;
@@ -2556,90 +2581,81 @@ int clip_total(void) {
 					int save_cnt=0;
 					char file_name[20];
 
-					for (int i=0; i<file_cnt; i++) {
-						sprintf(file_name, "main%d", i);
-						
-						if (!netwrok_busy) {
-							if (Ready_Busy_Check()){
-								printf("File %d-1 Start!\n", i+1);
-								memset(file_path, 0, 64);
-								sprintf(file_path, "/dev/shm/main%d.mp4", i);
-								spi_send_file(REC_CLIP_F, file_path, 0, i+1, 1);
+					#ifdef __FILE_SEND_CHANGE__
+						FileSend fs;
+						fs.minor = REC_CLIP_F;
+						fs.tag1 = clip_cause_t.Major;
+						fs.tag2 = clip_cause_t.Minor;
+						fs.filenum = 0;
+						fs.filecnt = file_cnt;
+						ret = spi_send_total_clip(&fs);
+						if(ret < 0) {
+							printf("File Send Fail!!\n");
+						}
+					#else
+
+						for (int i=0; i<file_cnt; i++) {
+							sprintf(file_name, "main%d", i);
+							
+							if (!netwrok_busy) {
+								if (Ready_Busy_Check()){
+									printf("File %d-1 Start!\n", i+1);
+									memset(file_path, 0, 64);
+									sprintf(file_path, "/dev/shm/main%d.mp4", i);
+									spi_send_file(REC_CLIP_F, file_path, 0, i+1, 1);
+									}
+								else {
+									printf("Fail to Send %d-1\n", i+1);
 								}
-							else {
-								printf("Fail to Send %d-1\n", i+1);
+								
+								if (Ready_Busy_Check()){
+									printf("File %d-2 Start!\n", i+1);
+									memset(file_path, 0, 64);
+									sprintf(file_path, "/dev/shm/box%d.mp4", i);
+									// sprintf(file_path, "/dev/shm/box%d.mkv", i);
+									spi_send_file(REC_CLIP_B, file_path, 0, i+1, 2);
+									}
+								else {
+									printf("Fail to Send %d-2\n", i+1);
+								}
+								
 							}
 							
-							if (Ready_Busy_Check()){
-								printf("File %d-2 Start!\n", i+1);
-								memset(file_path, 0, 64);
-								sprintf(file_path, "/dev/shm/box%d.mp4", i);
-								// sprintf(file_path, "/dev/shm/box%d.mkv", i);
-								spi_send_file(REC_CLIP_B, file_path, 0, i+1, 2);
-								}
 							else {
-								printf("Fail to Send %d-2\n", i+1);
+								// nowtime = sample_gettimeus();
+								if (!ubi_flag) {
+									ubi_flag = true;
+									if (file_ck("/tmp/mnt/sdcard/nandformat")) {
+										system("ubi_mount");
+									}
+									else {
+										system("ubi_mk");
+										system("echo ubiformat > /tmp/mnt/sdcard/nandformat");
+									}
+								}
+								// save_cnt = FileShow("/maincam", file_name);
+								// printf("file cnt : %s.mp4 %d\n", file_name, save_cnt);
+
+								TimeStamp.type[0] = clip_cause_t.Major;
+								TimeStamp.type[1] = clip_cause_t.Minor;
+
+								save_cnt++;
+								memset(file_path, 0, 128);
+								// sprintf(file_path, "cp /dev/shm/main%d.mp4 /maincam/main%d_%d.mp4", i, i, save_cnt);
+								sprintf(file_path, "cp /dev/shm/main%d.mp4 /maincam/%s_%02d_00_%02x%02x.mp4", 
+													i, TimeStamp.date, i+1, TimeStamp.type[0], TimeStamp.type[1]);
+								system(file_path);
+								sleep(1);
+								memset(file_path, 0, 128);
+								// sprintf(file_path, "cp /dev/shm/box%d.mp4 /boxcam/box%d_%d.mp4", i, i, save_cnt);
+								sprintf(file_path, "cp /dev/shm/box%d.mp4 /boxcam/%s_%02d_01_%02x%02x.mp4", 
+													i, TimeStamp.date, i+1, TimeStamp.type[0], TimeStamp.type[1]);
+								system(file_path);
+								sleep(1);
+								old_file_del();
 							}
 						}
-						// else {
-						// 	// nowtime = sample_gettimeus();
-						// 	if (!ubi_flag) {
-						// 		ubi_flag = true;
-						// 		if (file_ck("/tmp/mnt/sdcard/nandformat")) {
-						// 			system("ubi_mount");
-						// 		}
-						// 		else {
-						// 			system("ubi_mk");
-						// 			system("echo ubiformat > /tmp/mnt/sdcard/nandformat");
-						// 		}
-						// 	}
-						// 	save_cnt = FileShow("/maincam", file_name);
-						// 	printf("file cnt : %s.mp4 %d\n", file_name, save_cnt);
-
-						// 	save_cnt++;
-						// 	memset(file_path, 0, 128);
-						// 	sprintf(file_path, "cp /dev/shm/main%d.mp4 /maincam/main%d_%d.mp4", i, i, save_cnt);
-						// 	system(file_path);
-						// 	sleep(1);
-						// 	memset(file_path, 0, 128);
-						// 	sprintf(file_path, "cp /dev/shm/box%d.mp4 /boxcam/box%d_%d.mp4", i, i, save_cnt);
-						// 	system(file_path);
-						// 	sleep(1);
-						// }
-						else {
-							// nowtime = sample_gettimeus();
-							if (!ubi_flag) {
-								ubi_flag = true;
-								if (file_ck("/tmp/mnt/sdcard/nandformat")) {
-									system("ubi_mount");
-								}
-								else {
-									system("ubi_mk");
-									system("echo ubiformat > /tmp/mnt/sdcard/nandformat");
-								}
-							}
-							// save_cnt = FileShow("/maincam", file_name);
-							// printf("file cnt : %s.mp4 %d\n", file_name, save_cnt);
-
-							TimeStamp.type[0] = clip_cause_t.Major;
-							TimeStamp.type[1] = clip_cause_t.Minor;
-
-							save_cnt++;
-							memset(file_path, 0, 128);
-							// sprintf(file_path, "cp /dev/shm/main%d.mp4 /maincam/main%d_%d.mp4", i, i, save_cnt);
-							sprintf(file_path, "cp /dev/shm/main%d.mp4 /maincam/%s_%02d_00_%02x%02x.mp4", 
-												i, TimeStamp.date, i+1, TimeStamp.type[0], TimeStamp.type[1]);
-							system(file_path);
-							sleep(1);
-							memset(file_path, 0, 128);
-							// sprintf(file_path, "cp /dev/shm/box%d.mp4 /boxcam/box%d_%d.mp4", i, i, save_cnt);
-							sprintf(file_path, "cp /dev/shm/box%d.mp4 /boxcam/%s_%02d_01_%02x%02x.mp4", 
-												i, TimeStamp.date, i+1, TimeStamp.type[0], TimeStamp.type[1]);
-							system(file_path);
-							sleep(1);
-							old_file_del();
-						}
-					}
+					#endif
 				}
 
 
@@ -2661,92 +2677,79 @@ int clip_total(void) {
 						else
 							clip_cause_t.Minor = CLIP_BELL_BELL;
 					}
-
-					for (int i=0; i<file_cnt2; i++) {
-						sprintf(file_name, "bell_m%d", i);
-						if (!netwrok_busy) {
-							if (Ready_Busy_Check()){
-								printf("File %d-1 Start!\n", i+1);
-								memset(file_path, 0, 64);
-								sprintf(file_path, "/dev/shm/bell_m%d.mp4", i);
-								spi_send_file(REC_CLIP_F, file_path, 0, i+1, 1);
-								}
-							else {
-								printf("Fail to Send %d-1\n", i+1);
-							}
-							
-							if (Ready_Busy_Check()){
-								printf("File %d-2 Start!\n", i+1);
-								memset(file_path, 0, 64);
-								sprintf(file_path, "/dev/shm/bell_b%d.mp4", i);
-								// sprintf(file_path, "/dev/shm/box%d.mkv", i);
-								spi_send_file(REC_CLIP_B, file_path, 0, i+1, 2);
-								}
-							else {
-								printf("Fail to Send %d-2\n", i+1);
-							}
+					#ifdef __FILE_SEND_CHANGE__
+						FileSend fs;
+						fs.minor = REC_CLIP_F;
+						fs.tag1 = clip_cause_t.Major;
+						fs.tag2 = clip_cause_t.Minor;
+						fs.filenum = 0;
+						fs.filecnt = file_cnt2;
+						ret = spi_send_total_clip(&fs);
+						if(ret < 0) {
+							printf("File Send Fail!!\n");
 						}
-						// else {
-						// 	// nowtime = sample_gettimeus();
-						// 	if (!ubi_flag) {
-						// 		ubi_flag = true;
-						// 		if (file_ck("/tmp/mnt/sdcard/nandformat")) {
-						// 			system("ubi_mount");
-						// 		}
-						// 		else {
-						// 			system("ubi_mk");
-						// 			system("echo ubiformat > /tmp/mnt/sdcard/nandformat");
-						// 		}
-						// 	}
-						// 	save_cnt = FileShow("/maincam", file_name);
-						// 	printf("file cnt : %s.mp4 %d\n", file_name, save_cnt);
-
-						// 	save_cnt++;
-						// 	memset(file_path, 0, 128);
-						// 	sprintf(file_path, "cp /dev/shm/bell_m%d.mp4 /maincam/bell_m%d_%d.mp4", i, i, save_cnt);
-						// 	system(file_path);
-						// 	sleep(1);
-						// 	memset(file_path, 0, 128);
-						// 	sprintf(file_path, "cp /dev/shm/bell_b%d.mp4 /boxcam/bell_b%d_%d.mp4", i, i, save_cnt);
-						// 	system(file_path);
-						// 	sleep(1);
-						// }
-						else {
-							// nowtime = sample_gettimeus();
-							if (!ubi_flag) {
-								ubi_flag = true;
-								if (file_ck("/tmp/mnt/sdcard/nandformat")) {
-									system("ubi_mount");
-								}
+					#else
+						for (int i=0; i<file_cnt2; i++) {
+							sprintf(file_name, "bell_m%d", i);
+							if (!netwrok_busy) {
+								if (Ready_Busy_Check()){
+									printf("File %d-1 Start!\n", i+1);
+									memset(file_path, 0, 64);
+									sprintf(file_path, "/dev/shm/bell_m%d.mp4", i);
+									spi_send_file(REC_CLIP_F, file_path, 0, i+1, 1);
+									}
 								else {
-									system("ubi_mk");
-									system("echo ubiformat > /tmp/mnt/sdcard/nandformat");
+									printf("Fail to Send %d-1\n", i+1);
+								}
+								
+								if (Ready_Busy_Check()){
+									printf("File %d-2 Start!\n", i+1);
+									memset(file_path, 0, 64);
+									sprintf(file_path, "/dev/shm/bell_b%d.mp4", i);
+									// sprintf(file_path, "/dev/shm/box%d.mkv", i);
+									spi_send_file(REC_CLIP_B, file_path, 0, i+1, 2);
+									}
+								else {
+									printf("Fail to Send %d-2\n", i+1);
 								}
 							}
-							// save_cnt = FileShow("/maincam", file_name);
-							// printf("file cnt : %s.mp4 %d\n", file_name, save_cnt);
+							else {
+								// nowtime = sample_gettimeus();
+								if (!ubi_flag) {
+									ubi_flag = true;
+									if (file_ck("/tmp/mnt/sdcard/nandformat")) {
+										system("ubi_mount");
+									}
+									else {
+										system("ubi_mk");
+										system("echo ubiformat > /tmp/mnt/sdcard/nandformat");
+									}
+								}
+								// save_cnt = FileShow("/maincam", file_name);
+								// printf("file cnt : %s.mp4 %d\n", file_name, save_cnt);
 
-							old_file_del();
+								old_file_del();
 
-							TimeStamp.type[0] = clip_cause_t.Major;
-							TimeStamp.type[1] = clip_cause_t.Minor;
+								TimeStamp.type[0] = clip_cause_t.Major;
+								TimeStamp.type[1] = clip_cause_t.Minor;
 
-							save_cnt++;
-							memset(file_path, 0, 128);
-							// sprintf(file_path, "cp /dev/shm/main%d.mp4 /maincam/main%d_%d.mp4", i, i, save_cnt);
-							sprintf(file_path, "cp /dev/shm/bell_m%d.mp4 /maincam/%s_%02d_00_%02x%02x.mp4", 
-												i, TimeStamp.date, i+1, TimeStamp.type[0], TimeStamp.type[1]);
-							system(file_path);
-							sleep(1);
-							memset(file_path, 0, 128);
-							// sprintf(file_path, "cp /dev/shm/box%d.mp4 /boxcam/box%d_%d.mp4", i, i, save_cnt);
-							sprintf(file_path, "cp /dev/shm/bell_b%d.mp4 /boxcam/%s_%02d_01_%02x%02x.mp4", 
-												i, TimeStamp.date, i+1, TimeStamp.type[0], TimeStamp.type[1]);
-							system(file_path);
-							sleep(1);
-							old_file_del();
+								save_cnt++;
+								memset(file_path, 0, 128);
+								// sprintf(file_path, "cp /dev/shm/main%d.mp4 /maincam/main%d_%d.mp4", i, i, save_cnt);
+								sprintf(file_path, "cp /dev/shm/bell_m%d.mp4 /maincam/%s_%02d_00_%02x%02x.mp4", 
+													i, TimeStamp.date, i+1, TimeStamp.type[0], TimeStamp.type[1]);
+								system(file_path);
+								sleep(1);
+								memset(file_path, 0, 128);
+								// sprintf(file_path, "cp /dev/shm/box%d.mp4 /boxcam/box%d_%d.mp4", i, i, save_cnt);
+								sprintf(file_path, "cp /dev/shm/bell_b%d.mp4 /boxcam/%s_%02d_01_%02x%02x.mp4", 
+													i, TimeStamp.date, i+1, TimeStamp.type[0], TimeStamp.type[1]);
+								system(file_path);
+								sleep(1);
+								old_file_del();
+							}
 						}
-					}
+					#endif
 				}
 
 				system("sync");
@@ -3512,29 +3515,42 @@ int stream_total(void) {
 							printf("%s\n", file_path);
 							system(file_path);
 						}
-
-						if (Ready_Busy_Check()){
-							printf("rec0_%d_%d.mp4 Start!\n", i+1, j);
-							memset(file_path, 0, 128);
-							sprintf(file_path, "/dev/shm/rec0_%d_%d.mp4", i+1, j);
-							spi_send_file(REC_STREAMING_M, file_path, i, j+1, 1);
-							// spi_send_fake_file(REC_STREAMING_M);
-						}
-						else {
-							printf("Fail to Send rec0_%d_%d.mp4\n", i+1, j);
-						}
-						
-						if (Ready_Busy_Check()){
-							printf("rec3_%d_%d.mp4 Start!\n", i+1, j);
-							memset(file_path, 0, 128);
-							sprintf(file_path, "/dev/shm/rec3_%d_%d.mp4", i+1, j);
-							spi_send_file(REC_STREAMING_B, file_path, i, j+1, 2);
-							// spi_send_fake_file(REC_STREAMING_B);
-						}
-						else {
-							printf("Fail to Send rec3_%d_%d.mp4\n", i+1, j);
-						}
+						#ifndef __FILE_SEND_CHANGE__
+							if (Ready_Busy_Check()){
+								printf("rec0_%d_%d.mp4 Start!\n", i+1, j);
+								memset(file_path, 0, 128);
+								sprintf(file_path, "/dev/shm/rec0_%d_%d.mp4", i+1, j);
+								spi_send_file(REC_STREAMING_M, file_path, i, j+1, 1);
+								// spi_send_fake_file(REC_STREAMING_M);
+							}
+							else {
+								printf("Fail to Send rec0_%d_%d.mp4\n", i+1, j);
+							}
+							
+							if (Ready_Busy_Check()){
+								printf("rec3_%d_%d.mp4 Start!\n", i+1, j);
+								memset(file_path, 0, 128);
+								sprintf(file_path, "/dev/shm/rec3_%d_%d.mp4", i+1, j);
+								spi_send_file(REC_STREAMING_B, file_path, i, j+1, 2);
+								// spi_send_fake_file(REC_STREAMING_B);
+							}
+							else {
+								printf("Fail to Send rec3_%d_%d.mp4\n", i+1, j);
+							}
+						#endif
 					}
+					#ifdef __FILE_SEND_CHANGE__
+						FileSend fs;
+						fs.minor = REC_STREAMING_M;
+						fs.tag1 = CLIP_CAUSE_STREM;
+						fs.tag2 = CLIP_STREAM_REC;
+						fs.filenum = i;
+						fs.filecnt = file_cnt_rec;
+						ret = spi_send_total_stream_clip(&fs);
+						if(ret < 0) {
+							printf("File Send Fail!!\n");
+						}
+					#endif
 				}
 				system("sync");
 			}

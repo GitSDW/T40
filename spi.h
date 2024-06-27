@@ -104,6 +104,10 @@ typedef enum {
 	SET_DEV_START   = 0x56,
 	SET_DEV_OFF 	= 0x57,
 	SET_DEV_BATT	= 0x58,
+	SET_GET_TOTAL	= 0x59,
+	SET_SET_TOTAL 	= 0x5A,
+	SET_FACTORY_SND = 0x5B,
+
 	
 	SET_DATE  		= 0x7E,
 	SET_STOP  		= 0x7F,
@@ -152,6 +156,14 @@ typedef struct FILEINFO {
     int type2;           // 타입2
 }FileInfo;
 
+typedef struct FILESEND {
+ 	uint8_t minor;
+ 	uint8_t tag1;
+ 	uint8_t tag2;
+ 	uint8_t filenum;
+ 	uint8_t filecnt;
+}FileSend;
+
 int spi_init(void);
 void spi_deinit(void);
 int spi_send_clip(int dly, int num);
@@ -167,6 +179,10 @@ int spi_send_file_dual(uint8_t minor1, uint8_t minor2, char *file1, char *file2)
 int spi_send_save_file(char *path, char *file);
 int spi_send_file_face(uint8_t minor, int fcnt);
 void *OTA_Thread(void * argc);
+#ifdef __FILE_SEND_CHANGE__
+	int spi_send_total_clip(FileSend *fs);
+	int spi_send_total_stream_clip(FileSend *fs);
+#endif
 
 #ifdef __cplusplus
 }

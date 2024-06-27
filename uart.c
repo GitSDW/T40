@@ -348,7 +348,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
     int64_t rec_time_e = 0;
     uint32_t br_buf;
     char* effect_file = NULL;
-
+    Setting_All *SA;
         
     index = 0;
 
@@ -761,6 +761,16 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             sleep(5);
             cmd_end_flag = true;
         break;
+        case SET_FACTORY_SND:
+            ack_len = 0;
+            ack_flag = true;
+
+            effect_file = "/tmp/mnt/sdcard/effects/factory.wav";
+            printf("play : %s\n", effect_file);
+            ao_file_play_thread(effect_file);
+            // sleep(5);
+            // cmd_end_flag = true;
+        break;
         case SET_DEV_BATT:
             ack_len = 0;
             ack_flag = true;
@@ -789,6 +799,46 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             printf("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
             sleep(5);
+            cmd_end_flag = true;
+        break;
+        case SET_SET_TOTAL:
+            SA = (Setting_All*)&rbuff[index+9];
+            // rbuff[index+9+0];
+            // rbuff[index+9+1];
+            // rbuff[index+9+2];
+            // rbuff[index+9+3];
+            // rbuff[index+9+4];
+            // rbuff[index+9+5];
+            // rbuff[index+9+6];
+            // rbuff[index+9+7];
+            // rbuff[index+9+8];
+            // rbuff[index+9+9];
+            // rbuff[index+9+10];
+            // rbuff[index+9+10+27];
+            // rbuff[index+9+10+27+27];
+            settings.SF.bits.led = SA->led;
+            settings.bell_type =  SA->bell_type;
+            settings.spk_vol =  SA->spk_vol;
+            settings.SF.bits.per_face =  SA->per_face;
+            settings.SF.bits.door_g = SA->door_g;
+            settings.SF.bits.user_g = SA->user_g;
+            settings.SF.bits.move_ex = SA->move_ex;
+            settings.SF.bits.flicker = SA->flicker;
+            settings.move_sensitivty = SA->move_sensitivty;
+            settings.SF.bits.backlight = SA->backlight;
+
+
+            memcpy(settings.door_grid , SA->door_grid, 27);
+            memcpy(settings.user_grid , SA->user_grid, 27);
+            settings.move_ex_s_x = (SA->move_ex_s_x[0]*0x100)+(SA->move_ex_s_x[0]);
+            settings.move_ex_s_y = (SA->move_ex_s_y[0]*0x100)+(SA->move_ex_s_y[0]);
+            settings.move_ex_e_x = (SA->move_ex_e_x[0]*0x100)+(SA->move_ex_e_x[0]);
+            settings.move_ex_e_y = (SA->move_ex_e_y[0]*0x100)+(SA->move_ex_e_y[0]);
+
+
+            Setting_Save();
+            ack_len = 0;
+            ack_flag = true;
             cmd_end_flag = true;
         break;
         }

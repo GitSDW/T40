@@ -67,7 +67,7 @@ struct chn_conf chn[FS_CHN_NUM] = {
 			.pixFmt = PIX_FMT_NV12,
 			.outFrmRateNum = FIRST_SENSOR_FRAME_RATE_NUM,
 			.outFrmRateDen = FIRST_SENSOR_FRAME_RATE_DEN,			
-			.nrVBs = 3,
+			.nrVBs = 2,
 			.type = FS_PHY_CHANNEL,
 
 			.scaler.enable = 0,
@@ -2293,7 +2293,7 @@ int Send_Frame_Main_UDP(IMPEncoderStream *stream) {
 	
 	
 	if (!start_flag) {
-		printf("m nr_pack:%d\n", nr_pack);
+		// printf("m nr_pack:%d\n", nr_pack);
 		if ((nr_pack > 1)) {
 			if (stream->pack[nr_pack-1].sliceType == IMP_ENC_SLICE_I) {
 				printf("m Stream Start:%d %d\n", nr_pack, stream->pack[nr_pack-1].sliceType);

@@ -1012,7 +1012,7 @@ void *IMP_Audio_Play_Thread(void *argv)
 				frm.len = datasize;
 			#endif
 
-			printf("AO DS : %d len : %d ChnBusy : %d\n", datasize, frm.len, play_status.chnBusyNum);
+			// printf("AO DS : %d len : %d ChnBusy : %d\n", datasize, frm.len, play_status.chnBusyNum);
 			
 			ret = IMP_AO_SendFrame(ao_devID, ao_chnID, &frm, NOBLOCK);
 			if(ret != 0) {

@@ -25,6 +25,26 @@ char *path;
 #define CS7 0000040
 #define CS8 0000060
 
+typedef struct SETTING_ALL {
+ 	uint8_t led;
+ 	uint8_t bell_type;
+ 	uint8_t spk_vol;
+ 	uint8_t per_face;
+ 	uint8_t door_g;
+ 	uint8_t user_g;
+ 	uint8_t move_ex;
+ 	uint8_t flicker;
+ 	uint8_t move_sensitivty;
+ 	uint8_t backlight;
+
+ 	uint8_t door_grid[27];
+ 	uint8_t user_grid[27];
+ 	uint8_t move_ex_s_x[2];
+ 	uint8_t move_ex_s_y[2];
+ 	uint8_t move_ex_e_x[2];
+ 	uint8_t move_ex_e_y[2];
+}Setting_All;
+
 void *uart_thread(void *argc);
 void *device_live_thread(void * argc);
 void uart_tx_test (void);
