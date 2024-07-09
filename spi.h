@@ -31,6 +31,7 @@ typedef enum {
 	USTREAM_REC_S	= 0x41,
 	USTREAM_REC_E 	= 0x42,
 	// USTREAM_MIC_VOL	= 0x43,
+	USTREAM_BELCAL  = 0x43,
 	USTREAM_LIGHT 	= 0x44,
 	USTREAM_F_SEND	= 0x45,
 	USTREAM_BITRATE = 0x46,
@@ -148,6 +149,12 @@ typedef enum {
 
 } OTA_END;
 
+typedef enum {
+	CAUSE_NULL	= 0x00,
+	CAUSE_MEM	= 0x01,
+	CAUSE_FILE	= 0x02,
+} STREAM_REC_END;
+
 typedef struct FILEINFO {
     char date[13];       // YYMMDDhhmmss 형식의 날짜
     int order;           // 순서
@@ -170,7 +177,7 @@ int spi_send_clip(int dly, int num);
 int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, uint8_t camnum);
 int spi_send_fake_file(uint8_t minor);
 void *spi_send_stream (void *arg);
-void *spi_test_send_stream (void *arg);
+// void *spi_test_send_stream (void *arg);
 int spi_device_off(uint8_t minor);
 void test_spi_rw(void);
 void test_spi_onekbytes(int dly);

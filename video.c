@@ -411,17 +411,19 @@ int Set_Target_Bit(uint32_t targetbit) {
 	printf("Before uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
 	encecmode.attrCbr.uTargetBitRate = targetbit;
 	IMP_Encoder_SetChnAttrRcMode(CH0_INDEX, &encecmode);
-	IMP_Encoder_GetChnAttrRcMode(CH0_INDEX, &encecmode);
 
-	printf("enc rc mode:%d\n", encecmode.rcMode);
-	printf("enc rc CBR uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
-	printf("enc rc CBR iInitialQP:%d\n", encecmode.attrCbr.iInitialQP);
-	printf("enc rc CBR iMinQP:%d\n", encecmode.attrCbr.iMinQP);
-	printf("enc rc CBR iMaxQP:%d\n", encecmode.attrCbr.iMaxQP);
-	printf("enc rc CBR iIPDelta:%d\n", encecmode.attrCbr.iIPDelta);
-	printf("enc rc CBR iPBDelta:%d\n", encecmode.attrCbr.iPBDelta);
-	printf("enc rc CBR eRcOptions:%d\n", encecmode.attrCbr.eRcOptions);
-	printf("enc rc CBR uMaxPictureSize:%d\n", encecmode.attrCbr.uMaxPictureSize);
+	IMP_Encoder_GetChnAttrRcMode(CH0_INDEX, &encecmode);
+	printf("After uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
+
+	// printf("enc rc mode:%d\n", encecmode.rcMode);
+	// printf("enc rc CBR uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
+	// printf("enc rc CBR iInitialQP:%d\n", encecmode.attrCbr.iInitialQP);
+	// printf("enc rc CBR iMinQP:%d\n", encecmode.attrCbr.iMinQP);
+	// printf("enc rc CBR iMaxQP:%d\n", encecmode.attrCbr.iMaxQP);
+	// printf("enc rc CBR iIPDelta:%d\n", encecmode.attrCbr.iIPDelta);
+	// printf("enc rc CBR iPBDelta:%d\n", encecmode.attrCbr.iPBDelta);
+	// printf("enc rc CBR eRcOptions:%d\n", encecmode.attrCbr.eRcOptions);
+	// printf("enc rc CBR uMaxPictureSize:%d\n", encecmode.attrCbr.uMaxPictureSize);
 
 	return 0;
 }
@@ -726,7 +728,7 @@ int video_init(void) {
 
 	///////////////////////////// LDC ISP /////////////////////////////
 	IMPISPHLDCAttr hldc;
-	hldc.strength = 185;     			/**< Distortion correction intensity [range: 0 to 255, default: 128]*/
+	hldc.strength = 125;     			/**< Distortion correction intensity [range: 0 to 255, default: 128]*/
     hldc.width = 1920;          		/**< Image width */
     hldc.height = 1080;         		/**< Image height */
     hldc.center_w = hldc.width/2;       /**< Image distortion horizontal optical center range:[width/2-120, width/2+120] */
@@ -854,7 +856,7 @@ int video_init(void) {
 
 	// Mosaic_En = settings.SF.bits.per_face;
 
-	Set_Target_Bit(500);
+	// Set_Target_Bit(500);
 	///////////////////////////////////////////////////////////////////
 
 	return 0;
@@ -1189,6 +1191,44 @@ void *OSD_thread(void *args)
 			}
 		}
 
+		// if (ex_flag) {
+		// 	ex_flag = false;
+		// 	IMPOSDRgnAttr rect_rAttr;
+		// 	rect_rAttr.type = OSD_REG_RECT;
+		// 	rect_rAttr.rect.p0.x = min_pixel_x;
+		// 	rect_rAttr.rect.p0.y = min_pixel_y;
+		// 	rect_rAttr.rect.p1.x = max_pixel_x - 1;
+		// 	rect_rAttr.rect.p1.y = max_pixel_y - 1;
+		// 	rect_rAttr.fmt = PIX_FMT_MONOWHITE;
+		// 	rect_rAttr.data.lineRectData.color = OSD_RED;
+		// 	rect_rAttr.data.lineRectData.linewidth = 1;
+		// 	IMP_OSD_SetRgnAttr(prHander[TEST_RECT_INDEX], &rect_rAttr);
+		// 	ret = IMP_OSD_ShowRgn(prHander[TEST_RECT_INDEX], mosdgrp, 1);
+		// 	if (ret != 0) {
+		// 		IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
+		// 		return NULL;
+		// 	}
+		// }
+
+		// if (ex_on) {
+		// 	ex_on = false;
+		// 	IMPOSDRgnAttr rect_rAttr;
+		// 	rect_rAttr.type = OSD_REG_RECT;
+		// 	rect_rAttr.rect.p0.x = min_pixel_x2;
+		// 	rect_rAttr.rect.p0.y = min_pixel_y2;
+		// 	rect_rAttr.rect.p1.x = max_pixel_x2 - 1;
+		// 	rect_rAttr.rect.p1.y = max_pixel_y2 - 1;
+		// 	rect_rAttr.fmt = PIX_FMT_MONOWHITE;
+		// 	rect_rAttr.data.lineRectData.color = OSD_YELLOW;
+		// 	rect_rAttr.data.lineRectData.linewidth = 1;
+		// 	IMP_OSD_SetRgnAttr(prHander[1+1+RECT_INDEX], &rect_rAttr);
+		// 	ret = IMP_OSD_ShowRgn(prHander[1+1+RECT_INDEX], mosdgrp, 1);
+		// 	if (ret != 0) {
+		// 		IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
+		// 		return NULL;
+		// 	}
+		// }
+
 		if (fdpd_ck && Mosaic_En) {
 			fdpd_ck = false;
 			for (int j=0; j<10; j++) {
@@ -1257,7 +1297,8 @@ void *OSD_thread(void *args)
 		for (int k=0; k<10; k++) {
 			if (mosaic_time[k] != 0) {
 				mtime = sample_gettimeus()-mosaic_time[k];
-				if (mtime > 10000000) {
+				// if (mtime > 10000000) {
+				if (mtime > 5000000) {
 					ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+k], mosdgrp, 0);
 					if (ret != 0) {
 						IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Mosaic error\n");

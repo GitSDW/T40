@@ -5,6 +5,11 @@
 #include <stdio.h>
 #include <fstream>
 #include <math.h>
+#include <fstream>
+#include <cctype>
+#include <string>
+#include <dirent.h>
+#include <sys/stat.h>
 // #include <unistd.h>
 
 #include "image_comparison.h"
@@ -1014,3 +1019,328 @@ int test_box_al(void)
 // }
 
 #endif
+
+void absdiff_normalize_arr(cv::Mat grayA, cv::Mat grayB, cv::Mat image_org) {
+    cv::Mat diff_image;
+    cv::absdiff(grayA, grayB, diff_image);
+    // cv::imshow("diff_image", diff_image);
+    // cv::waitKey(0);
+
+    // otsu threshold
+    cv::Mat thresh;
+    cv::threshold(diff_image, thresh, 85, 255, cv::THRESH_BINARY);
+    // cv::imshow("binary thresh", thresh);
+    // cv::waitKey(0);
+
+    // 외곽선 정보 검출
+    std::vector<std::vector<cv::Point>> contours;
+    std::vector<cv::Vec4i> hierarchy;
+    cv::findContours(thresh, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+
+    // 컬러 영상으로 변환
+    cv::Mat dst;
+    cv::cvtColor(thresh, dst, cv::COLOR_GRAY2BGR);
+    int h1 = dst.rows;
+    int w1 = dst.cols;
+    int channel1 = dst.channels();
+
+    // original picture loading
+    int h2 = image_org.rows;
+    int w2 = image_org.cols;
+    int channel2 = image_org.channels();
+
+    double htimes = static_cast<double>(h2) / h1;
+    double wtimes = static_cast<double>(w2) / w1;
+
+    int minrectw = static_cast<int>(w1 / 10);
+    int minrecth = static_cast<int>(h1 / 10);
+    int maxrectw = static_cast<int>(w1 - 10);
+    int maxrecth = static_cast<int>(h1 - 10);
+
+    for (size_t i = 0; i < contours.size(); ++i) {
+        cv::Scalar c = cv::Scalar(255, 0, 0);
+        cv::Rect rect = cv::boundingRect(contours[i]);
+
+        if (rect.width > minrectw && rect.height > minrecth && rect.width < maxrectw && rect.height < maxrecth) {
+            cv::drawContours(dst, contours, static_cast<int>(i), cv::Scalar(0, 0, 255), 2);
+            cv::putText(dst, std::to_string(i), contours[i][0], cv::FONT_HERSHEY_COMPLEX, 0.8, cv::Scalar(0, 255, 0), 1);
+            cv::rectangle(dst, rect, cv::Scalar(0, 255, 0), 2);
+
+            // draw rectangle on original image
+            int x1 = static_cast<int>(rect.x * wtimes);
+            int y1 = static_cast<int>(rect.y * htimes);
+            int w1 = static_cast<int>(rect.width * wtimes);
+            int h1 = static_cast<int>(rect.height * htimes);
+            cv::rectangle(image_org, cv::Rect(x1, y1, w1, h1), cv::Scalar(0, 255, 0), 2);
+        }
+    }
+
+    // cv::imshow("countours", dst);
+    // cv::waitKey(0);
+
+    // cv::imshow("results", image_org);
+    // cv::waitKey(0);
+}
+
+// int main() {
+//     // Load your images here
+//     cv::Mat grayA = cv::imread("grayA.jpg", cv::IMREAD_GRAYSCALE);
+//     cv::Mat grayB = cv::imread("grayB.jpg", cv::IMREAD_GRAYSCALE);
+//     cv::Mat image_org = cv::imread("image_org.jpg");
+
+//     if (grayA.empty() || grayB.empty() || image_org.empty()) {
+//         std::cerr << "Could not open or find the images!" << std::endl;
+//         return -1;
+//     }
+
+//     absdiff_normalize_arr(grayA, grayB, image_org);
+
+//     cv::waitKey(0); // Wait for any key press
+//     return 0;
+// }
+
+// #include <opencv2/opencv.hpp>
+// #include <iostream>
+// #include <chrono>
+
+const int division_step = 30;
+const int stepcount = division_step + division_step - 1;
+
+cv::Mat orbwarp(const cv::Mat& image1, const cv::Mat& image2) {
+    cv::Mat gray_image1, gray_image2;
+    cv::cvtColor(image1, gray_image1, cv::COLOR_BGR2GRAY);
+    cv::cvtColor(image2, gray_image2, cv::COLOR_BGR2GRAY);
+
+    cv::Ptr<cv::ORB> orb = cv::ORB::create();
+    std::vector<cv::KeyPoint> keypoints_1, keypoints_2;
+    cv::Mat descriptors_1, descriptors_2;
+
+    orb->detectAndCompute(gray_image1, cv::Mat(), keypoints_1, descriptors_1);
+    orb->detectAndCompute(gray_image2, cv::Mat(), keypoints_2, descriptors_2);
+
+    cv::BFMatcher bf(cv::NORM_HAMMING, true);
+    std::vector<cv::DMatch> matches;
+    bf.match(descriptors_1, descriptors_2, matches);
+
+    double minDist = 999.0;
+    if (!matches.empty()) {
+        minDist = matches[0].distance;
+    }
+
+    for (const auto& m : matches) {
+        if (m.distance < minDist) {
+            minDist = m.distance;
+        }
+    }
+
+    std::vector<cv::DMatch> good;
+    for (const auto& m : matches) {
+        if (m.distance < 3 * minDist || m.distance < 20) {
+            good.push_back(m);
+        }
+    }
+
+    std::vector<cv::Point2f> pts1, pts2;
+    for (const auto& m : good) {
+        pts1.push_back(keypoints_1[m.queryIdx].pt);
+        pts2.push_back(keypoints_2[m.trainIdx].pt);
+    }
+
+    cv::Mat H1 = cv::findHomography(pts1, pts2, cv::RANSAC);
+    cv::Mat correctedImage;
+    cv::warpPerspective(image1, correctedImage, H1, image1.size());
+
+    return correctedImage;
+}
+
+int findHighestNumberedFile(const std::string& directory) {
+    int max_number = -1;
+    DIR* dir;
+    struct dirent* ent;
+
+    if ((dir = opendir(directory.c_str())) != nullptr) {
+        while ((ent = readdir(dir)) != nullptr) {
+            std::string filename = ent->d_name;
+
+            // 파일 이름이 "0000.jpg" 형식인지 확인
+            if (filename.size() == 8 && filename.substr(4) == ".jpg") {
+                bool is_number = true;
+                for (int i = 0; i < 4; ++i) {
+                    if (!isdigit(filename[i])) {
+                        is_number = false;
+                        break;
+                    }
+                }
+
+                if (is_number) {
+                    int number = std::stoi(filename.substr(0, 4));
+                    if (number > max_number) {
+                        max_number = number;
+                    }
+                }
+            }
+        }
+        closedir(dir);
+    } else {
+        std::cerr << "Could not open directory: " << directory << std::endl;
+    }
+
+    return max_number;
+}
+
+void nomalize_arr(const cv::Mat& sim_arr, cv::Mat& image_org) {
+    cv::Mat img;
+    cv::resize(sim_arr, img, cv::Size(300, 300), 0, 0, cv::INTER_LINEAR);
+    // cv::imshow("absdiffbysector", img);
+
+    cv::Mat thresh;
+    cv::threshold(img, thresh, 85, 255, cv::THRESH_BINARY);
+    // cv::imshow("binary thresh", thresh);
+
+    std::vector<std::vector<cv::Point>> contours;
+    std::vector<cv::Vec4i> hierarchy;
+    cv::findContours(thresh, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+
+    cv::Mat dst;
+    cv::cvtColor(thresh, dst, cv::COLOR_GRAY2BGR);
+    int h1 = dst.rows;
+    int w1 = dst.cols;
+
+    int h2 = image_org.rows;
+    int w2 = image_org.cols;
+
+    double htimes = static_cast<double>(h2) / h1;
+    double wtimes = static_cast<double>(w2) / w1;
+
+    for (size_t i = 0; i < contours.size(); ++i) {
+        cv::drawContours(dst, contours, static_cast<int>(i), cv::Scalar(0, 0, 255), 2);
+        cv::putText(dst, std::to_string(i), contours[i][0], cv::FONT_HERSHEY_COMPLEX, 0.8, cv::Scalar(0, 255, 0), 1);
+        cv::Rect rect = cv::boundingRect(contours[i]);
+        cv::rectangle(dst, rect, cv::Scalar(0, 255, 0), 2);
+
+        int x1 = static_cast<int>(rect.x * wtimes);
+        int y1 = static_cast<int>(rect.y * htimes);
+        int w1 = static_cast<int>(rect.width * wtimes);
+        int h1 = static_cast<int>(rect.height * htimes);
+        cv::rectangle(image_org, cv::Rect(x1, y1, w1, h1), cv::Scalar(0, 255, 0), 2);
+    }
+
+    // cv::imshow("countours", dst);
+    // cv::imshow("results", image_org);
+    // cv::imwrite("/tmp/mnt/sdcard/results.jpg", image_org);
+
+    int num;
+    string save_path = "/tmp/mnt/sdcard/caps";
+    string save_full = "";
+
+    std::ostringstream oss;
+    cout << "Save Name" << endl;
+    num = findHighestNumberedFile(save_path);
+    if (num >= 0) {
+        oss << std::setw(4) << std::setfill('0') << num+1 << ".jpg";
+        std::string filename = oss.str();
+        save_full = save_path + "/" + filename;
+        // save_full = save_path + "box" + std::to_string(num+1) + ".jpg";
+    }
+    else
+        save_full = save_path + "/" + "0000.jpg";
+
+    cout << "Save File : " << save_full << endl;
+    imwrite(save_full, image_org);
+}
+
+double absdiff_sim(const cv::Mat& image1, const cv::Mat& image2) {
+    cv::Mat diff_image;
+    cv::absdiff(image1, image2, diff_image);
+
+    cv::Mat thresh;
+    cv::threshold(diff_image, thresh, 85, 255, cv::THRESH_BINARY);
+
+    double mean_intensity_img1 = cv::sum(thresh)[0];
+
+    return mean_intensity_img1;
+}
+
+int box_change(void) {
+    std::string image1_path = "/tmp/mnt/sdcard/box_before.jpg";
+    std::string image2_path = "/dev/shm/box0.jpg";
+
+    cv::Mat imageorgA = cv::imread(image1_path);
+    cv::Mat imageorgB = cv::imread(image2_path);
+
+    if (imageorgA.empty() || imageorgB.empty()) {
+        std::cerr << "Could not open or find the images!" << std::endl;
+        return -1;
+    }
+
+    imageorgB = orbwarp(imageorgB, imageorgA);
+
+    int height = imageorgA.rows;
+    int width = imageorgA.cols;
+    int ratioh = height / 10;
+    int ratiow = width / 10;
+
+    imageorgA = imageorgA(cv::Rect(ratiow, ratioh, width - 2 * ratiow, height - 2 * ratioh));
+    imageorgB = imageorgB(cv::Rect(ratiow, ratioh, width - 2 * ratiow, height - 2 * ratioh));
+
+    cv::Mat imageA, imageB;
+    cv::resize(imageorgA, imageA, cv::Size(300, 300));
+    cv::resize(imageorgB, imageB, cv::Size(300, 300));
+
+    cv::Mat grayA, grayB;
+    cv::cvtColor(imageA, grayA, cv::COLOR_BGR2GRAY);
+    cv::cvtColor(imageB, grayB, cv::COLOR_BGR2GRAY);
+
+    cv::equalizeHist(grayA, grayA);
+    cv::equalizeHist(grayB, grayB);
+
+    // cv::imshow("equalizeHist1", grayA);
+    // cv::imshow("equalizeHist2", grayB);
+
+    absdiff_normalize_arr(grayA, grayB, imageorgB);
+
+    int h = imageA.rows;
+    int w = imageA.cols;
+
+    double stepw = static_cast<double>(w) / division_step;
+    double steph = static_cast<double>(h) / division_step;
+
+    cv::Mat sim_arr = cv::Mat::ones(stepcount, stepcount, CV_32S);
+
+    auto a = std::chrono::high_resolution_clock::now();
+
+    for (int i = 0; i < stepcount; ++i) {
+        for (int j = 0; j < stepcount; ++j) {
+            int hs = static_cast<int>(i * (steph / 2));
+            int he = static_cast<int>(hs + steph - 1);
+
+            int ws = static_cast<int>(j * (stepw / 2));
+            int we = static_cast<int>(ws + stepw - 1);
+
+            cv::Mat cropped_image1 = grayA(cv::Range(hs, he), cv::Range(ws, we));
+            cv::Mat cropped_image2 = grayB(cv::Range(hs, he), cv::Range(ws, we));
+
+            double similarity = absdiff_sim(cropped_image1, cropped_image2);
+
+            if (similarity < 0) {
+                sim_arr.at<int>(i, j) = 0;
+            } else {
+                sim_arr.at<int>(i, j) = similarity;
+            }
+        }
+    }
+
+    auto b = std::chrono::high_resolution_clock::now();
+    auto c = std::chrono::duration_cast<std::chrono::milliseconds>(b - a);
+
+    std::cout << c.count() << " milliseconds" << std::endl;
+
+    cv::Mat normresult;
+    cv::normalize(sim_arr, normresult, 0, 255, cv::NORM_MINMAX, CV_8U);
+
+    nomalize_arr(normresult, imageorgB);
+
+    // cv::waitKey(0);
+
+    return 0;
+}

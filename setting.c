@@ -69,7 +69,9 @@ bool loadCRC(uint32_t *crc, const char *filename) {
 
 // 설정 값을 파일에 저장
 void saveSettings(Settings *settings, const char *filename) {
+    printf("save! :%s\n", filename);
     FILE *file = fopen(filename, "wb");
+    printf("open!\n");
     if (file != NULL) {
         fwrite(settings, sizeof(Settings), 1, file);
         fclose(file);
@@ -115,8 +117,10 @@ void Setting_Reinit(void) {
     settings.SF.bits.user_g = 0;
 
     // 파일에 설정값 저장
+    printf("Save Setting!\n");
     saveSettings(&settings, setting_file);
     // 파일의 CRC 값 저장
+    printf("CRC Save!!\n");
     saveCRC(calculateCRC(fopen(setting_file, "rb")), setting_crc);
     printf("ReInit settings saved.\n");
 }
@@ -141,12 +145,12 @@ void Setting_Init(void) {
                 loadSettings(&settings, setting_file);
             } else {
                 printf("CRC check: FAILED\n");
-                fclose(file);
+                // fclose(file);
                 Setting_Reinit();
             }
         } else {
             printf("CRC file not found.\n");
-            fclose(file);
+            // fclose(file);
             Setting_Reinit();
         }
     } else {
@@ -155,9 +159,10 @@ void Setting_Init(void) {
     }
 
     // 현재 설정값 출력
-    printf("Current settings:\n");
-    printf("Spk Vol: %d\n", settings.spk_vol);
-    printf("Setting Flag : 0x%04X\n", settings.SF.bytes);
+    // printf("Current settings:\n");
+    // printf("Spk Vol: %d\n", settings.spk_vol);
+    // printf("Setting Flag : 0x%04X\n", settings.SF.bytes);
+    printf("Setting Load Success!!\n");
 }
 
 void Setting_Save(void) {

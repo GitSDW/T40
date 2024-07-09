@@ -9,8 +9,8 @@ extern "C" {
 #endif
 
 #define MAJOR_VER	"0"
-#define MINOR_VER	"6"	
-#define CAHR_VER	"q"
+#define MINOR_VER	"7"	
+#define CAHR_VER	"l"
 
 typedef struct CIRCULAR_BUFF
 {
@@ -115,6 +115,10 @@ Buff_t AI_Cir_Buff;
 int main_motion_detect;
 // int min_pixel_x, min_pixel_y;
 // int max_pixel_x, max_pixel_y;
+// bool ex_flag;
+// int min_pixel_x2, min_pixel_y2;
+// int max_pixel_x2, max_pixel_y2;
+// bool ex_on;
 
 #define GRID_PIXEL_W		80
 #define GRID_PIXEL_H		120
@@ -218,6 +222,7 @@ uint8_t *tx_tbuff;
 uint8_t *rx_buff;
 uint8_t *read_buff;
 uint8_t ota_type_u;
+uint8_t stream_tag[10];
 
 int64_t start_time;
 uint32_t ExpVal;
@@ -244,6 +249,9 @@ int boot_mode;
 int face_crop_cnt;
 int Rec_type;
 int bl_state;
+
+int spk_vol_buf;
+int spk_gain_buf;
 
 
 // bool rec_stop;

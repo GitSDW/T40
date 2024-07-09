@@ -272,6 +272,7 @@ int Make_Spi_Packet(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t major, 
                     memcpy(&tbuff[9+V_SEND_RESERV], data, len);
                     break;
                 case REC_STREAM_END:
+                    memcpy(&tbuff[9+V_SEND_RESERV], data, len);
                     break;
                 case REC_ACK:
                     break;
@@ -523,9 +524,11 @@ int Make_Spi_Packet_live_rtp(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_
             // printf("Real Main RTP GAP:%lld cal_time:%lld\n", gap_time, cal_time);
             if ((bitrate_change != 300) && fm_end) {
                 bitrate_change = 300;
-                Set_Target_Bit2(bitrate_change);
-                bitrate_cnt = sample_gettimeus();
+                printf("Real Main cal_time:%lld\n", cal_time);
+                // Set_Target_Bit2(bitrate_change);
+                // bitrate_cnt = sample_gettimeus();
             }
+            bitrate_cnt = sample_gettimeus();
         }
         // real_time_gap = sample_gettimeus();
         test_time = time;
@@ -638,6 +641,7 @@ static int Recv_Spi_Packet_test(uint8_t *rbuff) {
     return 0;
 }
 
+extern void amp_on(void);
 
 static int Recv_Spi_Packet_live(uint8_t *rbuff) {
     int index, len;
@@ -646,6 +650,7 @@ static int Recv_Spi_Packet_live(uint8_t *rbuff) {
     // static uint8_t data[10]= {0};
     int bad_cnt = 0;
     static int spicnt = 0;
+    static bool amp = false;
     
 
     
@@ -772,6 +777,10 @@ static int Recv_Spi_Packet_live(uint8_t *rbuff) {
         case STREAM_AUDIO_B:
             // printf("audio dn len:%d\n", len);
             // len = 882;
+            if (!amp) {
+                amp = true;
+                amp_on();
+            }
             if(len > 0){
                 pthread_mutex_lock(&buffMutex_ao);
                 if (AO_Cir_Buff.RIndex != AO_Cir_Buff.WIndex) {
@@ -961,9 +970,7 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
     //     usleep(dly*1000);
     //     first_send = true;
     // }
-    spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
 
-    
     if (Ready_Busy_Check())
         printf("File Send Start!\n");
     else{
@@ -971,6 +978,8 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
         return -1;
     }
 
+    spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
+    
     do {
         ret = read(filed, read_buff, FILE_READ_LENGTH);
         if(ret != 0) {
@@ -1026,7 +1035,7 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
         int filed[6] = {0};
         char file[128] = {0};
 
-        printf("m:%d t1:%d t2:%d fn:%d fc:%d\n", fs->minor, fs->tag1, fs->tag2, fs->filenum, fs->filecnt);
+        // printf("m:%d t1:%d t2:%d fn:%d fc:%d\n", fs->minor, fs->tag1, fs->tag2, fs->filenum, fs->filecnt);
 
         for (cnt=0; cnt<(fs->filecnt); cnt++) {
             memset(file, 0, 128);
@@ -1048,10 +1057,10 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                 printf("File %s Open Fail!\n", file);
                 break;
             }
-            printf("file[%d]:%s\n", (cnt*2), file);
+            // printf("file[%d]:%s\n", (cnt*2), file);
             
             if (file_info1.st_size < 10*1024) {
-                printf("File Size Low!:%ld\n", file_info1.st_size);
+                // printf("File Size Low!:%ld\n", file_info1.st_size);
                 break;
             }
 
@@ -1073,10 +1082,10 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                 printf("File %s Open Fail!\n", file);
                 break;
             }
-            printf("file[%d]:%s\n", (cnt*2)+1, file);
+            // printf("file[%d]:%s\n", (cnt*2)+1, file);
             
             if (file_info2.st_size < 10*1024) {
-                printf("File Size Low!:%ld\n", file_info2.st_size);
+                // printf("File Size Low!:%ld\n", file_info2.st_size);
                 break;
             }
 
@@ -1105,13 +1114,13 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
             read_buff[4], read_buff[5], read_buff[6], read_buff[7]);
         Make_Spi_Packet(tx_buff, read_buff, len, REC, REC_STREAM_STR);
       
-        if (Ready_Busy_Check()){
-            // printf("File Send Start!\n");
-        }
-        else{
-            printf("FS\n");
-            return -1;
-        }
+        // if (Ready_Busy_Check()){
+        //     // printf("File Send Start!\n");
+        // }
+        // else{
+        //     printf("FS\n");
+        //     return -1;
+        // }
         spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
 
         for (scnt=0; scnt<cnt; scnt++) {
@@ -1134,6 +1143,18 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                 wcnt++;
                 // usleep(dly*1000);
             } while(ret != 0);
+
+            if (sz_file[(scnt*2)]%SPI_SEND_LENGTH == 0) {
+                Make_Spi_Packet(tx_buff, read_buff, 0, REC, fs->minor);
+                if (Ready_Busy_Check()){
+                    // printf("RB Checked!\n");
+                }
+                else{
+                    printf("F:%d\n", wcnt);
+                    return -1;
+                }
+                spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
+            }
             
             len = 9;
             read_buff[0] = fs->minor;
@@ -1180,6 +1201,17 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                 // usleep(dly*1000);
             } while(ret != 0);
 
+            if (sz_file[(scnt*2)+1]%SPI_SEND_LENGTH == 0) {
+                Make_Spi_Packet(tx_buff, read_buff, 0, REC, fs->minor+1);
+                if (Ready_Busy_Check()){
+                    // printf("RB Checked!\n");
+                }
+                else{
+                    printf("F:%d\n", wcnt);
+                    return -1;
+                }
+                spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
+            }
             
             len = 9;
             read_buff[0] = fs->minor;
@@ -1195,8 +1227,8 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                 read_buff[0], read_buff[1], read_buff[2], read_buff[3],
                 read_buff[4], read_buff[5], read_buff[6], read_buff[7], read_buff[8]);
             Make_Spi_Packet(tx_buff, read_buff, len, REC, REC_STREAM_END);
-            memset(tx_buff, 0, 1033);
-            memcpy(&tx_buff[6], read_buff,1);
+            // memset(tx_buff, 0, 1033);
+            // memcpy(&tx_buff[6], read_buff,1);
             if (Ready_Busy_Check()){
                 // printf("RB Checked!\n");
             }
@@ -1221,8 +1253,9 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
         int wcnt = 0;
         int filed[6] = {0};
         char file[128] = {0};
+        uint8_t seq = 0;
 
-        printf("m:%d t1:%d t2:%d fn:%d fc:%d\n", fs->minor, fs->tag1, fs->tag2, fs->filenum, fs->filecnt);
+        // printf("m:%d t1:%d t2:%d fn:%d fc:%d\n", fs->minor, fs->tag1, fs->tag2, fs->filenum, fs->filecnt);
 
         for (cnt=0; cnt<(fs->filecnt); cnt++) {
             memset(file, 0, 128);
@@ -1238,10 +1271,10 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                 printf("File %s Open Fail!\n", file);
                 break;
             }
-            printf("file[%d]:%s\n", (cnt*2), file);
+            // printf("file[%d]:%s\n", (cnt*2), file);
             
             if (file_info1.st_size < 10*1024) {
-                printf("File Size Low!:%ld\n", file_info1.st_size);
+                // printf("File Size Low!:%ld\n", file_info1.st_size);
                 break;
             }
 
@@ -1258,10 +1291,10 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                 printf("File %s Open Fail!\n", file);
                 break;
             }
-            printf("file[%d]:%s\n", (cnt*2)+1, file);
+            // printf("file[%d]:%s\n", (cnt*2)+1, file);
             
             if (file_info2.st_size < 10*1024) {
-                printf("File Size Low!:%ld\n", file_info2.st_size);
+                // printf("File Size Low!:%ld\n", file_info2.st_size);
                 break;
             }
 
@@ -1290,13 +1323,13 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
             read_buff[4], read_buff[5], read_buff[6], read_buff[7]);
         Make_Spi_Packet(tx_buff, read_buff, len, REC, REC_STREAM_STR);
       
-        if (Ready_Busy_Check()){
-            // printf("File Send Start!\n");
-        }
-        else{
-            printf("FS\n");
-            return -1;
-        }
+        // if (Ready_Busy_Check()){
+        //     // printf("File Send Start!\n");
+        // }
+        // else{
+        //     printf("FS\n");
+        //     return -1;
+        // }
         spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
 
         for (scnt=0; scnt<cnt; scnt++) {
@@ -1314,6 +1347,7 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                         return -1;
                     }
                     Make_Spi_Packet(tx_buff, read_buff, ret, REC, fs->minor);
+                    tx_buff[8+V_SEND_RESERV] = wcnt;
                     spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
                 }
                 wcnt++;
@@ -1359,6 +1393,7 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                         return -1;
                     }
                     Make_Spi_Packet(tx_buff, read_buff, ret, REC, fs->minor+1);
+                    tx_buff[8+V_SEND_RESERV] = wcnt;
                     spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
                 }
                 wcnt++;
@@ -1380,8 +1415,8 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                 read_buff[0], read_buff[1], read_buff[2], read_buff[3],
                 read_buff[4], read_buff[5], read_buff[6], read_buff[7], read_buff[8]);
             Make_Spi_Packet(tx_buff, read_buff, len, REC, REC_STREAM_END);
-            memset(tx_buff, 0, 1033);
-            memcpy(&tx_buff[6], read_buff,1);
+            // memset(tx_buff, 0, 1033);
+            // memcpy(&tx_buff[6], read_buff,1);
             if (Ready_Busy_Check()){
                 // printf("RB Checked!\n");
             }
@@ -2060,7 +2095,6 @@ void *spi_send_stream (void *arg)
     int frame_ptr2 = 0;
     bool frame_end = false;
     int main_first = 0;
-    // int delay_state = 0;
     int mv_delay = 2;
     // bool stream_start1 = false;
 
@@ -2077,32 +2111,24 @@ void *spi_send_stream (void *arg)
         // else if (VM_Frame_Buff.cnt > 0) {
         if (VM_Frame_Buff.cnt > 0) {
             
-            // if (VM_Frame_Buff.cnt >= 10) {
-            //     if (delay_state != 1) {
-            //         printf("Delay State 1!\n");
-            //         mv_delay = 2;
-            //         delay_state = 1;
-            //     }
-            // }
-            // else if (VM_Frame_Buff.cnt <= 7) {
-            //     if (delay_state != 2) {
-            //         printf("Delay State 2!\n");
-            //         Set_Target_Bit2(500);
-            //         delay_state = 2;
-            //     }
-            // }
-            // else if (VM_Frame_Buff.cnt <= 4){
-            //     if (delay_state != 3) {
-            //         printf("Delay State 3!\n");
-            //         mv_delay = 3;
-            //         delay_state = 3;
-            //     }
-            // }
-
-            if (bitrate_change != 500 && (sample_gettimeus()-bitrate_cnt)>3000000) {
-                bitrate_change = 500;
-                Set_Target_Bit2(bitrate_change);
+            if (VM_Frame_Buff.cnt >= 14) {
+                if (mv_delay != 1) {
+                    printf("Delay State 1!\n");
+                    mv_delay = 1;
+                }
             }
+            
+            else if (VM_Frame_Buff.cnt <= 4){
+                if (mv_delay != 2) {
+                    printf("Delay State 3!\n");
+                    mv_delay = 2;
+                }
+            }
+
+            // if (bitrate_change != 500 && (sample_gettimeus()-bitrate_cnt)>3000000) {
+            //     bitrate_change = 500;
+            //     Set_Target_Bit2(bitrate_change);
+            // }
 
             if (frame_ptr1 == 0)
                 framesize1 = VM_Frame_Buff.len[VM_Frame_Buff.Rindex]-(V_SEND_SIZE*frame_ptr1);
@@ -2127,7 +2153,10 @@ void *spi_send_stream (void *arg)
             ///////////////// SPI Send //////////////////////////
             if (data_sel == 1 || data_sel == 4) {
                 // ret = spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
-                ret = spi_rw_bytes(fd,tx_buff,rx_buff,SPI_SEND_LENGTH);
+                if (stream_state == 1)
+                    ret = spi_rw_bytes(fd,tx_buff,rx_buff,SPI_SEND_LENGTH);
+                else
+                    ret = 0;
                 if (ret != 0) {
                     printf("Fail Send SPI Data!\n");
                 }
@@ -2175,7 +2204,10 @@ void *spi_send_stream (void *arg)
             ///////////////// SPI Send //////////////////////////
             if (data_sel == 2 || data_sel == 4) {
                 // ret = spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
-                ret = spi_rw_bytes(fd,tx_buff,rx_buff,SPI_SEND_LENGTH);
+                if (stream_state == 1)
+                    ret = spi_rw_bytes(fd,tx_buff,rx_buff,SPI_SEND_LENGTH);
+                else
+                    ret = 0;
                 // ret = 0;
                 if (ret != 0) {
                     printf("Fail Send SPI Data!\n");
@@ -2238,7 +2270,10 @@ void *spi_send_stream (void *arg)
                 ///////////////// SPI Send //////////////////////////
                 if (data_sel == 3 || data_sel == 4) {
                     // ret = spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
-                    ret = spi_rw_bytes(fd,tx_buff,rx_buff,SPI_SEND_LENGTH);
+                    if (stream_state == 1)
+                        ret = spi_rw_bytes(fd,tx_buff,rx_buff,SPI_SEND_LENGTH);
+                    else
+                        ret = 0;
                     // ret = 0;
                     if (ret != 0) {
                         printf("Fail Send SPI Data!\n");
@@ -2272,133 +2307,133 @@ void *spi_send_stream (void *arg)
 }
 
 
-void *spi_test_send_stream (void *arg)
-{
+// void *spi_test_send_stream (void *arg)
+// {
     
-    int ret = -1;
-    uint8_t *buf;
-    int datasize = 0;
-    int framesize = 0;
+//     int ret = -1;
+//     uint8_t *buf;
+//     int datasize = 0;
+//     int framesize = 0;
 
-    buf = (uint8_t*)malloc(2000);
+//     buf = (uint8_t*)malloc(2000);
   
-    // printf("set parse is : device %s ,speed %d ,delay %d ,bpw %d\n",device,speed,delay,bits);
-    for(int i=0; i<1024; i++){
-        tx_tbuff[i] = i%256;
-    }
+//     // printf("set parse is : device %s ,speed %d ,delay %d ,bpw %d\n",device,speed,delay,bits);
+//     for(int i=0; i<1024; i++){
+//         tx_tbuff[i] = i%256;
+//     }
 
-    do {
-        /////////// Vedio Box IN -> UDP Out //////////////////////////////////////////
-        if (VB_Frame_Buff.cnt > 0) {
-            framesize = VB_Frame_Buff.len[VB_Frame_Buff.Rindex];
-            for(int i=0; framesize > 0; i++){
-                pthread_mutex_lock(&buffMutex_vb);
-                datasize = (framesize > V_SEND_SIZE) ? V_SEND_SIZE : framesize;
-                // udp_vm_send(VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize);
-                framesize -= datasize;
-                // printf("cnt:%d, total:%d, dsize:%d\n", i, framesize, datasize);
-                pthread_mutex_unlock(&buffMutex_vb);
-                // printf("[CIR_BUFF_VM]datasize:%d WIndex:%d RIndex%d\n", datasize, VM_Cir_Buff.WIndex, VM_Cir_Buff.RIndex);
-                Make_Spi_Packet_live(tx_buff, VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize, STREAMING, STREAM_VEDIO_B);
-                // memset(tx_buff, 0, 1024);
-                // memcpy(&tx_buff[6], read_buff, ret);
-                ///////////////// SPI Send //////////////////////////
-                if (data_sel == 2 || data_sel == 4) {
-                    // ret = spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
-                    // ret = spi_rw_bytes(fd,tx_buff,rx_buff,SPI_SEND_LENGTH);
-                    // ret = spi_write_bytes(fd,tx_tbuff, SPI_SEND_LENGTH);
-                    ret = spi_rw_bytes(fd,tx_tbuff,rx_buff,SPI_SEND_LENGTH);
-                    if (ret != 0) {
-                        printf("Fail Send SPI Data!\n");
-                    }
-                    else {
-                    // printf("MAIN Send Data : 0x%02X%02X\n", tx_buff[3], tx_buff[4]);
-                        usleep(1*1000);
-                    }
-                }
-            }
-            VB_Frame_Buff.Rindex = (VB_Frame_Buff.Rindex+1)%5;
-            VB_Frame_Buff.cnt--;
-        }
-        //////////////////////////////////////////////////////////////////////////////
-        Recv_Spi_Packet_test(rx_buff);
+//     do {
+//         /////////// Vedio Box IN -> UDP Out //////////////////////////////////////////
+//         if (VB_Frame_Buff.cnt > 0) {
+//             framesize = VB_Frame_Buff.len[VB_Frame_Buff.Rindex];
+//             for(int i=0; framesize > 0; i++){
+//                 pthread_mutex_lock(&buffMutex_vb);
+//                 datasize = (framesize > V_SEND_SIZE) ? V_SEND_SIZE : framesize;
+//                 // udp_vm_send(VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize);
+//                 framesize -= datasize;
+//                 // printf("cnt:%d, total:%d, dsize:%d\n", i, framesize, datasize);
+//                 pthread_mutex_unlock(&buffMutex_vb);
+//                 // printf("[CIR_BUFF_VM]datasize:%d WIndex:%d RIndex%d\n", datasize, VM_Cir_Buff.WIndex, VM_Cir_Buff.RIndex);
+//                 Make_Spi_Packet_live(tx_buff, VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize, STREAMING, STREAM_VEDIO_B);
+//                 // memset(tx_buff, 0, 1024);
+//                 // memcpy(&tx_buff[6], read_buff, ret);
+//                 ///////////////// SPI Send //////////////////////////
+//                 if (data_sel == 2 || data_sel == 4) {
+//                     // ret = spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
+//                     // ret = spi_rw_bytes(fd,tx_buff,rx_buff,SPI_SEND_LENGTH);
+//                     // ret = spi_write_bytes(fd,tx_tbuff, SPI_SEND_LENGTH);
+//                     ret = spi_rw_bytes(fd,tx_tbuff,rx_buff,SPI_SEND_LENGTH);
+//                     if (ret != 0) {
+//                         printf("Fail Send SPI Data!\n");
+//                     }
+//                     else {
+//                     // printf("MAIN Send Data : 0x%02X%02X\n", tx_buff[3], tx_buff[4]);
+//                         usleep(1*1000);
+//                     }
+//                 }
+//             }
+//             VB_Frame_Buff.Rindex = (VB_Frame_Buff.Rindex+1)%5;
+//             VB_Frame_Buff.cnt--;
+//         }
+//         //////////////////////////////////////////////////////////////////////////////
+//         Recv_Spi_Packet_test(rx_buff);
 
-        if (VM_Frame_Buff.cnt > 0) {
-            framesize = VM_Frame_Buff.len[VM_Frame_Buff.Rindex];
-            for(int i=0; framesize > 0; i++){
-                pthread_mutex_lock(&buffMutex_vm);
-                datasize = (framesize > V_SEND_SIZE) ? V_SEND_SIZE : framesize;
-                // udp_vm_send(VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize);
-                framesize -= datasize;
-                // printf("cnt:%d, total:%d, dsize:%d\n", i, framesize, datasize);
-                pthread_mutex_unlock(&buffMutex_vm);
-                // printf("[CIR_BUFF_VM]datasize:%d WIndex:%d RIndex%d\n", datasize, VM_Cir_Buff.WIndex, VM_Cir_Buff.RIndex);
-                Make_Spi_Packet_live(tx_buff, VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize, STREAMING, STREAM_VEDIO_M);
-                // memset(tx_buff, 0, 1024);
-                // memcpy(&tx_buff[6], read_buff, ret);
-                ///////////////// SPI Send //////////////////////////
-                if (data_sel == 1 || data_sel == 4) {
-                    // ret = spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
-                    // ret = spi_rw_bytes(fd,tx_buff,rx_buff,SPI_SEND_LENGTH);
-                    // ret = spi_write_bytes(fd,tx_tbuff, SPI_SEND_LENGTH);
-                    ret = spi_rw_bytes(fd,tx_tbuff,rx_buff,SPI_SEND_LENGTH);
-                    if (ret != 0) {
-                        printf("Fail Send SPI Data!\n");
-                    }
-                    else {
-                        // printf("d:0x%02X%02X\n", tx_buff[3], tx_buff[4]);
-                        usleep(1*1000);
-                    }
-                }
-            }
-            VM_Frame_Buff.Rindex = (VM_Frame_Buff.Rindex+1)%5;
-            VM_Frame_Buff.cnt--;
-        }
-        //////////////////////////////////////////////////////////////////////////////
-        Recv_Spi_Packet_test(rx_buff);
+//         if (VM_Frame_Buff.cnt > 0) {
+//             framesize = VM_Frame_Buff.len[VM_Frame_Buff.Rindex];
+//             for(int i=0; framesize > 0; i++){
+//                 pthread_mutex_lock(&buffMutex_vm);
+//                 datasize = (framesize > V_SEND_SIZE) ? V_SEND_SIZE : framesize;
+//                 // udp_vm_send(VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize);
+//                 framesize -= datasize;
+//                 // printf("cnt:%d, total:%d, dsize:%d\n", i, framesize, datasize);
+//                 pthread_mutex_unlock(&buffMutex_vm);
+//                 // printf("[CIR_BUFF_VM]datasize:%d WIndex:%d RIndex%d\n", datasize, VM_Cir_Buff.WIndex, VM_Cir_Buff.RIndex);
+//                 Make_Spi_Packet_live(tx_buff, VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize, STREAMING, STREAM_VEDIO_M);
+//                 // memset(tx_buff, 0, 1024);
+//                 // memcpy(&tx_buff[6], read_buff, ret);
+//                 ///////////////// SPI Send //////////////////////////
+//                 if (data_sel == 1 || data_sel == 4) {
+//                     // ret = spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
+//                     // ret = spi_rw_bytes(fd,tx_buff,rx_buff,SPI_SEND_LENGTH);
+//                     // ret = spi_write_bytes(fd,tx_tbuff, SPI_SEND_LENGTH);
+//                     ret = spi_rw_bytes(fd,tx_tbuff,rx_buff,SPI_SEND_LENGTH);
+//                     if (ret != 0) {
+//                         printf("Fail Send SPI Data!\n");
+//                     }
+//                     else {
+//                         // printf("d:0x%02X%02X\n", tx_buff[3], tx_buff[4]);
+//                         usleep(1*1000);
+//                     }
+//                 }
+//             }
+//             VM_Frame_Buff.Rindex = (VM_Frame_Buff.Rindex+1)%5;
+//             VM_Frame_Buff.cnt--;
+//         }
+//         //////////////////////////////////////////////////////////////////////////////
+//         Recv_Spi_Packet_test(rx_buff);
         
-        /////////// Audio IN -> UDP Out //////////////////////////////////////////////
-        if (AI_Cir_Buff.RIndex != AI_Cir_Buff.WIndex) {
-            pthread_mutex_lock(&buffMutex_ai);
-            datasize = (AI_Cir_Buff.WIndex - AI_Cir_Buff.RIndex + A_BUFF_SIZE) % (500*1024);
-            datasize = (datasize > A_SEND_SIZE) ? A_SEND_SIZE : datasize;
-            for (int i = 0; i < datasize; ++i) {
-                buf[i] = AI_Cir_Buff.tx[AI_Cir_Buff.RIndex];
-                AI_Cir_Buff.RIndex = (AI_Cir_Buff.RIndex+1) % (500*1024);
-                if (AI_Cir_Buff.RIndex == AI_Cir_Buff.GIndex){
-                    // printf("[CIR_BUFF_AI]datasize:%d WIndex:%d RIndex%d GIndex%d\n", datasize, AI_Cir_Buff.WIndex, AI_Cir_Buff.RIndex, AI_Cir_Buff.GIndex);
-                    datasize = i+1;
-                    break;
-                }
-            }
-            // printf("[CIR_BUFF_VM]datasize:%d WIndex:%d RIndex%d\n", datasize, AI_Cir_Buff.WIndex, AI_Cir_Buff.RIndex);
-            pthread_mutex_unlock(&buffMutex_ai);
-            // udp_vm_send(buf, datasize);
-            Make_Spi_Packet_live(tx_buff, buf, datasize, STREAMING, STREAM_AUDIO_F);
-            // memset(tx_buff, 0, 1024);
-            // memcpy(&tx_buff[6], read_buff, ret);
-            ///////////////// SPI Send //////////////////////////
-            if (data_sel == 3 || data_sel == 4) {
-                // ret = spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
-                // ret = spi_rw_bytes(fd,tx_buff,rx_buff,SPI_SEND_LENGTH);
-                // ret = spi_write_bytes(fd,tx_tbuff, SPI_SEND_LENGTH);
-                ret = spi_rw_bytes(fd,tx_tbuff,rx_buff,SPI_SEND_LENGTH);
-                if (ret != 0) {
-                    printf("Fail Send SPI Data!\n");
-                }
-                else {
-                    // printf("AUDIO Send Data : 0x%02X%02X\n", tx_buff[3], tx_buff[4]);
-                    usleep(1*1000);
-                }
-            }
-            /////////////////////////////////////////////////////
-        }
-        //////////////////////////////////////////////////////////////////////////////
-        Recv_Spi_Packet_test(rx_buff);
-    } while(!bStrem);
+//         /////////// Audio IN -> UDP Out //////////////////////////////////////////////
+//         if (AI_Cir_Buff.RIndex != AI_Cir_Buff.WIndex) {
+//             pthread_mutex_lock(&buffMutex_ai);
+//             datasize = (AI_Cir_Buff.WIndex - AI_Cir_Buff.RIndex + A_BUFF_SIZE) % (500*1024);
+//             datasize = (datasize > A_SEND_SIZE) ? A_SEND_SIZE : datasize;
+//             for (int i = 0; i < datasize; ++i) {
+//                 buf[i] = AI_Cir_Buff.tx[AI_Cir_Buff.RIndex];
+//                 AI_Cir_Buff.RIndex = (AI_Cir_Buff.RIndex+1) % (500*1024);
+//                 if (AI_Cir_Buff.RIndex == AI_Cir_Buff.GIndex){
+//                     // printf("[CIR_BUFF_AI]datasize:%d WIndex:%d RIndex%d GIndex%d\n", datasize, AI_Cir_Buff.WIndex, AI_Cir_Buff.RIndex, AI_Cir_Buff.GIndex);
+//                     datasize = i+1;
+//                     break;
+//                 }
+//             }
+//             // printf("[CIR_BUFF_VM]datasize:%d WIndex:%d RIndex%d\n", datasize, AI_Cir_Buff.WIndex, AI_Cir_Buff.RIndex);
+//             pthread_mutex_unlock(&buffMutex_ai);
+//             // udp_vm_send(buf, datasize);
+//             Make_Spi_Packet_live(tx_buff, buf, datasize, STREAMING, STREAM_AUDIO_F);
+//             // memset(tx_buff, 0, 1024);
+//             // memcpy(&tx_buff[6], read_buff, ret);
+//             ///////////////// SPI Send //////////////////////////
+//             if (data_sel == 3 || data_sel == 4) {
+//                 // ret = spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
+//                 // ret = spi_rw_bytes(fd,tx_buff,rx_buff,SPI_SEND_LENGTH);
+//                 // ret = spi_write_bytes(fd,tx_tbuff, SPI_SEND_LENGTH);
+//                 ret = spi_rw_bytes(fd,tx_tbuff,rx_buff,SPI_SEND_LENGTH);
+//                 if (ret != 0) {
+//                     printf("Fail Send SPI Data!\n");
+//                 }
+//                 else {
+//                     // printf("AUDIO Send Data : 0x%02X%02X\n", tx_buff[3], tx_buff[4]);
+//                     usleep(1*1000);
+//                 }
+//             }
+//             /////////////////////////////////////////////////////
+//         }
+//         //////////////////////////////////////////////////////////////////////////////
+//         Recv_Spi_Packet_test(rx_buff);
+//     } while(!bStrem);
     
-    return ((void*)0);
-}
+//     return ((void*)0);
+// }
 
 
 
@@ -2605,17 +2640,31 @@ int OTA_Recv_Packet(uint8_t *rbuff) {
                 recv_type = rbuff[9];
                 if (!hash_ck) {
                     printf("Hash Check Fail!\n");
-                    system("rm /tmp/mnt/sdcard/isc.zip");
-                    system("cp /dev/shm/isc.zip /tmp/mnt/sdcard/isc.zip");
+                    // system("rm /tmp/mnt/sdcard/isc.zip");
+                    // system("cp /dev/shm/isc.zip /tmp/mnt/sdcard/isc.zip");
                     res = -5;
                 }
                 else if (recv_type == 0) {
-                    system("rm /tmp/mnt/sdcard/isc.zip");
-                    system("rm /tmp/mnt/sdcard/isc_bak");
-                    system("mv /tmp/mnt/sdcard/isc /tmp/mnt/sdcard/isc_bak");
-                    system("cp /dev/shm/isc.zip /tmp/mnt/sdcard/isc.zip");
-                    system("unzip -o /tmp/mnt/sdcard/isc.zip -d /tmp/mnt/sdcard");
-                    // system("unzip /dev/shm/isc.zip -d /tmp/mnt/sdcard");
+                    int filed = 0;
+
+                    system("unzip /dev/shm/isc.zip -d /dev/shm");
+
+                    filed = open("/dev/shm/setup.sh", O_RDONLY);
+                    if (filed == -1) {
+                        system("rm /tmp/mnt/sdcard/isc_bak");
+                        system("mv /tmp/mnt/sdcard/isc /tmp/mnt/sdcard/isc_bak");
+                        system("cp /dev/shm/isc /tmp/mnt/sdcard/isc");
+                    }
+                    else {
+                        close(filed);
+                        system("chmod 777 /dev/shm/setup.sh");
+                        system("./dev/shm/setup.sh");
+                    }
+                    // system("rm /tmp/mnt/sdcard/isc.zip");
+                    // system("rm /tmp/mnt/sdcard/isc_bak");
+                    // system("mv /tmp/mnt/sdcard/isc /tmp/mnt/sdcard/isc_bak");
+                    // system("cp /dev/shm/isc.zip /tmp/mnt/sdcard/isc.zip");
+                    // system("unzip -o /tmp/mnt/sdcard/isc.zip -d /tmp/mnt/sdcard");
                     
                     res = 3;
                 }

@@ -794,7 +794,7 @@ void * IMP_Audio_Record_AEC_Thread(void *argv)
 		#else
 			// printf("frm.len : %d buf size : %d timestamp : %lld\n", frm.len, AUDIO_SAMPLE_BUF_SIZE, frm.timeStamp);
 
-			if (frm.len > 0){
+			if ((frm.len > 0) && (stream_state == 1)) {
 				pthread_mutex_lock(&buffMutex_ai);
 				if (AI_Cir_Buff.RIndex == AI_Cir_Buff.WIndex) {
 					buff_space = 500*1024;
@@ -895,10 +895,10 @@ void *IMP_Audio_Play_Thread(void *argv)
 	do {
 		if (bExit) break;
 
-		if (!ao_start_f && ((sample_gettimeus()- ao_start_t)>1000000)) {
-			ao_start_f = true;
-			amp_on();
-		}
+		// if (!ao_start_f && ((sample_gettimeus()- ao_start_t)>3000000)) {
+		// 	ao_start_f = true;
+		// 	amp_on();
+		// }
 
 		ret = IMP_AO_QueryChnStat(ao_devID, ao_chnID, &play_status);
 		if(ret != 0) {
@@ -986,7 +986,7 @@ void *IMP_Audio_Play_Thread(void *argv)
 
 				/* get audio decoder frame. */
 				IMPAudioStream stream_out;
-				ret = IMP_ADEC_PollingStream(adChn, 1000);
+				ret = IMP_ADEC_PollingStream(adChn, 10000);
 				if(ret != 0) {
 					IMP_LOG_ERR(TAG, "imp audio encode polling stream failed\n");
 					printf("ADEC IMP_ADEC_PollingStream!\n");

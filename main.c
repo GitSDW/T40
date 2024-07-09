@@ -130,6 +130,9 @@ int global_value_init(void) {
 	rec_total = 0;
 	audio_timeout = 0;
 
+	spk_vol_buf = 80;
+	spk_gain_buf = 14;
+
 	// rec_state = REC_READY;
 	clip_rec_state = REC_READY;
 	streaming_rec_state = REC_READY;
@@ -298,6 +301,8 @@ void amp_on(void) {
 		printf("Fail set Value GPIO : %d\n", PORTD+21);
 	}
 
+	Set_Vol(100,25,spk_vol_buf,spk_gain_buf);
+
 	printf("Set AMP On!\n");
 }
 
@@ -411,7 +416,7 @@ int LED_dimming (int duty) {
 	led_duty = duty;
 	system("echo 1000000 > /sys/class/pwm/pwmchip0/pwm6/period");
 	memset(file_sep, 0, 100);
-	sprintf(file_sep, "echo %d > /sys/class/pwm/pwmchip0/pwm6/duty_cycle", 10000*(led_duty));
+	sprintf(file_sep, "echo %d > /sys/class/pwm/pwmchip0/pwm6/duty_cycle", 5000*(led_duty));
 	// printf(file_sep);
 	// printf("\n");
 	system(file_sep);
@@ -658,8 +663,7 @@ int main(int argc, char **argv) {
     // bool led_flag = false;
     // char file_sep[100] = {0};
     int gval = 0;
-    int spk_vol_buf = 80;
-    int spk_gain_buf = 14;
+    
 
     memory_init();
 	global_value_init();
@@ -701,16 +705,23 @@ int main(int argc, char **argv) {
 		move_det_ys = settings.move_ex_s_y;
 		move_det_xe = settings.move_ex_e_x;
 		move_det_ye = settings.move_ex_e_y;
-		printf("Move Ex : %d %d %d %d\n", settings.move_ex_s_x, settings.move_ex_s_y, settings.move_ex_e_x, settings.move_ex_e_y);
+		// printf("Move Ex : %d %d %d %d\n", settings.move_ex_s_x, settings.move_ex_s_y, settings.move_ex_e_x, settings.move_ex_e_y);
     }
 
-    Set_Vol(100,25,spk_vol_buf,spk_gain_buf);
+    // Set_Vol(100,25,spk_vol_buf,spk_gain_buf);
+    Set_Vol(100,25,0,0);
 
     // isd_crop(0, 0, 1920, 1080, 0);
 
-    isd_crop(286, 322, 1350, 758, 1);
+    // isd_crop(400, 460, 1100, 620, 1);
 
-    printf("expval : %d\n", ExpVal);
+    // isd_crop(400, 450, 1120, 630, 1);
+
+    // isd_crop(416, 468, 1088, 612, 1);
+
+    isd_crop(408, 459, 1104, 612, 1);
+
+    // printf("expval : %d\n", ExpVal);
 
 
 
@@ -720,11 +731,11 @@ int main(int argc, char **argv) {
     if (mode == 1){
     	// printf("Clip Mode!!\n");
     	// if (ExpVal > 1000) gpio_LED_Set(1);
-    #ifndef __PHILL_REQ__
+    // #ifndef __PHILL_REQ__
     	ret = clip_total();
-    #else
-    	ret = clip_total_fake();
-    #endif
+    // #else
+    	// ret = clip_total_fake();
+    // #endif
     	if(ret < 0){
         	printf("Clip Mode error\n");
         	return 0;
@@ -743,10 +754,6 @@ int main(int argc, char **argv) {
     	// printf("Setting Mode!!\n");
     	Setting_Total();
     }
-
-    #ifdef __PHILL_REQ__
-    	ret = clip_total();
-    #endif
 
 	while (!bExit && (mode == 0 || mode == 3))
 	{
@@ -870,6 +877,9 @@ int main(int argc, char **argv) {
     		}
     		freeFileList(jpgFiles, fileCount);
 		}
+		else if (cmd == 2) {
+			box_change();
+		}
 		// else if (cmd == 2) {
 		// 	if (!up_streming_flag) {
 		// 	printf("cmd 2 Audio Up Streaming Start!\n");
@@ -892,6 +902,12 @@ int main(int argc, char **argv) {
 				
 		// 	}
 		// }
+		else if (cmd == 3) {
+			system("unzip /dev/shm/fw.zip -d /dev/shm");
+			system("chmod 777 /dev/shm/setup.sh");
+			system("./dev/shm/setup.sh");
+	        // system("unzip /tmp/mnt/sdcard/isc.zip -d /tmp/mnt/sdcard");
+		}
 		// else if (cmd == 3) {
 		// 	if (!dn_streming_flag) {
 		// 		printf("cmd 3 Audio Down Streaming test!\n");
@@ -1294,76 +1310,76 @@ int main(int argc, char **argv) {
         		return 0;
     		}
 		}
-		else if (cmd == 18) {
-			printf("cmd 16 Fake SPI Test!\n");
-			data_sel = 4;
-			//////////////// SPI Init ////////////////////////////////////////////////////////////////
-			ret = spi_init();
-   			if(ret < 0){
-   			    printf("spi init error\n");
-   			    return 0;
-   			}
-			if (data_sel <= 0 || data_sel > 4) {
-				printf("Invalid Type!\n");
-				return -1;
-			}
-  			ret = pthread_create(&tid_spi, NULL, spi_test_send_stream, NULL);
-			if(ret != 0) {
-				IMP_LOG_ERR("[Udp]", "[ERROR] %s: pthread_create spi_send_stream failed\n", __func__);
-				return -1;
-			}
-			//////////////////////////////////////////////////////////////////////////////////////////
-			if (!camera_test_flag) {
-				stream_state = 1;
-				clip_rec_state = REC_START;
-				// rec_stop = false;
-				ret = pthread_create(&tim_osd, NULL, OSD_thread, NULL);
-				if(ret != 0) {
-					IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create OSD_thread failed\n", __func__);
-					return -1;
-				}
+		// else if (cmd == 18) {
+		// 	printf("cmd 16 Fake SPI Test!\n");
+		// 	data_sel = 4;
+		// 	//////////////// SPI Init ////////////////////////////////////////////////////////////////
+		// 	ret = spi_init();
+   		// 	if(ret < 0){
+   		// 	    printf("spi init error\n");
+   		// 	    return 0;
+   		// 	}
+		// 	if (data_sel <= 0 || data_sel > 4) {
+		// 		printf("Invalid Type!\n");
+		// 		return -1;
+		// 	}
+  		// 	ret = pthread_create(&tid_spi, NULL, spi_test_send_stream, NULL);
+		// 	if(ret != 0) {
+		// 		IMP_LOG_ERR("[Udp]", "[ERROR] %s: pthread_create spi_send_stream failed\n", __func__);
+		// 		return -1;
+		// 	}
+		// 	//////////////////////////////////////////////////////////////////////////////////////////
+		// 	if (!camera_test_flag) {
+		// 		stream_state = 1;
+		// 		clip_rec_state = REC_START;
+		// 		// rec_stop = false;
+		// 		ret = pthread_create(&tim_osd, NULL, OSD_thread, NULL);
+		// 		if(ret != 0) {
+		// 			IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create OSD_thread failed\n", __func__);
+		// 			return -1;
+		// 		}
 				 
-				ret = pthread_create(&tid_stream, NULL, get_video_stream_user_thread, NULL);
-				if(ret != 0) {
-					IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create get_video_stream_user_thread failed\n", __func__);
-					return -1;
-				}
+		// 		ret = pthread_create(&tid_stream, NULL, get_video_stream_user_thread, NULL);
+		// 		if(ret != 0) {
+		// 			IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create get_video_stream_user_thread failed\n", __func__);
+		// 			return -1;
+		// 		}
 				
-				// ret = pthread_create(&tid_clip, NULL, get_video_clip_user_thread, NULL);
-				// if(ret != 0) {
-				// 	IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create get_video_clip_user_thread failed\n", __func__);
-				// 	return -1;
-				// }
+		// 		// ret = pthread_create(&tid_clip, NULL, get_video_clip_user_thread, NULL);
+		// 		// if(ret != 0) {
+		// 		// 	IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create get_video_clip_user_thread failed\n", __func__);
+		// 		// 	return -1;
+		// 		// }
 
-				ret = pthread_create(&tid_snap, NULL, get_snap_stream_user_thread, NULL);
-				if(ret != 0) {
-					IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create get_snap_stream_user_thread failed\n", __func__);
-					return -1;
-				}
+		// 		ret = pthread_create(&tid_snap, NULL, get_snap_stream_user_thread, NULL);
+		// 		if(ret != 0) {
+		// 			IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create get_snap_stream_user_thread failed\n", __func__);
+		// 			return -1;
+		// 		}
 
-				ret = pthread_create(&tid_move, NULL, move_detecte_thread, NULL);
-				if(ret != 0) {
-					IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create move_detecte_thread failed\n", __func__);
-					return -1;
-				}
+		// 		ret = pthread_create(&tid_move, NULL, move_detecte_thread, NULL);
+		// 		if(ret != 0) {
+		// 			IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create move_detecte_thread failed\n", __func__);
+		// 			return -1;
+		// 		}
 
-				ret = pthread_create(&tid_fdpd, NULL, fdpd_thread, NULL);
-				if(ret != 0) {
-					IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create fdpd_thread failed\n", __func__);
-					return -1;
-				}
+		// 		ret = pthread_create(&tid_fdpd, NULL, fdpd_thread, NULL);
+		// 		if(ret != 0) {
+		// 			IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create fdpd_thread failed\n", __func__);
+		// 			return -1;
+		// 		}
 				
-				camera_test_flag = true;
+		// 		camera_test_flag = true;
 
-				// up_streming_flag = true;
-    			// ret = pthread_create(&tid_ai, NULL, IMP_Audio_Record_AEC_Thread, NULL);
-				// if(ret != 0) {
-				// 	IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Record_AEC_Thread failed\n", __func__);
-				// 	return -1;
-				// }
-			}
+		// 		// up_streming_flag = true;
+    	// 		// ret = pthread_create(&tid_ai, NULL, IMP_Audio_Record_AEC_Thread, NULL);
+		// 		// if(ret != 0) {
+		// 		// 	IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Record_AEC_Thread failed\n", __func__);
+		// 		// 	return -1;
+		// 		// }
+		// 	}
 
-		}
+		// }
 		else if (cmd == 19) {
 			printf("cmd 19 Face Clip Test!!\n");
 			spi_send_fake_file(REC_CLIP_F);
@@ -1903,7 +1919,7 @@ int clip_total(void) {
 		#ifndef __PHILL_REQ__
 			// if ((face_cnt > 0) || (person_cnt > 0) || (main_motion_detect > 1) || bell_flag || temp_flag) {
 			if ((face_cnt > 0) || (main_motion_detect > 1) || bell_flag || temp_flag) {
-				printf("fc : %d Motion : %d\n", face_cnt, main_motion_detect);
+				// printf("fc : %d Motion : %d\n", face_cnt, main_motion_detect);
 				printf("Start REC!!\n");
 				start_flag = true;
 				roaming_person = false;
@@ -1914,6 +1930,7 @@ int clip_total(void) {
 				end_time = start_time + 5000000;
 			}
 			else if ((sample_gettimeus() - start_time) > START_CHECK_TIME) {
+				// printf("Main_Motion : %d\n", main_motion_detect);
 				device_end(STREAMING);
 				printf("Not Detection!! Device Turn Off.\n");
 				break;
@@ -1972,6 +1989,7 @@ int clip_total(void) {
 					// Make File Send
 					if (Ready_Busy_Check() && face_crop_cnt > 0){
 						spi_send_file_face(REC_FACESHOT, face_crop_cnt);
+			            // ao_file_play_thread("/tmp/mnt/sdcard/effects/bell4.wav");
 					}
 					face_end(REC);
 				}
@@ -1997,6 +2015,17 @@ int clip_total(void) {
 					// 	printf("Fail to Thumbnail Send.\n");
 					// }
 				}
+
+				#ifdef __PHILL_REQ__
+					if ((total_time > 15000000) && (clip_rec_state == REC_ING)) {	// 15Sec Time Over -> Clip Stop
+						// rec_stop = true;
+						printf("CLIP END:Time Over! %lld\n", total_time);
+						clip_rec_state = REC_STOP;
+						box_snap = true;
+						Rec_type = MAKE_FILE;
+						file_cnt = 3;
+					}
+				#endif
 
 				if (!spi_th_flag && (total_time > FACE_FIND_END_TIME) && (stream_state == 1)) {
 					printf("Clip Streaming Start!!\n");
@@ -2274,6 +2303,8 @@ int clip_total(void) {
 
 			make_file_start(REC);
 
+			gpio_LED_Set(2);
+
 			pthread_t tid_makefile;
 			Make_File mfd1;
 			mfd1.type = 0;
@@ -2302,6 +2333,9 @@ int clip_total(void) {
 			// if (main_rec_end && box_rec_end) {
 			if ((clip_rec_state == REC_MP4MAKE && bell_rec_state == REC_MP4MAKE) ||
 				(clip_rec_state == REC_MP4MAKE && bell_rec_state == REC_READY)) {
+
+				// box_change();
+
 				#ifdef __BOX_FIND__
 
 					int box_n=0, box_o=0, box_b=0;
@@ -2481,11 +2515,12 @@ int clip_total(void) {
 		    		}
 		    	#endif
 
+		    	system("rm /tmp/mnt/sdcard/box_before2.jpg");
 	    		system("cp /tmp/mnt/sdcard/box_before.jpg /tmp/mnt/sdcard/box_before2.jpg");
 	    		system("cp /dev/shm/box0.jpg /tmp/mnt/sdcard/box_before.jpg");
-	    		system("cp /dev/shm/box_result.jpg /tmp/mnt/sdcard/box_before3.jpg");
+	    		// system("cp /dev/shm/box_result.jpg /tmp/mnt/sdcard/box_before3.jpg");
 
-				if (face_snap == false) bStrem = true;
+				// if (face_snap == false) bStrem = true;
 
 				// printf("MP4 Make!\n");
 
@@ -2684,9 +2719,14 @@ int clip_total(void) {
 						fs.tag2 = clip_cause_t.Minor;
 						fs.filenum = 0;
 						fs.filecnt = file_cnt2;
-						ret = spi_send_total_clip(&fs);
-						if(ret < 0) {
-							printf("File Send Fail!!\n");
+						if (Ready_Busy_Check()){
+							ret = spi_send_total_clip(&fs);
+							if(ret < 0) {
+								printf("File Send Fail!!\n");
+							}
+						}
+						else {
+							printf("Start RB Fail!\n");
 						}
 					#else
 						for (int i=0; i<file_cnt2; i++) {
@@ -2891,7 +2931,7 @@ int stream_total(void) {
 
     // pthread_t adc_thread_id, tid_clip;
 
-    
+    int64_t test_up_time;
 
 
 #ifdef STREAMING_SPI
@@ -2951,11 +2991,11 @@ int stream_total(void) {
 	// 	return -1;
 	// }
 
-	ret = pthread_create(&tid_snap, NULL, get_snap_stream_user_thread, NULL);
-	if(ret != 0) {
-		IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create get_snap_stream_user_thread failed\n", __func__);
-		return -1;
-	}
+	// ret = pthread_create(&tid_snap, NULL, get_snap_stream_user_thread, NULL);
+	// if(ret != 0) {
+	// 	IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create get_snap_stream_user_thread failed\n", __func__);
+	// 	return -1;
+	// }
 
 	ret = pthread_create(&tid_move, NULL, move_detecte_thread, NULL);
 	if(ret != 0) {
@@ -3009,7 +3049,7 @@ int stream_total(void) {
 	    	gpio_LED_Set(1);
 	    }
 	    else {
-	    	gpio_LED_Set(0);
+	    	// gpio_LED_Set(0);
 	    }
 	}
 
@@ -3415,25 +3455,25 @@ int stream_total(void) {
 			// break;
 		}
 #else
-		if (dimming) {
-			dimming_e =  sample_gettimeus() - dimming_s;
-			if ((dimming_e > 30000) & dimming_up) {
-				dimming_s = sample_gettimeus();
-				dimming_val -= 1;
-				LED_dimming (dimming_val);
-				if (dimming_val <= 10) {
-					dimming_up = false;
-				}
-			}
-			else if ((dimming_e > 30000) & !dimming_up) {
-				dimming_s = sample_gettimeus();
-				dimming_val += 1;
-				LED_dimming (dimming_val);
-				if (dimming_val >= 90) {
-					dimming_up = true;
-				}
-			}
-		}
+		// if (dimming) {
+		// 	dimming_e =  sample_gettimeus() - dimming_s;
+		// 	if ((dimming_e > 30000) & dimming_up) {
+		// 		dimming_s = sample_gettimeus();
+		// 		dimming_val -= 1;
+		// 		LED_dimming (dimming_val);
+		// 		if (dimming_val <= 10) {
+		// 			dimming_up = false;
+		// 		}
+		// 	}
+		// 	else if ((dimming_e > 30000) & !dimming_up) {
+		// 		dimming_s = sample_gettimeus();
+		// 		dimming_val += 1;
+		// 		LED_dimming (dimming_val);
+		// 		if (dimming_val >= 90) {
+		// 			dimming_up = true;
+		// 		}
+		// 	}
+		// }
 		
 		if (streaming_rec_state >= REC_START && streaming_rec_state < REC_STOP) {
 			rec_now = sample_gettimeus() - rec_time_s;
@@ -3442,9 +3482,12 @@ int stream_total(void) {
             	rec_on = false;
             	rec_total += rec_time_s;
             	rec_mem_flag = true;
+            	streaming_rec_end(CAUSE_MEM);
 			}
 		}
 		if (rec_end) {
+			make_file_start(STREAMING);
+			test_up_time = sample_gettimeus();
 			if (streaming_rec_state == REC_START || streaming_rec_state == REC_ING) {
 				rec_time_e = sample_gettimeus()-rec_time_s;
             	printf("Rec Time : %lld total : %lld\n", rec_time_e, rec_total);
@@ -3455,8 +3498,9 @@ int stream_total(void) {
 			}
 			rec_end = false;
 			printf("cmd 20 streaming end & save file send\n");
-			bExit = 1;
-			bStrem = true;
+			// bExit = 1;
+			// bStrem = true;
+			stream_state = 0;
 
 			while (streaming_rec_state != REC_WAIT);
 
@@ -3465,7 +3509,7 @@ int stream_total(void) {
 
 			if (streaming_rec_state == REC_MP4MAKE) {
 				int file_cnt_rec = 0;
-				make_file_start(STREAMING);
+				// make_file_start(STREAMING);
 				for(int i=0; i<rec_cnt; i++) {
 				#ifdef __H265__
 					memset(file_sep, 0, 256);
@@ -3541,17 +3585,30 @@ int stream_total(void) {
 					}
 					#ifdef __FILE_SEND_CHANGE__
 						FileSend fs;
-						fs.minor = REC_STREAMING_M;
-						fs.tag1 = CLIP_CAUSE_STREM;
-						fs.tag2 = CLIP_STREAM_REC;
+						if (stream_tag[i] == CLIP_CAUSE_STREM) {
+							fs.minor = REC_STREAMING_M;
+							fs.tag1 = CLIP_CAUSE_STREM;
+							fs.tag2 = CLIP_STREAM_REC;
+						}
+						else {
+							fs.minor = REC_CLIP_F;
+							fs.tag1 = CLIP_CAUSE_BELL;
+							fs.tag2 = CLIP_BELL_CALL;
+						}
 						fs.filenum = i;
 						fs.filecnt = file_cnt_rec;
-						ret = spi_send_total_stream_clip(&fs);
-						if(ret < 0) {
-							printf("File Send Fail!!\n");
+						if (i == 0 || (Ready_Busy_Check())) { 
+							ret = spi_send_total_stream_clip(&fs);
+							if(ret < 0) {
+								printf("File Send Fail!!\n");
+							}
+						}
+						else {
+							printf("Start RB Faile!\n");
 						}
 					#endif
 				}
+				printf("up load time : %lld\n", sample_gettimeus() - test_up_time);
 				system("sync");
 			}
 			device_end(STREAMING);
@@ -3721,22 +3778,24 @@ int Setting_Total(void) {
 	do {
 		if (dimming) {
 			dimming_e =  sample_gettimeus() - dimming_s;
-			if ((dimming_e > 30000) & dimming_up) {
+			if ((dimming_e > 15000) & dimming_up) {
 				dimming_s = sample_gettimeus();
 				dimming_val -= 1;
 				LED_dimming (dimming_val);
-				if (dimming_val <= 10) {
+				if (dimming_val <= 40) {
 					dimming_up = false;
 				}
 			}
-			else if ((dimming_e > 30000) & !dimming_up) {
+			else if ((dimming_e > 15000) & !dimming_up) {
 				dimming_s = sample_gettimeus();
 				dimming_val += 1;
 				LED_dimming (dimming_val);
-				if (dimming_val >= 90) {
+				if (dimming_val >= 198) {
 					dimming_up = true;
 				}
 			}
+
+			// printf("dimming val : %d\n", dimming_val);
 		}
 
 		if (door_cap_flag){
@@ -3839,7 +3898,7 @@ int Setting_Total(void) {
 
 		if (cmd_end_flag) {
 			system("sync");
-
+			usleep(1000*1000);
 			printf("[END] CMD Send!\n");
 			device_end(SETTING);
 			cmd_end_flag = false;

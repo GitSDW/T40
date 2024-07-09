@@ -60,12 +60,13 @@ int sample_ivs_move_start(int grp_num, int chn_num, IMPIVSInterface **interface)
 	move_param_input_t param;
 	memset(&param, 0, sizeof(move_param_input_t));
 	param.sense = settings.move_sensitivty;
+	param.sense = 0;
 	param.frameInfo.width = 1920;
 	param.frameInfo.height = 1080;
 	param.min_h = 50;
 	param.min_w = 50;
 
-	param.level=0.3;
+	param.level=0.5; // 0.3 -> 0.8
 	param.timeon = 110; 
 	param.timeoff = 0;  
 	param.light = 0;    
@@ -74,8 +75,8 @@ int sample_ivs_move_start(int grp_num, int chn_num, IMPIVSInterface **interface)
 	/* param.det_w = 160; */
 	/* param.det_h = 90; */
 	
-	param.det_w = 48;
-	param.det_h = 27;
+	param.det_w = 50;
+	param.det_h = 50;
 	
 	param.permcnt = 1;
 	param.perms[0].fun = 0;
@@ -186,6 +187,10 @@ static void *sample_ivs_move_get_result_process(void *arg)
 	bool detect_flag = false;
 	int detect_on_cnt = 0, detect_off_cnt = 0;
 	int detect_off_timer = 0;
+	// int ex_w, ex_h, ex_v;
+	// bool ex_check=false;
+	int det_ex_cnt = 0;
+	int det_ex_cnt2 = 0;
 	// int px_w, px_h;
 
 	/* Step.6 start to ivs */
@@ -198,6 +203,7 @@ static void *sample_ivs_move_get_result_process(void *arg)
 	printf("Move Start!!\n");
 
 	// move_end = true;
+	detect_flag = false;
 
 	// for (i = 0; i < 1000/*NR_FRAMES_TO_SAVE*/; i++) {
 	do {
@@ -212,7 +218,8 @@ static void *sample_ivs_move_get_result_process(void *arg)
             return (void *)-1;
         }
   		
-  		detect_flag = false;
+  		
+  		// ex_check = false;
 		if (result->ret > 0) {
 			// printf("[Alive]result->ret=%d result->count%d result->detcount%d\n", result->ret, result->count, result->detcount);
 			for (int j=0; j<8; j++){
@@ -226,57 +233,114 @@ static void *sample_ivs_move_get_result_process(void *arg)
 					if (!move_flag) {
 						detect_flag = true;;
 					}
+					else {
+						// ex_check = true;
+
+						det_ex_cnt = 0;
+						// printf("EX Area!!\n");
+						det_ex_cnt2++;
+						if (det_ex_cnt2 > 2) {
+							detect_flag = false;
+							det_ex_cnt2 = 0;
+						}
+						// if (!ex_on) {
+						// 	ex_on = true;
+						// 	min_pixel_x2 = result->rects[j].ul.x;
+						// 	min_pixel_y2 = result->rects[j].ul.y;
+						// 	max_pixel_x2 = result->rects[j].br.x;
+						// 	max_pixel_y2 = result->rects[j].br.y;
+						// 	printf("2ret:%d\n", result->ret);
+						// 	printf("2count:%d\n", result->count);
+						// 	printf("2blksize:%d\n", result->blockSize);
+						// 	printf("2rectcnt:%d\n", result->rectcnt);
+						// 	ex_w = result->rects[j].br.x - result->rects[j].ul.x;
+						// 	if (ex_w < 0) ex_w *= -1;
+						// 	ex_h = result->rects[j].br.y - result->rects[j].ul.y;
+						// 	if (ex_h < 0) ex_h *= -1;
+
+						// 	ex_v = ex_h * ex_w;
+
+						// }
+					}
+
+					
 				}
 				else{
-					// if (result->rects[j].ul.x < move_det_xs || result->rects[j].ul.x > move_det_xe){
-						// printf("rects[%d]ul.x:%d\n", j, result->rects[j].ul.x);
-					// }
-					// if (result->rects[j].ul.y < move_det_xs || result->rects[j].ul.y > move_det_xe){
-						// printf("rects[%d]ul.y:%d\n", j, result->rects[j].ul.y);
-						
-					// }
-					// if (result->rects[j].br.x < move_det_xs || result->rects[j].br.x > move_det_xe){
-						// printf("rects[%d]br.x:%d\n", j, result->rects[j].br.x);
-						
-					// }
-					// if (result->rects[j].br.y < move_det_xs || result->rects[j].br.y > move_det_xe){
-						// printf("rects[%d]br.y:%d\n", j, result->rects[j].br.y);
-						
-					// }
-					// px_w = result->rects[j].br.x - result->rects[j].ul.x;
-					// px_h = result->rects[j].br.y - result->rects[j].ul.y;
-					// if ((px_w * px_h) > cal_vol && (px_w * px_h) != 0) {
-					// 	cal_vol = px_w * px_h;
-					// 	min_pixel_x = result->rects[j].ul.x;
-					// 	min_pixel_y = result->rects[j].ul.y;
-					// 	max_pixel_x = result->rects[j].br.x;
-					// 	max_pixel_y = result->rects[j].br.y;
+
+					// int bufw, bufh, bufv;
+					// bufw = result->rects[j].br.x - result->rects[j].ul.x;
+					// if (bufw < 0) bufw *= -1;
+					// bufh = result->rects[j].br.y - result->rects[j].ul.y;
+					// if (bufh < 0) bufh *= -1;
+					// bufv = bufw*bufh;
+
 					// }
 					// printf("sx:%d sy:%d ex:%d ey:%d\n", result->rects[j].ul.x , result->rects[j].ul.y, result->rects[j].br.x, result->rects[j].br.x );
-					detect_flag = true;;
+					// if (!detect_flag && (center_x < move_det_xs || center_x > move_det_xe) && (center_y < move_det_ys || center_y > move_det_ye)){
+					// if (result->rectcnt > 1 && (ex_v < bufv)){
+						// detect_flag = true;;
+						
+					// }
+					if (det_ex_cnt < 5) {
+						det_ex_cnt++;
+						// printf("1Out Area! %d\n", det_ex_cnt);
+					}
+					else {
+						det_ex_cnt = 0;
+						detect_flag = true;
+						// printf("2Out Area! %d\n", det_ex_cnt);
+						// if (!ex_flag) {
+						// 	ex_flag = true;
+						// 	min_pixel_x = result->rects[j].ul.x;
+						// 	min_pixel_y = result->rects[j].ul.y;
+						// 	max_pixel_x = result->rects[j].br.x;
+						// 	max_pixel_y = result->rects[j].br.y;
+						// 	printf("1ret:%d\n", result->ret);
+						// 	printf("1count:%d\n", result->count);
+						// 	printf("1blksize:%d\n", result->blockSize);
+						// 	printf("1rectcnt:%d\n", result->rectcnt);
+						// }
+					}
+					// else if (result->rectcnt == 1){
+					// 	detect_flag = true;;
+					// 	if (!ex_flag) {
+					// 		ex_flag = true;
+					// 		min_pixel_x = result->rects[j].ul.x;
+					// 		min_pixel_y = result->rects[j].ul.y;
+					// 		max_pixel_x = result->rects[j].br.x;
+					// 		max_pixel_y = result->rects[j].br.y;
+					// 		printf("1ret:%d\n", result->ret);
+					// 		printf("1count:%d\n", result->count);
+					// 		printf("1blksize:%d\n", result->blockSize);
+					// 		printf("1rectcnt:%d\n", result->rectcnt);
+					// 		printf("1detcnt:%d\n", result->detcount);
+					// 	}
+					// }
 				}
 			}
 		}
+		else {
+			detect_flag = false;
+		}
 		if (detect_flag){
 			detect_on_cnt++;
-			if(detect_on_cnt > 4){
+			if(detect_on_cnt > 1){
 				detect_on_cnt = 0;
 				detect_off_cnt = 0;
 				detect_off_timer = 0;
 				main_motion_detect++;
-				// printf("Prohibited Areas Over! Motion Detection!!!\n");
-				// printf("xs:%d ys:%d xe:%d ye:%d\n", min_pixel_x, min_pixel_y, max_pixel_x, max_pixel_y);
 			}
+			// printf("Movement!! %d\n", detect_on_cnt);
 		}
 		else{
 			detect_off_cnt++;
-			if(detect_off_cnt>4){
+			if(detect_off_cnt > 4){
 				detect_on_cnt = 0;
 				detect_off_cnt = 0;
 				main_motion_detect = 0;
 				detect_off_timer++;
-				// printf("No movement!! %d\n", detect_off_timer);
 			}
+			// printf("No movement!! %d\n", detect_off_timer);
 			
 		}
 

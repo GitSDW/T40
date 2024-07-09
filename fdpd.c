@@ -431,9 +431,9 @@ void *fdpd_thread(void *args)
                         // printf("fr:%d confidence:%f thumbnail_snap:%d\n", fr_state, confidence, thumbnail_snap);
                         // if ((fr_state == 1 && track_id > 0 && confidence > 0.85) &&
                         if ((fr_state == FR_START && confidence > 0.90 && !thumbnail_snap) &&
-                            (((fdpd_data[i].ul_x+fdpd_data[i].br_x)/2) > 100) &&
+                            (((fdpd_data[i].ul_x+fdpd_data[i].br_x)/2) > 200) &&
                             (((fdpd_data[i].ul_x+fdpd_data[i].br_x)/2) < 1920 - 100) &&
-                            (((fdpd_data[i].ul_y+fdpd_data[i].br_y)/2) > 100) &&
+                            (((fdpd_data[i].ul_y+fdpd_data[i].br_y)/2) > 200) &&
                             (((fdpd_data[i].ul_y+fdpd_data[i].br_y)/2) < 1080 - 100) &&
                             (face_track[0] != fdpd_data[i].trackid) &&
                             (face_track[1] != fdpd_data[i].trackid) &&
