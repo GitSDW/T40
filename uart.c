@@ -338,6 +338,7 @@ int Make_Packet_uart(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t major,
 extern int gpio_LED_Set(int onoff);
 extern int gpio_LED_dimming (int onoff);
 extern void amp_on(void);
+int door_set_fail(void);
 
 static int Recv_Uart_Packet_live(uint8_t *rbuff) {
     int index, len, value_buf, ack_len, res;
@@ -748,6 +749,10 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             cmd_end_flag = true;
         break;
         case SET_DOOR_CAP:
+            if (boot_mode != 0x03)  {
+                door_set_fail();
+                break;
+            }
             door_cap_flag = true;
             ack_len = 0;
             // ack_flag = true;
@@ -1102,6 +1107,33 @@ int streaming_rec_end(uint8_t cus) {
 
     return 0;
 }
+
+int door_set_fail(void) {
+    uint8_t *uart_tx;
+
+    uart_tx = malloc(10);
+
+    memset(uart_tx, 0, 10);
+    uart_tx[0] = 0x02;
+    uart_tx[1] = 0x03;
+    uart_tx[2] = 0x02;
+    uart_tx[3] = 0;
+    uart_tx[4] = 0;
+    uart_tx[5] = 0x00;
+    uart_tx[6] = 0x00;
+    uart_tx[7] = 0x00;
+    uart_tx[8] = 0x00;
+    uart_tx[9] = 0x03;
+
+    uart_send(fd_uart, uart_tx, 10);
+    
+    printf("DSF\n");
+    
+    free(uart_tx);
+
+    return 0;
+}
+
 
 
 /*

@@ -404,6 +404,25 @@ uint8_t BLC_User(void) {
 	return AeIntegrationTime;
 }
 
+uint8_t cam_mean(void) {
+	IMPISPAEScenceAttr sceneattr;
+	IMPISPAEExprInfo expose_inf;
+	uint32_t ae_mean1 = 0, ae_mean2 = 0;
+
+	IMP_ISP_Tuning_GetAeScenceAttr(IMPVI_MAIN, &sceneattr);
+	// IMP_ISP_Tuning_GetAeExprInfo(IMPVI_MAIN, &expose_inf);
+	ae_mean1 = sceneattr.ae_mean;
+
+	IMP_ISP_Tuning_GetAeScenceAttr(IMPVI_MAIN+1, &sceneattr);
+
+	ae_mean2 = sceneattr.ae_mean;
+	// printf("Sceneattr get aemean:%d\n", sceneattr.ae_mean);
+
+	printf("[mean]cam1:%d cam2:%d\n", ae_mean1, ae_mean2);
+
+	return 1;
+}
+
 int Set_Target_Bit(uint32_t targetbit) {
 	IMPEncoderAttrRcMode encecmode;
 
@@ -1153,7 +1172,7 @@ void *OSD_thread(void *args)
 	bool rect_flag = false;
 
 	int64_t total_time = 0;
-	int64_t oldt_time = 0, BLC_time = 0;
+	int64_t oldt_time = 0, BLC_time = 0, mean_time = 0;;
 
 	// int f_cnt=0;
 	
@@ -1383,6 +1402,11 @@ void *OSD_thread(void *args)
 		if (polling_err_cnt > 6) {
 			func_reboot();
 		}
+
+		// if (total_time/200000 != mean_time) {
+		// 	mean_time = total_time/200000;
+		// 	cam_mean();
+		// }
 	} while(!bStrem);
 
 	return ((void*) 0);

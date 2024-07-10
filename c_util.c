@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <signal.h>
+#include <fcntl.h> 
 #include <unistd.h>
 #include <pthread.h>
 #include <dirent.h>
@@ -503,11 +504,19 @@ int md5_get(char *filepath, char *md5_char)
 
     sprintf(buff, "md5sum %s", filepath);
     printf("filepath:%s\n", buff);
+
+    int fd = open(filepath, O_RDONLY);
+    if (fd < 0) {
+        printf("File Not exist!\n");
+        return -1;
+    }
+
     fp = popen(buff, "r");
     if (NULL == fp)
     {
-           perror("popen() 실패");
-           return -1;
+        printf("md5 fail!\n");
+        perror("popen() 실패");
+        return -1;
     }
 
     while (fgets(buff, BUFF_SIZE, fp))

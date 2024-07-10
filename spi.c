@@ -1031,7 +1031,7 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
         int ret = -1, cnt = 0, scnt = 0;
         int sz_file[6] = {0}, total_size = 0;
         int len = 0;
-        int wcnt = 0;
+        uint8_t wcnt = 0;
         int filed[6] = {0};
         char file[128] = {0};
 
@@ -1138,14 +1138,15 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                         return -1;
                     }
                     Make_Spi_Packet(tx_buff, read_buff, ret, REC, fs->minor);
+                    tx_buff[8+V_SEND_RESERV] = wcnt&0xFF;
                     spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
+                    wcnt++;
                 }
-                wcnt++;
+                
                 // usleep(dly*1000);
             } while(ret != 0);
 
             if (sz_file[(scnt*2)]%SPI_SEND_LENGTH == 0) {
-                Make_Spi_Packet(tx_buff, read_buff, 0, REC, fs->minor);
                 if (Ready_Busy_Check()){
                     // printf("RB Checked!\n");
                 }
@@ -1153,6 +1154,8 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                     printf("F:%d\n", wcnt);
                     return -1;
                 }
+                Make_Spi_Packet(tx_buff, read_buff, 0, REC, fs->minor);
+                tx_buff[8+V_SEND_RESERV] = wcnt&0xFF;
                 spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
             }
             
@@ -1166,6 +1169,7 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
             read_buff[6] = fs->filenum;
             read_buff[7] = scnt+1;
             read_buff[8] = 1;
+            printf("File Size : %d pckcnt : %d wcnt : %d\n", sz_file[(scnt*2)], sz_file[(scnt*2)]/FILE_READ_LENGTH, wcnt);
             printf("E1 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", 
                 read_buff[0], read_buff[1], read_buff[2], read_buff[3],
                 read_buff[4], read_buff[5], read_buff[6], read_buff[7], read_buff[8]);
@@ -1195,14 +1199,15 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                         return -1;
                     }
                     Make_Spi_Packet(tx_buff, read_buff, ret, REC, fs->minor+1);
+                    tx_buff[8+V_SEND_RESERV] = wcnt&0xFF;
                     spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
+                    wcnt++;
                 }
-                wcnt++;
+                
                 // usleep(dly*1000);
             } while(ret != 0);
 
             if (sz_file[(scnt*2)+1]%SPI_SEND_LENGTH == 0) {
-                Make_Spi_Packet(tx_buff, read_buff, 0, REC, fs->minor+1);
                 if (Ready_Busy_Check()){
                     // printf("RB Checked!\n");
                 }
@@ -1210,6 +1215,8 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                     printf("F:%d\n", wcnt);
                     return -1;
                 }
+                Make_Spi_Packet(tx_buff, read_buff, 0, REC, fs->minor+1);
+                tx_buff[8+V_SEND_RESERV] = wcnt&0xFF;
                 spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
             }
             
@@ -1223,6 +1230,7 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
             read_buff[6] = fs->filenum;
             read_buff[7] = scnt+1;
             read_buff[8] = 2;
+            printf("File Size : %d pckcnt : %d wcnt : %d\n", sz_file[(scnt*2)+1], sz_file[(scnt*2)+1]/FILE_READ_LENGTH, wcnt);
             printf("E2 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", 
                 read_buff[0], read_buff[1], read_buff[2], read_buff[3],
                 read_buff[4], read_buff[5], read_buff[6], read_buff[7], read_buff[8]);
@@ -1347,7 +1355,7 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                         return -1;
                     }
                     Make_Spi_Packet(tx_buff, read_buff, ret, REC, fs->minor);
-                    tx_buff[8+V_SEND_RESERV] = wcnt;
+                    tx_buff[8+V_SEND_RESERV] = wcnt&0xFF;
                     spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
                 }
                 wcnt++;
@@ -1393,7 +1401,7 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                         return -1;
                     }
                     Make_Spi_Packet(tx_buff, read_buff, ret, REC, fs->minor+1);
-                    tx_buff[8+V_SEND_RESERV] = wcnt;
+                    tx_buff[8+V_SEND_RESERV] = wcnt&0xFF;
                     spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
                 }
                 wcnt++;
@@ -2630,12 +2638,17 @@ int OTA_Recv_Packet(uint8_t *rbuff) {
             break;
             case SET_FW_END:
                 printf("OTA End\n");
-                md5_get("/dev/shm/isc.zip", md5_madk_hash);
-                printf("Get Hash : %s\n", md5_hash_code);
-                for (int i=0; i<32; i++) {
-                    if (md5_madk_hash[i] != md5_hash_code[i]) {
-                        hash_ck = false;
+                ret = md5_get("/dev/shm/isc.zip", md5_madk_hash);
+                if (ret == 0) {
+                    printf("Get Hash : %s\n", md5_hash_code);
+                    for (int i=0; i<32; i++) {
+                        if (md5_madk_hash[i] != md5_hash_code[i]) {
+                            hash_ck = false;
+                        }
                     }
+                }
+                else {
+                    hash_ck = false;
                 }
                 recv_type = rbuff[9];
                 if (!hash_ck) {
@@ -2644,29 +2657,33 @@ int OTA_Recv_Packet(uint8_t *rbuff) {
                     // system("cp /dev/shm/isc.zip /tmp/mnt/sdcard/isc.zip");
                     res = -5;
                 }
-                else if (recv_type == 0) {
-                    int filed = 0;
+                else {
+                    if (recv_type == 0) {
+                        int filed = 0;
 
-                    system("unzip /dev/shm/isc.zip -d /dev/shm");
+                        system("unzip /dev/shm/isc.zip -d /dev/shm");
 
-                    filed = open("/dev/shm/setup.sh", O_RDONLY);
-                    if (filed == -1) {
-                        system("rm /tmp/mnt/sdcard/isc_bak");
-                        system("mv /tmp/mnt/sdcard/isc /tmp/mnt/sdcard/isc_bak");
-                        system("cp /dev/shm/isc /tmp/mnt/sdcard/isc");
+                        filed = open("/dev/shm/setup.sh", O_RDONLY);
+                        if (filed == -1) {
+                            printf("setup.sh not checked!\n");
+                            system("rm /tmp/mnt/sdcard/isc_bak");
+                            system("mv /tmp/mnt/sdcard/isc /tmp/mnt/sdcard/isc_bak");
+                            system("cp /dev/shm/isc /tmp/mnt/sdcard/isc");
+                        }
+                        else {
+                            printf("setup.sh check!!\b");
+                            close(filed);
+                            system("chmod 777 /dev/shm/setup.sh");
+                            system("./dev/shm/setup.sh");
+                        }
+                        // system("rm /tmp/mnt/sdcard/isc.zip");
+                        // system("rm /tmp/mnt/sdcard/isc_bak");
+                        // system("mv /tmp/mnt/sdcard/isc /tmp/mnt/sdcard/isc_bak");
+                        // system("cp /dev/shm/isc.zip /tmp/mnt/sdcard/isc.zip");
+                        // system("unzip -o /tmp/mnt/sdcard/isc.zip -d /tmp/mnt/sdcard");
+                        
+                        res = 3;
                     }
-                    else {
-                        close(filed);
-                        system("chmod 777 /dev/shm/setup.sh");
-                        system("./dev/shm/setup.sh");
-                    }
-                    // system("rm /tmp/mnt/sdcard/isc.zip");
-                    // system("rm /tmp/mnt/sdcard/isc_bak");
-                    // system("mv /tmp/mnt/sdcard/isc /tmp/mnt/sdcard/isc_bak");
-                    // system("cp /dev/shm/isc.zip /tmp/mnt/sdcard/isc.zip");
-                    // system("unzip -o /tmp/mnt/sdcard/isc.zip -d /tmp/mnt/sdcard");
-                    
-                    res = 3;
                 }
                 // else if (recv_type == 1) {
 

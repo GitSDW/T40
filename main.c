@@ -437,7 +437,7 @@ int gpio_LED_Set (int onoff) {
 	}
 
 	if (onoff == 1) {
-		led_duty = 0;
+		led_duty = 1;
 		system("echo 1000000 > /sys/class/pwm/pwmchip0/pwm6/period");
 		memset(file_sep, 0, 100);
 		sprintf(file_sep, "echo %d > /sys/class/pwm/pwmchip0/pwm6/duty_cycle", 10000*(led_duty));
@@ -474,7 +474,7 @@ int gpio_LED_Set (int onoff) {
 		light_on = false;
 	}
 	else {
-		led_duty = 100;
+		led_duty = 99;
 		system("echo 1000000 > /sys/class/pwm/pwmchip0/pwm6/period");
 		memset(file_sep, 0, 100);
 		sprintf(file_sep, "echo %d > /sys/class/pwm/pwmchip0/pwm6/duty_cycle", 10000*(led_duty));
@@ -2513,11 +2513,15 @@ int clip_total(void) {
 							}
 		    			}
 		    		}
+		    	#else
+		    		memset(file_path, 0, 64);
+					sprintf(file_path, "/dev/shm/box0.jpg");
+		    		spi_send_file(REC_BOX_ALM, file_path, 0, 0, 0);
 		    	#endif
 
-		    	system("rm /tmp/mnt/sdcard/box_before2.jpg");
-	    		system("cp /tmp/mnt/sdcard/box_before.jpg /tmp/mnt/sdcard/box_before2.jpg");
-	    		system("cp /dev/shm/box0.jpg /tmp/mnt/sdcard/box_before.jpg");
+		    	// system("rm /tmp/mnt/sdcard/box_before2.jpg");
+	    		// system("cp /tmp/mnt/sdcard/box_before.jpg /tmp/mnt/sdcard/box_before2.jpg");
+	    		// system("cp /dev/shm/box0.jpg /tmp/mnt/sdcard/box_before.jpg");
 	    		// system("cp /dev/shm/box_result.jpg /tmp/mnt/sdcard/box_before3.jpg");
 
 				// if (face_snap == false) bStrem = true;
@@ -3529,6 +3533,8 @@ int stream_total(void) {
 					system(file_sep);
 				#endif
 
+					system("cp /dev/shm/rec3_1.mp4 /tmp/mnt/sdcard/box.mp4");
+
 					if (rec_each_time[i] < 23000000)
 						file_cnt_rec = 1;
 					else if(rec_each_time[i] < 43000000)
@@ -3609,6 +3615,7 @@ int stream_total(void) {
 					#endif
 				}
 				printf("up load time : %lld\n", sample_gettimeus() - test_up_time);
+				system("cp /dev/shm/rec3_1.mp4 /tmp/mnt/sdcard/box.mp4");
 				system("sync");
 			}
 			device_end(STREAMING);

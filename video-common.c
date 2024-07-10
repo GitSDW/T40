@@ -2688,16 +2688,6 @@ static void *get_video_stream_user(void *args)
 			IMP_LOG_ERR(TAG, "IMP_Encoder_PollingStream(%d) timeout\n", chnNum);
 			printf("[Enc%d] Polling Error\n", chnNum);
 			polling_err_cnt++;
-			ret = IMP_Encoder_StopRecvPic(chnNum);
-			if (ret < 0) {
-				IMP_LOG_ERR(TAG, "IMP_Encoder_StartRecvPic(%d) failed\n", chnNum);
-				return ((void *)-1);
-			}
-			ret = IMP_Encoder_StartRecvPic(chnNum);
-			if (ret < 0) {
-				IMP_LOG_ERR(TAG, "IMP_Encoder_StartRecvPic(%d) failed\n", chnNum);
-				return ((void *)-1);
-			}
 			continue;
 		}
 
@@ -3019,16 +3009,6 @@ static void *get_video_stream_user3(void *args)
 			IMP_LOG_ERR(TAG, "IMP_Encoder_PollingStream(%d) timeout\n", chnNum);
 			printf("[Enc%d] Polling Error\n", chnNum);
 			polling_err_cnt++;
-			ret = IMP_Encoder_StopRecvPic(chnNum);
-			if (ret < 0) {
-				IMP_LOG_ERR(TAG, "IMP_Encoder_StartRecvPic(%d) failed\n", chnNum);
-				return ((void *)-1);
-			}
-			ret = IMP_Encoder_StartRecvPic(chnNum);
-			if (ret < 0) {
-				IMP_LOG_ERR(TAG, "IMP_Encoder_StartRecvPic(%d) failed\n", chnNum);
-				return ((void *)-1);
-			}
 			continue;
 		}
 
