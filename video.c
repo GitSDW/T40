@@ -739,8 +739,8 @@ int video_init(void) {
 	///////////////////////// Flicker ISP /////////////////////////////
 	IMPISPAntiflickerAttr flickerAttr;
 	memset(&flickerAttr, 0, sizeof(IMPISPAntiflickerAttr));
-	flickerAttr.freq = 70;
-	flickerAttr.mode = IMPISP_ANTIFLICKER_NORMAL_MODE;
+	flickerAttr.freq = 80;
+	flickerAttr.mode = IMPISP_ANTIFLICKER_AUTO_MODE;
 	IMP_ISP_Tuning_SetAntiFlickerAttr(IMPVI_MAIN, &flickerAttr);
 	IMP_ISP_Tuning_SetAntiFlickerAttr(IMPVI_MAIN+1, &flickerAttr);
 	///////////////////////////////////////////////////////////////////
@@ -758,8 +758,8 @@ int video_init(void) {
 
 	///////////////////////////// Night Mode //////////////////////////
 	// if (Night_Mode) {
-	// 	IMP_ISP_StartNightMode(IMPVI_MAIN);	// Noight Mode ?
-	// 	IMP_ISP_StartNightMode(IMPVI_MAIN+1);	// Noight Mode ?
+	// 	IMP_ISP_StartNightMode(IMPVI_MAIN);	// Night Mode ?
+	// 	IMP_ISP_StartNightMode(IMPVI_MAIN+1);	// Night Mode ?
 	// }
 	///////////////////////////////////////////////////////////////////
 
@@ -1273,11 +1273,13 @@ void *OSD_thread(void *args)
 					w_cal = fdpd_data[j].br_x - fdpd_data[j].ul_x;
 					h_cal = fdpd_data[j].br_y - fdpd_data[j].ul_y;
 					if (w_cal < 40 || h_cal < 40) {
+						// w_cal = 80;
+						// h_cal = 80;
 						continue;
 					}
 					else {
-						w_cal = w_cal - (w_cal%40) + 80;
-						h_cal = h_cal - (h_cal%40) + 80;
+						w_cal = w_cal - (w_cal%40) + 160;
+						h_cal = h_cal - (h_cal%40) + 160;
 					}
 					if(x_cal + w_cal >= 1920) x_cal = 1920 - w_cal - 1;
 					if(y_cal + h_cal >= 1080) y_cal = 1080 - h_cal - 1;
@@ -1308,7 +1310,7 @@ void *OSD_thread(void *args)
 
 					fdpd_data[j].flag = false;
 					mosaic_time[index] = sample_gettimeus();
-					// printf("Face Mosaic[%d] En tiem : %lld\n", j, mosaic_time[j]);
+					printf("Face Mosaic[%d] En tiem : %lld\n", index, mosaic_time[index]);
 				}
 			}
 		}
@@ -1328,6 +1330,7 @@ void *OSD_thread(void *args)
 				}
 			}
 		}
+		
 
 		if (!Mosaic_En) {
 			if (!rect_flag) rect_flag = true;

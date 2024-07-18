@@ -186,6 +186,40 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
     return box_cnt;
 }
 
+int box_resize(char *imgpath1) {
+    // int64_t cv_time = sample_gettimeus();
+    // int64_t cv_buf;
+    // int boxscale=0, boxscale2=0;
+    int box_cnt=0;
+
+    // 이미지 파일 경로 설정
+    string imagePath = imgpath1;
+
+    cv::Mat img1 = cv::imread(imagePath);
+    // cv::imwrite("/tmp/mnt/sdcard/box_a.jpg", img1);
+
+    if (img1.empty()) {
+        cerr << "Can't Open File!" << ends;
+        cerr << imagePath << ends;
+        return -2;
+    }
+
+    // resizeImage(img1, 1920/3, 1080/3);
+
+    // cerr << imgpath1 << "W:" << img1.rows << "H:" << img1.cols << endl;
+    // cerr << imgpath2 << "W:" << img2.rows << "H:" << img2.cols << endl;
+
+    // cv::Rect roi(160, 180, 1600, 900-50);
+    cv::Rect roi(408, 459, 1104, 612);
+
+    img1 = img1(roi);
+
+    cv::imwrite("/dev/shm/box_r.jpg", img1);
+    // cv::imwrite("/tmp/mnt/sdcard/box_r.jpg", img1);
+
+    return box_cnt;
+}
+
 int package_sistic(char *imgpath1, char *imgpath2) {
     // int64_t cv_time = sample_gettimeus();
     // int64_t cv_buf;

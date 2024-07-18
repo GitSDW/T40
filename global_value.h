@@ -8,9 +8,17 @@
 extern "C" {
 #endif
 
-#define MAJOR_VER	"0"
-#define MINOR_VER	"7"	
-#define CAHR_VER	"n"
+// #define __PHILL_REQ__
+
+#ifndef __PHILL_REQ__
+	#define MAJOR_VER	"0"
+	#define MINOR_VER	"7"	
+	#define CAHR_VER	"u"
+#else
+	#define MAJOR_VER	"0"
+	#define MINOR_VER	"9"	
+	#define CAHR_VER	"o"
+#endif
 
 typedef struct CIRCULAR_BUFF
 {
@@ -85,7 +93,7 @@ int move_det_xs, move_det_ys, move_det_xe, move_det_ye;
 #define THUMBNAIL_TIME 				1000000
 #define FACE_FIND_END_TIME 			5000000
 #define BELL_TIME_MIN				15000000
-#define CLIP_CLOSE_TIME  			3000000
+#define CLIP_CLOSE_TIME  			1500000
 #define LIVE_MESSAGE_TIME  			10000000	// 10 * 1000 * 1000 usec
 
 int data_sel;
@@ -196,7 +204,7 @@ typedef struct  {
 
 Clip_Cause_t clip_cause_t;
 
-#define START_CHECK_TIME 5000000
+#define START_CHECK_TIME 3000000
 #define READY_BUSY_TIME 5
 
 typedef struct  {
@@ -290,11 +298,12 @@ bool netwrok_busy;
 bool save_send_flag;
 // bool move_end;
 bool cmd_end_flag;
-bool cfile_flag;
-bool bfile_flag;
+bool cfile_flag, cfile_flag1, cfile_flag2;
+bool bfile_flag, bfile_flag1, bfile_flag2;
 bool dimming;
 bool bOTA, ota_flag;
 bool audio_start_flag;
+bool file_21_flag;
 
 
 extern int bExit;
@@ -392,10 +401,11 @@ enum CLIP_MOUNT {
 };
 
 enum REC_TYPE {
-	CLIP_REC   	= 0,	// 0
-	BELL_REC 		= 1,  // 1
-	TEMP_REC    = 2,
-	MAKE_FILE		= 5,
+	CLIP_REC   		= 0,	// 0
+	BELL_REC 		= 1,  	// 1
+	TEMP_REC    	= 2,
+	MAKE_FILE		= 3,
+	SEND_FILE 		= 4,
 };
 
 // #define __TEST_FAKE_VEDIO__
@@ -408,7 +418,7 @@ enum REC_TYPE {
 	int led_cnt;
 #endif
 
-// #define __PHILL_REQ__
+
 
 #if __cplusplus
 }

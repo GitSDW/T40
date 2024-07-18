@@ -69,7 +69,7 @@ int sample_ivs_facepersondet_start(int grp_num, int chn_num, IMPIVSInterface **i
 
     param.skip_num = 0;      //skip num
     param.max_faceperson_box = 10;
-    param.sense = 7;//Default:7 / Low sensitivity 0 ~ 10 High sensitivity;
+    param.sense = 9;//Default:7 / Low sensitivity 0 ~ 10 High sensitivity;
     param.switch_track = true;
     param.enable_move = false;
     param.open_move_filter = false;

@@ -1025,6 +1025,21 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
 }
 
 #ifdef __FILE_SEND_CHANGE__
+    int file_size_get(char *path)
+    {
+        struct stat file_info;
+        int size_ret = 0;
+
+        if (0 > stat(path, &file_info)) {
+            printf("File Not Check!\n");
+            return -1;
+        }
+
+        size_ret = file_info.st_size;
+
+        return size_ret;
+    }
+
     int spi_send_total_clip(FileSend *fs)
     {
         struct stat file_info1, file_info2;
@@ -1035,11 +1050,11 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
         int filed[6] = {0};
         char file[128] = {0};
 
-        // printf("m:%d t1:%d t2:%d fn:%d fc:%d\n", fs->minor, fs->tag1, fs->tag2, fs->filenum, fs->filecnt);
+        printf("m:%d t1:%d t2:%d fn:%d fc:%d\n", fs->minor, fs->tag1, fs->tag2, fs->filenum, fs->filecnt);
 
         for (cnt=0; cnt<(fs->filecnt); cnt++) {
             memset(file, 0, 128);
-            if (fs->tag1 == CLIP_CAUSE_BELL) {
+            if (fs->tag1 == CLIP_CAUSE_BELL || fs->tag1 == CLIP_CAUSE_MOUNT) {
                 sprintf(file, "/dev/shm/bell_m%d.mp4", cnt);
             }
             else {
@@ -1048,7 +1063,7 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
         
             
             if ( 0 > stat(file, &file_info1)) {
-                printf("File Size Not Check!!\n");
+                printf("File Size Not Check!! :%s\n", file);
                 break;
             }
 
@@ -1065,7 +1080,7 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
             }
 
             memset(file, 0, 128);
-            if (fs->tag1 == CLIP_CAUSE_BELL) {
+            if (fs->tag1 == CLIP_CAUSE_BELL || fs->tag1 == CLIP_CAUSE_MOUNT) {
                 sprintf(file, "/dev/shm/bell_b%d.mp4", cnt);
             }
             else {
@@ -1073,7 +1088,7 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
             }
         
             if ( 0 > stat(file, &file_info2)) {
-                printf("File Size Not Check!!\n");
+                printf("File Size Not Check!! :%s\n", file);
                 break;
             }
 
@@ -1121,6 +1136,9 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
         //     printf("FS\n");
         //     return -1;
         // }
+        if (stream_state == 1) {
+            return 2;
+        }
         spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
 
         for (scnt=0; scnt<cnt; scnt++) {
@@ -1130,7 +1148,10 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                 ret = read(filed[(scnt*2)], read_buff, FILE_READ_LENGTH);
                 // printf("RC:%d\n", ret);
                 if(ret != 0) {
-                    if (Ready_Busy_Check()){
+                    if (stream_state == 1) {
+                        return 2;
+                    }
+                    else if (Ready_Busy_Check()){
                         // printf("RB Checked!\n");
                     }
                     else{
@@ -1147,7 +1168,10 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
             } while(ret != 0);
 
             if (sz_file[(scnt*2)]%SPI_SEND_LENGTH == 0) {
-                if (Ready_Busy_Check()){
+                if (stream_state == 1) {
+                    return 2;
+                }
+                else if (Ready_Busy_Check()){
                     // printf("RB Checked!\n");
                 }
                 else{
@@ -1176,7 +1200,10 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
             Make_Spi_Packet(tx_buff, read_buff, len, REC, REC_STREAM_END);
             // memset(tx_buff, 0, 1033);
             // memcpy(&tx_buff[6], read_buff,1);
-            if (Ready_Busy_Check()){
+            if (stream_state == 1) {
+                return 2;
+            }
+            else if (Ready_Busy_Check()){
                 // printf("RB Checked!\n");
             }
             else{
@@ -1191,7 +1218,10 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                 ret = read(filed[(scnt*2)+1], read_buff, FILE_READ_LENGTH);
                 // printf("RC:%d\n", ret);
                 if(ret != 0) {
-                    if (Ready_Busy_Check()){
+                    if (stream_state == 1) {
+                        return 2;
+                    }
+                    else if (Ready_Busy_Check()){
                         // printf("RB Checked!\n");
                     }
                     else{
@@ -1208,7 +1238,10 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
             } while(ret != 0);
 
             if (sz_file[(scnt*2)+1]%SPI_SEND_LENGTH == 0) {
-                if (Ready_Busy_Check()){
+                if (stream_state == 1) {
+                    return 2;
+                }
+                else if (Ready_Busy_Check()){
                     // printf("RB Checked!\n");
                 }
                 else{
@@ -1237,7 +1270,10 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
             Make_Spi_Packet(tx_buff, read_buff, len, REC, REC_STREAM_END);
             // memset(tx_buff, 0, 1033);
             // memcpy(&tx_buff[6], read_buff,1);
-            if (Ready_Busy_Check()){
+            if (stream_state == 1) {
+                return 2;
+            }
+            else if (Ready_Busy_Check()){
                 // printf("RB Checked!\n");
             }
             else{
@@ -1246,9 +1282,8 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
             }
             spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
         }
-        
-        usleep(100*1000);
         printf("**********FILE SEND END CMD************\n");
+        usleep(100*1000);
         return ret;
     }
 
@@ -1434,9 +1469,8 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
             }
             spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
         }
-        
-        usleep(100*1000);
         printf("**********FILE SEND END CMD************\n");
+        usleep(100*1000);
         return ret;
     }
 

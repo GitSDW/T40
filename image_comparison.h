@@ -33,6 +33,7 @@ int calculateSimilarity2(char *imgpath1, char *imgpath2, Simil_t2* sim_t);
 int focus_and_sharpness_cal(char *imgpath1, Focus_Sharpness2 *fs_t);
 int test_box_al(void);
 int box_change(void);
+int box_resize(char *imgpath1);
 
 #if __cplusplus
 }

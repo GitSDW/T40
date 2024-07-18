@@ -25,25 +25,45 @@ char *path;
 #define CS7 0000040
 #define CS8 0000060
 
-typedef struct SETTING_ALL {
- 	uint8_t led;
- 	uint8_t bell_type;
- 	uint8_t spk_vol;
- 	uint8_t per_face;
- 	uint8_t door_g;
- 	uint8_t user_g;
- 	uint8_t move_ex;
- 	uint8_t flicker;
- 	uint8_t move_sensitivty;
- 	uint8_t backlight;
+// typedef struct SETTING_ALL {
+//  	uint8_t led;
+//  	uint8_t bell_type;
+//  	uint8_t spk_vol;
+//  	uint8_t per_face;
+//  	uint8_t door_g;
+//  	uint8_t user_g;
+//  	uint8_t move_ex;
+//  	uint8_t flicker;
+//  	uint8_t move_sensitivty;
+//  	uint8_t backlight;
 
- 	uint8_t door_grid[27];
- 	uint8_t user_grid[27];
- 	uint8_t move_ex_s_x[2];
- 	uint8_t move_ex_s_y[2];
- 	uint8_t move_ex_e_x[2];
- 	uint8_t move_ex_e_y[2];
-}Setting_All;
+//  	uint8_t door_grid[27];
+//  	uint8_t user_grid[27];
+//  	uint8_t move_ex_s_x[2];
+//  	uint8_t move_ex_s_y[2];
+//  	uint8_t move_ex_e_x[2];
+//  	uint8_t move_ex_e_y[2];
+// }Setting_All;
+
+enum Setting_All {
+	SA_LED   		= 0,	// 0
+	SA_BELL_TYPE 	= 1,  	// 1
+	SA_SPK_VOL    	= 2,
+	SA_FACE_MOSAIC	= 3,
+	SA_DOOR 		= 4,
+	SA_USER			= 5,
+	SA_MOVE_EX		= 6,
+	SA_FLICKER		= 7,
+	SA_MOVE_SENSI	= 8,
+	SA_BACKLIGHT	= 9,
+	SA_DOOR_GRID	= 10,
+	SA_USER_GRID	= 37,
+	SA_MOVE_EX_S_X	= 64,
+	SA_MOVE_EX_S_Y	= 66,
+	SA_MOVE_EX_E_X	= 68,
+	SA_MOVE_EX_E_Y	= 70,
+};
+
 
 void *uart_thread(void *argc);
 void *device_live_thread(void * argc);

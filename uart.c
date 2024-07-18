@@ -350,7 +350,6 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
     int64_t rec_time_e = 0;
     uint32_t br_buf;
     char* effect_file = NULL;
-    Setting_All *SA;
         
     index = 0;
 
@@ -423,6 +422,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 bell_call_flag = true;
             }
             ack_len = 0;
+            printf("Stream start!\n");
+            file_21_flag = false;
             // ack_flag = true;
         break;
 
@@ -432,6 +433,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             bell_stream_flag = false;
             ack_len = 0;
             // ack_flag = true;
+            rec_end = true;
         break;
         case UREC_TEMPER:
             if (rbuff[index+9] == 0)
@@ -519,9 +521,11 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             rec_on = false;
             ack_len = 0;
             if (rec_total > 57000000) {
+                usleep(10*1000);
                 streaming_rec_end(CAUSE_MEM);
             }
             else if (rec_cnt >= 9) {
+                usleep(10*1000);
                 streaming_rec_end(CAUSE_FILE);
             }
             // ack_flag = true;
@@ -750,6 +754,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         break;
         case SET_DOOR_CAP:
             if (boot_mode != 0x03)  {
+                usleep(10*1000);
                 door_set_fail();
                 break;
             }
@@ -858,7 +863,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             cmd_end_flag = true;
         break;
         case SET_SET_TOTAL:
-            SA = (Setting_All*)&rbuff[index+9];
+            // SA = (Setting_All*)&rbuff[index+9];
             // rbuff[index+9+0];
             // rbuff[index+9+1];
             // rbuff[index+9+2];
@@ -872,28 +877,28 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             // rbuff[index+9+10];
             // rbuff[index+9+10+27];
             // rbuff[index+9+10+27+27];
-            settings.SF.bits.led = SA->led;
-            settings.bell_type =  SA->bell_type;
-            settings.spk_vol =  SA->spk_vol;
-            settings.SF.bits.per_face =  SA->per_face;
-            settings.SF.bits.door_g = SA->door_g;
-            settings.SF.bits.user_g = SA->user_g;
-            settings.SF.bits.move_ex = SA->move_ex;
-            settings.SF.bits.flicker = SA->flicker;
-            settings.move_sensitivty = SA->move_sensitivty;
-            settings.SF.bits.backlight = SA->backlight;
+            settings.SF.bits.led = rbuff[index+9+SA_LED];
+            settings.bell_type =  rbuff[index+9+SA_BELL_TYPE];
+            settings.spk_vol =  rbuff[index+9+SA_SPK_VOL];
+            settings.SF.bits.per_face =  rbuff[index+9+SA_FACE_MOSAIC];
+            settings.SF.bits.door_g = rbuff[index+9+SA_DOOR];
+            settings.SF.bits.user_g = rbuff[index+9+SA_USER];
+            settings.SF.bits.move_ex = rbuff[index+9+SA_MOVE_EX];
+            settings.SF.bits.flicker = rbuff[index+9+SA_FLICKER];
+            settings.move_sensitivty = rbuff[index+9+SA_MOVE_SENSI];
+            settings.SF.bits.backlight = rbuff[index+9+SA_BACKLIGHT];
 
             printf("led:%d belltype:%d spkvol:%d facemosaic:%d\n", settings.SF.bits.led, settings.bell_type, settings.spk_vol, settings.SF.bits.per_face);
             printf("door:%d user:%d moveex:%d flicker:%d sensi:%d backlight:%d\n", settings.SF.bits.door_g, settings.SF.bits.user_g, settings.SF.bits.move_ex, settings.SF.bits.flicker,
                                                                                     settings.move_sensitivty, settings.SF.bits.backlight);
 
 
-            memcpy(settings.door_grid , SA->door_grid, 27);
-            memcpy(settings.user_grid , SA->user_grid, 27);
-            settings.move_ex_s_x = (SA->move_ex_s_x[0]*0x100)+(SA->move_ex_s_x[0]);
-            settings.move_ex_s_y = (SA->move_ex_s_y[0]*0x100)+(SA->move_ex_s_y[0]);
-            settings.move_ex_e_x = (SA->move_ex_e_x[0]*0x100)+(SA->move_ex_e_x[0]);
-            settings.move_ex_e_y = (SA->move_ex_e_y[0]*0x100)+(SA->move_ex_e_y[0]);
+            memcpy(settings.door_grid , &rbuff[index+9+SA_DOOR_GRID], 27);
+            memcpy(settings.user_grid , &rbuff[index+9+SA_USER_GRID], 27);
+            settings.move_ex_s_x = (rbuff[index+9+SA_MOVE_EX_S_X]*0x100)+(rbuff[index+9+SA_MOVE_EX_S_X+1]);
+            settings.move_ex_s_y = (rbuff[index+9+SA_MOVE_EX_S_Y]*0x100)+(rbuff[index+9+SA_MOVE_EX_S_Y+1]);
+            settings.move_ex_e_x = (rbuff[index+9+SA_MOVE_EX_E_X]*0x100)+(rbuff[index+9+SA_MOVE_EX_E_X+1]);
+            settings.move_ex_e_y = (rbuff[index+9+SA_MOVE_EX_E_Y]*0x100)+(rbuff[index+9+SA_MOVE_EX_E_Y+1]);
             printf("doorgrid:");
             for(int k=0; k<27; k++) {
                 printf("0x%02x ", settings.door_grid[k]);
@@ -1227,12 +1232,9 @@ void *uart_thread(void *argc)
      */
     do {
         res = read(fd_uart, uart_rx, 512);
-        printf("len : %d\n", res);
+        // printf("res : %d\n", res);
         if (res > 0) {
-            printf("UART RX: ");
-            for (int i=0; i<res; i++) {
-                printf("0x%02x ", uart_rx[i]);
-            }
+           
             printf("\n");
             if (uart_rx[0] == 0x02) {
                 cmd_state = 1;
@@ -1242,9 +1244,13 @@ void *uart_thread(void *argc)
                 if (res == len+10) {
                     cmd_state = 2;
                 }
-                else {
-                    len_p = res;
-                }
+                len_p = res;
+                // printf("0UART RX: ");
+                // for (int i=0; i<res; i++) {
+                    // printf("0x%02x ", cmd_rx[i]);
+                // }
+                // printf("\n");
+                // printf("len : %d\n", len);
             }
             else if (cmd_state == 1) {
                 if (len_p + res == len + 10) {
@@ -1252,11 +1258,22 @@ void *uart_thread(void *argc)
                     cmd_state = 2;
                 }
                 else {
+                    memcpy(&cmd_rx[len_p], uart_rx, res);
                     len_p += res;
                 }
+                // printf("1UART RX: ");
+                // for (int i=0; i<len_p; i++) {
+                    // printf("0x%02x ", cmd_rx[i]);
+                // }
+                // printf("\n");
             }
 
             if (cmd_state == 2) {
+                printf("\nUART RX[%d]: ", len);
+                for (int i=0; i<len_p; i++) {
+                    printf("0x%02x ", cmd_rx[i]);
+                }
+                printf("\n");
                 Recv_Uart_Packet_live(cmd_rx);
                 cmd_state = 0;
             }

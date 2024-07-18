@@ -187,6 +187,7 @@ int spi_send_save_file(char *path, char *file);
 int spi_send_file_face(uint8_t minor, int fcnt);
 void *OTA_Thread(void * argc);
 #ifdef __FILE_SEND_CHANGE__
+	int file_size_get(char *path);
 	int spi_send_total_clip(FileSend *fs);
 	int spi_send_total_stream_clip(FileSend *fs);
 #endif
