@@ -389,7 +389,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
     case REC_BACK:
         switch(minor) {
         case UREC_BELL:
-            
+            amp_on();
             if (settings.bell_type == 0) effect_file = "/tmp/mnt/sdcard/effects/bell1.wav";
             else if (settings.bell_type == 1) effect_file = "/tmp/mnt/sdcard/effects/bell2.wav";
             else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/bell3.wav";
@@ -414,34 +414,50 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             // ack_flag = true;
         break;
         case UREC_STREAM:
-            amp_on();
-            stream_state = 1;
-            rec_streaming_state = REC_START;
-            bell_stream_flag = true;
-            if (Rec_type == BELL_REC) {
-                bell_call_flag = true;
+            if (boot_mode == 1) {
+                stream_state = 1;
+                rec_streaming_state = REC_START;
+                bell_stream_flag = true;
+                if (Rec_type == BELL_REC) {
+                    bell_call_flag = true;
+                }
+                ack_len = 0;
+                printf("Stream start!\n");
+                file_21_flag = false;
+                // ack_flag = true;
             }
-            ack_len = 0;
-            printf("Stream start!\n");
-            file_21_flag = false;
-            // ack_flag = true;
+            else if (boot_mode == 2) {
+                stream_state = 1;
+                if (streaming_rec_state != REC_READY)
+                    streaming_rec_state = REC_RECONNECT;
+            }
         break;
 
         case UREC_STREAM_END:
-            stream_state = 0;
-            rec_streaming_state = REC_STOP;
-            bell_stream_flag = false;
-            ack_len = 0;
-            // ack_flag = true;
-            rec_end = true;
+            if (boot_mode == 1) {
+                stream_state = 0;
+                rec_streaming_state = REC_STOP;
+                bell_stream_flag = false;
+                ack_len = 0;
+                // ack_flag = true;
+                rec_end = true;
+            }
+            else if (boot_mode == 2) {
+                stream_state = 0;
+                rec_end = true;
+                streaming_rec_state = REC_ING;
+            }
         break;
         case UREC_TEMPER:
+            amp_on();
             if (rbuff[index+9] == 0)
                 effect_file = "/tmp/mnt/sdcard/effects/dev_takeoff.wav";
             else if (rbuff[index+9] == 1)
                 effect_file = "/tmp/mnt/sdcard/effects/dev_takeon.wav";
             printf("play : %s\n", effect_file);
+            Set_Vol(100,25,(10 * 2) + 55,15);
             ao_file_play_thread(effect_file);
+
             // clip_cause_t.Major = CLIP_CAUSE_MOUNT;
             // clip_cause_t.Minor = CLIP_MOUNT_DISMT;
             if (Rec_type != BELL_REC)
@@ -778,9 +794,11 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         break;
         case SET_FACTORY:
             Setting_Reinit();
+            Set_Vol(100,25,(10 * 2) + 55,15);
             effect_file = "/tmp/mnt/sdcard/effects/factory.wav";
             printf("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
+            
             ack_len = 0;
             // ack_flag = true;
             cmd_end_flag = true;
@@ -806,19 +824,21 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         case SET_DEV_START:
             ack_len = 0;
             // ack_flag = true;
-
+            Set_Vol(100,25,(10 * 2) + 55,15);
             effect_file = "/tmp/mnt/sdcard/effects/dev_start.wav";
             printf("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
+            
             cmd_end_flag = true;
         break;
         case SET_DEV_OFF:
             ack_len = 0;
             // ack_flag = true;
-
+            Set_Vol(100,25,(10 * 2) + 55,15);
             effect_file = "/tmp/mnt/sdcard/effects/dev_end.wav";
             printf("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
+            
             sleep(5);
             cmd_end_flag = true;
         break;

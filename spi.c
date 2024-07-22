@@ -626,20 +626,20 @@ int Make_Spi_Packet_live_rtp(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_
 
 extern pthread_mutex_t buffMutex_ao;
 
-static int Recv_Spi_Packet_test(uint8_t *rbuff) {
-    int i;
+// static int Recv_Spi_Packet_test(uint8_t *rbuff) {
+//     int i;
 
-    for(i=0;i<1024;i++){
-        if (rbuff[i] != i%256) {
-            printf("X %d %d %d\n", i, rbuff[i], i%256);
-            break;
-        }
-    }
-    if (i == 1024)
-        printf("O\n");
+//     for(i=0;i<1024;i++){
+//         if (rbuff[i] != i%256) {
+//             printf("X %d %d %d\n", i, rbuff[i], i%256);
+//             break;
+//         }
+//     }
+//     if (i == 1024)
+//         printf("O\n");
 
-    return 0;
-}
+//     return 0;
+// }
 
 extern void amp_on(void);
 
@@ -650,7 +650,7 @@ static int Recv_Spi_Packet_live(uint8_t *rbuff) {
     // static uint8_t data[10]= {0};
     int bad_cnt = 0;
     static int spicnt = 0;
-    static bool amp = false;
+    // static bool amp = false;
     
 
     
@@ -777,10 +777,10 @@ static int Recv_Spi_Packet_live(uint8_t *rbuff) {
         case STREAM_AUDIO_B:
             // printf("audio dn len:%d\n", len);
             // len = 882;
-            if (!amp) {
-                amp = true;
-                amp_on();
-            }
+            // if (!amp) {
+            //     amp = true;
+            //     amp_on();
+            // }
             if(len > 0){
                 pthread_mutex_lock(&buffMutex_ao);
                 if (AO_Cir_Buff.RIndex != AO_Cir_Buff.WIndex) {
@@ -895,6 +895,9 @@ int Ready_Busy_Check(void) {
     for (int i=0; i<(READY_BUSY_TIME*2000); i++) {
         usleep(5*100);
         ret = gpio_get_val(PORTB+18);
+        if (stream_state == 1) {
+            return -2;
+        }
         if (ret == 1) {
             // printf("Ready Busy Check!!\n");
             return ret;
@@ -971,7 +974,7 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
     //     first_send = true;
     // }
 
-    if (Ready_Busy_Check())
+    if (Ready_Busy_Check() > 0)
         printf("File Send Start!\n");
     else{
         printf("Fail to Start CMD\n");
@@ -983,7 +986,7 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
     do {
         ret = read(filed, read_buff, FILE_READ_LENGTH);
         if(ret != 0) {
-            if (Ready_Busy_Check()){
+            if (Ready_Busy_Check() > 0){
                 // printf("RB Checked!\n");
             }
             else{
@@ -1007,7 +1010,7 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
         // usleep(dly*1000);
     } while(ret != 0);
 
-    if (Ready_Busy_Check()){
+    if (Ready_Busy_Check() > 0){
         // printf("RB Checked!\n");
     }
     else{
@@ -1129,7 +1132,7 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
             read_buff[4], read_buff[5], read_buff[6], read_buff[7]);
         Make_Spi_Packet(tx_buff, read_buff, len, REC, REC_STREAM_STR);
       
-        // if (Ready_Busy_Check()){
+        // if (Ready_Busy_Check() > 0){
         //     // printf("File Send Start!\n");
         // }
         // else{
@@ -1151,7 +1154,7 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                     if (stream_state == 1) {
                         return 2;
                     }
-                    else if (Ready_Busy_Check()){
+                    else if (Ready_Busy_Check() > 0){
                         // printf("RB Checked!\n");
                     }
                     else{
@@ -1171,7 +1174,7 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                 if (stream_state == 1) {
                     return 2;
                 }
-                else if (Ready_Busy_Check()){
+                else if (Ready_Busy_Check() > 0){
                     // printf("RB Checked!\n");
                 }
                 else{
@@ -1203,7 +1206,7 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
             if (stream_state == 1) {
                 return 2;
             }
-            else if (Ready_Busy_Check()){
+            else if (Ready_Busy_Check() > 0){
                 // printf("RB Checked!\n");
             }
             else{
@@ -1221,7 +1224,7 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                     if (stream_state == 1) {
                         return 2;
                     }
-                    else if (Ready_Busy_Check()){
+                    else if (Ready_Busy_Check() > 0){
                         // printf("RB Checked!\n");
                     }
                     else{
@@ -1241,7 +1244,7 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                 if (stream_state == 1) {
                     return 2;
                 }
-                else if (Ready_Busy_Check()){
+                else if (Ready_Busy_Check() > 0){
                     // printf("RB Checked!\n");
                 }
                 else{
@@ -1273,7 +1276,7 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
             if (stream_state == 1) {
                 return 2;
             }
-            else if (Ready_Busy_Check()){
+            else if (Ready_Busy_Check() > 0){
                 // printf("RB Checked!\n");
             }
             else{
@@ -1296,9 +1299,9 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
         int wcnt = 0;
         int filed[6] = {0};
         char file[128] = {0};
-        uint8_t seq = 0;
+        // uint8_t seq = 0;
 
-        // printf("m:%d t1:%d t2:%d fn:%d fc:%d\n", fs->minor, fs->tag1, fs->tag2, fs->filenum, fs->filecnt);
+        printf("m:%d t1:%d t2:%d fn:%d fc:%d\n", fs->minor, fs->tag1, fs->tag2, fs->filenum, fs->filecnt);
 
         for (cnt=0; cnt<(fs->filecnt); cnt++) {
             memset(file, 0, 128);
@@ -1366,13 +1369,17 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
             read_buff[4], read_buff[5], read_buff[6], read_buff[7]);
         Make_Spi_Packet(tx_buff, read_buff, len, REC, REC_STREAM_STR);
       
-        // if (Ready_Busy_Check()){
+        // if (Ready_Busy_Check() > 0){
         //     // printf("File Send Start!\n");
         // }
         // else{
         //     printf("FS\n");
         //     return -1;
         // }
+        if (stream_state == 1) {
+            return 2;
+        }
+            
         spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
 
         for (scnt=0; scnt<cnt; scnt++) {
@@ -1382,7 +1389,10 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                 ret = read(filed[(scnt*2)], read_buff, FILE_READ_LENGTH);
                 // printf("RC:%d\n", ret);
                 if(ret != 0) {
-                    if (Ready_Busy_Check()){
+                    if (stream_state == 1) {
+                        return 2;
+                    }
+                    else if (Ready_Busy_Check() > 0){
                         // printf("RB Checked!\n");
                     }
                     else{
@@ -1413,7 +1423,10 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
             Make_Spi_Packet(tx_buff, read_buff, len, REC, REC_STREAM_END);
             // memset(tx_buff, 0, 1033);
             // memcpy(&tx_buff[6], read_buff,1);
-            if (Ready_Busy_Check()){
+            if (stream_state == 1) {
+                return 2;
+            }
+            else if (Ready_Busy_Check() > 0){
                 // printf("RB Checked!\n");
             }
             else{
@@ -1428,7 +1441,10 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                 ret = read(filed[(scnt*2)+1], read_buff, FILE_READ_LENGTH);
                 // printf("RC:%d\n", ret);
                 if(ret != 0) {
-                    if (Ready_Busy_Check()){
+                    if (stream_state == 1) {
+                        return 2;
+                    }
+                    else if (Ready_Busy_Check() > 0){
                         // printf("RB Checked!\n");
                     }
                     else{
@@ -1460,7 +1476,10 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
             Make_Spi_Packet(tx_buff, read_buff, len, REC, REC_STREAM_END);
             // memset(tx_buff, 0, 1033);
             // memcpy(&tx_buff[6], read_buff,1);
-            if (Ready_Busy_Check()){
+            if (stream_state == 1) {
+                return 2;
+            }
+            else if (Ready_Busy_Check() > 0){
                 // printf("RB Checked!\n");
             }
             else{
@@ -1519,7 +1538,7 @@ int spi_send_file_face(uint8_t minor, int fcnt)
     read_buff[6] = 0;
     len = 7;
 
-    if (Ready_Busy_Check()){
+    if (Ready_Busy_Check() > 0){
         // printf("File Send Start!\n");
     }
     else{
@@ -1543,7 +1562,7 @@ int spi_send_file_face(uint8_t minor, int fcnt)
         do {
             ret = read(filed, read_buff, FILE_READ_LENGTH);
             if(ret != 0) {
-                if (Ready_Busy_Check()){
+                if (Ready_Busy_Check() > 0){
                     // printf("RB Checked!\n");
                 }
                 else{
@@ -1566,7 +1585,7 @@ int spi_send_file_face(uint8_t minor, int fcnt)
             wcnt++;
             // usleep(dly*1000);
         } while(ret != 0);
-        if (Ready_Busy_Check()){
+        if (Ready_Busy_Check() > 0){
             // printf("RB Checked!\n");
         }
         else{
@@ -1578,7 +1597,7 @@ int spi_send_file_face(uint8_t minor, int fcnt)
         spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
     }
 
-    if (Ready_Busy_Check()){
+    if (Ready_Busy_Check() > 0){
         // printf("RB Checked!\n");
     }
     else{
@@ -1646,7 +1665,7 @@ int spi_send_file_dual(uint8_t minor1, uint8_t minor2, char *file1, char *file2)
     spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
 
     
-    if (Ready_Busy_Check())
+    if (Ready_Busy_Check() > 0)
         printf("File Send Start!\n");
     else{
         printf("Fail to Start1 CMD\n");
@@ -1662,7 +1681,7 @@ int spi_send_file_dual(uint8_t minor1, uint8_t minor2, char *file1, char *file2)
     do {
         ret = read(filed1, read_buff, FILE_READ_LENGTH);
         if(ret != 0) {
-            if (Ready_Busy_Check()){
+            if (Ready_Busy_Check() > 0){
                 // printf("RB Checked!\n");
             }
             else{
@@ -1688,7 +1707,7 @@ int spi_send_file_dual(uint8_t minor1, uint8_t minor2, char *file1, char *file2)
 
     close(filed1);
 
-    // if (Ready_Busy_Check())
+    // if (Ready_Busy_Check() > 0)
     //     printf("File Send Start!\n");
     // else{
     //     printf("Fail to Start2 CMD\n");
@@ -1725,7 +1744,7 @@ int spi_send_file_dual(uint8_t minor1, uint8_t minor2, char *file1, char *file2)
     do {
         ret = read(filed2, read_buff, FILE_READ_LENGTH);
         if(ret != 0) {
-            if (Ready_Busy_Check()){
+            if (Ready_Busy_Check() > 0){
                 // printf("RB Checked!\n");
             }
             else{
@@ -1751,7 +1770,7 @@ int spi_send_file_dual(uint8_t minor1, uint8_t minor2, char *file1, char *file2)
 
     close(filed2);
 
-    if (Ready_Busy_Check()){
+    if (Ready_Busy_Check() > 0){
         // printf("RB Checked!\n");
     }
     else{
@@ -1915,7 +1934,7 @@ int spi_send_save_file(char *path, char *file)
 
     len = 20;
 
-    if (!Ready_Busy_Check()) {
+    if (Ready_Busy_Check() < 1) {
         printf("[%s]SF\n", __func__);
         return -1;
     }
@@ -1926,7 +1945,7 @@ int spi_send_save_file(char *path, char *file)
     do {
         ret = read(filed, read_buff, FILE_READ_LENGTH);
         if(ret != 0) {
-            if (!Ready_Busy_Check()){
+            if (Ready_Busy_Check() < 1){
                 printf("F:%d\n", wcnt);
                 return -1;
             }
@@ -1937,7 +1956,7 @@ int spi_send_save_file(char *path, char *file)
         wcnt++;
     } while(ret != 0);
 
-    if (!Ready_Busy_Check()){
+    if (Ready_Busy_Check() < 1){
         printf("[%s]EF\n", __func__);
         return -1;
     }

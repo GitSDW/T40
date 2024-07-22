@@ -406,7 +406,7 @@ uint8_t BLC_User(void) {
 
 uint8_t cam_mean(void) {
 	IMPISPAEScenceAttr sceneattr;
-	IMPISPAEExprInfo expose_inf;
+	// IMPISPAEExprInfo expose_inf;
 	uint32_t ae_mean1 = 0, ae_mean2 = 0;
 
 	IMP_ISP_Tuning_GetAeScenceAttr(IMPVI_MAIN, &sceneattr);
@@ -1172,7 +1172,7 @@ void *OSD_thread(void *args)
 	bool rect_flag = false;
 
 	int64_t total_time = 0;
-	int64_t oldt_time = 0, BLC_time = 0, mean_time = 0;;
+	int64_t oldt_time = 0, BLC_time = 0;//, mean_time = 0;;
 
 	// int f_cnt=0;
 	

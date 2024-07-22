@@ -1076,12 +1076,12 @@ void absdiff_normalize_arr(cv::Mat grayA, cv::Mat grayB, cv::Mat image_org) {
     cv::cvtColor(thresh, dst, cv::COLOR_GRAY2BGR);
     int h1 = dst.rows;
     int w1 = dst.cols;
-    int channel1 = dst.channels();
+    // int channel1 = dst.channels();
 
     // original picture loading
     int h2 = image_org.rows;
     int w2 = image_org.cols;
-    int channel2 = image_org.channels();
+    // int channel2 = image_org.channels();
 
     double htimes = static_cast<double>(h2) / h1;
     double wtimes = static_cast<double>(w2) / w1;
@@ -1092,7 +1092,7 @@ void absdiff_normalize_arr(cv::Mat grayA, cv::Mat grayB, cv::Mat image_org) {
     int maxrecth = static_cast<int>(h1 - 10);
 
     for (size_t i = 0; i < contours.size(); ++i) {
-        cv::Scalar c = cv::Scalar(255, 0, 0);
+        // cv::Scalar c = cv::Scalar(255, 0, 0);
         cv::Rect rect = cv::boundingRect(contours[i]);
 
         if (rect.width > minrectw && rect.height > minrecth && rect.width < maxrectw && rect.height < maxrecth) {

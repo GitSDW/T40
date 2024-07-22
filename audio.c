@@ -889,8 +889,8 @@ void *IMP_Audio_Play_Thread(void *argv)
 
 	bool asflg = false;
 	uint64_t as_time = 0;
-	bool ao_start_f = false;
-	int64_t ao_start_t = sample_gettimeus();
+	// bool ao_start_f = false;
+	// int64_t ao_start_t = sample_gettimeus();
 
 	do {
 		if (bExit) break;
@@ -1126,6 +1126,7 @@ void ao_file_play_thread(void *argv)
 	printf("[Audio File] Thread End!\n");
 	fclose(play_file);
 	free(buf);
+	Set_Vol(100,25,spk_vol_buf,spk_gain_buf);
 	// pthread_exit(0);
 }
 

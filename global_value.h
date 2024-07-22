@@ -13,7 +13,7 @@ extern "C" {
 #ifndef __PHILL_REQ__
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"7"	
-	#define CAHR_VER	"u"
+	#define CAHR_VER	"w"
 #else
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"9"	
@@ -223,6 +223,7 @@ typedef struct  {
 typedef struct  {
     double type;
     double cnt;
+    int index;
 }Make_File;
 
 uint8_t *tx_buff;
@@ -304,6 +305,7 @@ bool dimming;
 bool bOTA, ota_flag;
 bool audio_start_flag;
 bool file_21_flag;
+bool rfile_flag[10];
 
 
 extern int bExit;
@@ -348,6 +350,8 @@ enum REC_STATE {
 	REC_STOP,				// 3
 	REC_WAIT,				// 4
 	REC_MP4MAKE,		// 5
+	REC_SPISEND,
+	REC_RECONNECT,
 };
 
 enum CLIP_CAUSE_ENUM {
