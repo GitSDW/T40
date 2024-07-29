@@ -67,9 +67,9 @@ int sample_ivs_facepersondet_start(int grp_num, int chn_num, IMPIVSInterface **i
     param.frameInfo.width = 1920; //640;
     param.frameInfo.height = 1080; //360;
 
-    param.skip_num = 0;      //skip num
+    param.skip_num = 1;      //skip num
     param.max_faceperson_box = 10;
-    param.sense = 9;//Default:7 / Low sensitivity 0 ~ 10 High sensitivity;
+    param.sense = 7;//Default:7 / Low sensitivity 0 ~ 10 High sensitivity;
     param.switch_track = true;
     param.enable_move = false;
     param.open_move_filter = false;
@@ -353,6 +353,7 @@ void *fdpd_thread(void *args)
     int face_track[5] = {256};
     int fdpd_en_cnt = 0;
     // int mosaic_cnt[10] = {0};
+    int64_t face_cnt_time = 0;
 
     
     // sprintf(framefilename, "/dev/shm/faceperson.data");
@@ -399,6 +400,7 @@ void *fdpd_thread(void *args)
 
         facepersondet_param_output_t* r = (facepersondet_param_output_t*)result;
         if(r->count > 0) {
+            face_cnt_mosaic = r->count;
             nodet_cnt = 0;
             // memset(fp_data, 0, 1024);
             // now_time = (sample_gettimeus() - start_time)/1000; // msec
@@ -413,6 +415,7 @@ void *fdpd_thread(void *args)
                     float confidence = r->faceperson[i].confidence;
                     IVSRect* show_rect = &r->faceperson[i].show_box;
 
+                    face_cnt_time = sample_gettimeus();
                     fdpd_data[i].flag = true;
                     fdpd_data[i].classid = class_id;
                     fdpd_data[i].trackid = track_id;
@@ -481,7 +484,7 @@ void *fdpd_thread(void *args)
         }
         else {
             nodet_cnt++;
-            if(nodet_cnt == 5){
+            if(nodet_cnt%6 == 5){
                 for(i=0; i<10; i++){
                     fdpd_data[i].flag = false;
                 }
@@ -490,6 +493,7 @@ void *fdpd_thread(void *args)
                 face_cnt = face_num;
                 person_cnt = person_num;
             }
+            
         }
         ret = IMP_IVS_ReleaseResult(3, (void *)result);
         if (ret < 0) {
@@ -500,6 +504,11 @@ void *fdpd_thread(void *args)
         if (!fdpd_En){
             fdpd_en_cnt++;
             if (fdpd_en_cnt>5) fdpd_En = true;
+        }
+
+        if ((face_cnt_time != 0) && ((sample_gettimeus()-face_cnt_time) > 2000000)) {
+            face_cnt_time = 0;
+            face_cnt_mosaic = 0;
         }
     }
 

@@ -25,7 +25,7 @@ uint32_t isp_integration_time(int getset, uint32_t value);
 uint8_t SceneceSet(int getset, uint8_t val);
 int Set_Target_Bit(uint32_t targetbit);
 int Set_Target_Bit2(uint32_t targetbit);
-
+uint8_t bright_set(uint8_t bright);
 
 
 void *get_video_stream_test_thread(void *args);

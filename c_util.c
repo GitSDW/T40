@@ -62,10 +62,10 @@ void set_delay_time(int64_t ti)
         {
             set_time = sample_gettimeus();
             cnt_time = ti;
-            printf("Set Timer:%lld\n", cnt_time);
+            // printf("Set Timer:%lld\n", cnt_time);
         }
         else {
-            printf("Already Set!\n");
+            // printf("Already Set!\n");
         }
     }
 }

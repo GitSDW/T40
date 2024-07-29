@@ -455,7 +455,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             else if (rbuff[index+9] == 1)
                 effect_file = "/tmp/mnt/sdcard/effects/dev_takeon.wav";
             printf("play : %s\n", effect_file);
-            Set_Vol(100,25,(10 * 2) + 55,15);
+            Set_Vol(100,25,(10 * 1) + 55,15);
             ao_file_play_thread(effect_file);
 
             // clip_cause_t.Major = CLIP_CAUSE_MOUNT;
@@ -794,7 +794,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         break;
         case SET_FACTORY:
             Setting_Reinit();
-            Set_Vol(100,25,(10 * 2) + 55,15);
+            Set_Vol(100,25,(10 * 1) + 55,15);
             effect_file = "/tmp/mnt/sdcard/effects/factory.wav";
             printf("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
@@ -807,6 +807,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             printf("Ble Light Set!\n");
             gpio_LED_dimming(rbuff[index+9]);
             if (rbuff[index+9] != 0) {
+                Set_Vol(100,25,(10 * 1) + 55,15);
                 effect_file = "/tmp/mnt/sdcard/effects/dev_start.wav";
                 printf("play : %s\n", effect_file);
                 ao_file_play_thread(effect_file);
@@ -824,7 +825,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         case SET_DEV_START:
             ack_len = 0;
             // ack_flag = true;
-            Set_Vol(100,25,(10 * 2) + 55,15);
+            Set_Vol(100,25,(10 * 1) + 55,15);
             effect_file = "/tmp/mnt/sdcard/effects/dev_start.wav";
             printf("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
@@ -834,7 +835,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         case SET_DEV_OFF:
             ack_len = 0;
             // ack_flag = true;
-            Set_Vol(100,25,(10 * 2) + 55,15);
+            Set_Vol(100,25,(10 * 1) + 55,15);
             effect_file = "/tmp/mnt/sdcard/effects/dev_end.wav";
             printf("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
@@ -1008,6 +1009,10 @@ int device_end(uint8_t major) {
     uart_tx[9] = 0x03;
 
     uart_send(fd_uart, uart_tx, 10);
+
+    usleep(100*1000);
+
+    uart_send(fd_uart, uart_tx, 10);
     
     printf("Device End Major:0x%02x\n", uart_tx[1]);
     
@@ -1060,6 +1065,10 @@ int make_file_start(uint8_t major) {
     uart_tx[7] = 0x00;
     uart_tx[8] = 0x00;
     uart_tx[9] = 0x03;
+
+    uart_send(fd_uart, uart_tx, 10);
+
+    usleep(100*1000);
 
     uart_send(fd_uart, uart_tx, 10);
     

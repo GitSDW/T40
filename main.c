@@ -2127,8 +2127,8 @@ int clip_total(void) {
 	do {
 		if (start_flag == false) {
 		#ifndef __PHILL_REQ__
-			// if ((face_cnt > 0) || (person_cnt > 0) || (main_motion_detect > 1) || bell_flag || temp_flag) {
-			if ((main_motion_detect > 1) || bell_flag || temp_flag) {
+			if ((face_cnt > 0) || (person_cnt > 0) || (main_motion_detect > 1) || bell_flag || temp_flag) {
+			// if ((main_motion_detect > 1) || bell_flag || temp_flag) {
 				// printf("fc : %d Motion : %d\n", face_cnt, main_motion_detect);
 				printf("Start REC!!\n");
 				start_flag = true;
@@ -2263,7 +2263,7 @@ int clip_total(void) {
 						// rec_stop = true;
 						printf("CLIP END:Time Over! %lld\n", total_time);
 						clip_rec_state = REC_STOP;
-						box_snap = true;
+						// box_snap = true;
 						Rec_type = MAKE_FILE;
 						file_cnt = 3;
 					}
@@ -2312,7 +2312,7 @@ int clip_total(void) {
 					rec_streaming_state = REC_MP4MAKE;
 					printf("CLIP END:Streaming End! %lld\n", total_time);
 					clip_rec_state = REC_STOP;
-					box_snap = true;
+					// box_snap = true;
 					Rec_type = MAKE_FILE;
 				}
 
@@ -2332,7 +2332,7 @@ int clip_total(void) {
 					// rec_stop = true;
 					printf("CLIP END:Time Over! %lld\n", total_time);
 					clip_rec_state = REC_STOP;
-					box_snap = true;
+					// box_snap = true;
 					Rec_type = MAKE_FILE;
 					file_cnt = 3;
 				}
@@ -2344,7 +2344,7 @@ int clip_total(void) {
 							printf("CLIP END:Move End!\n");
 							// rec_stop = true;
 							clip_rec_state = REC_STOP;
-							box_snap = true;
+							// box_snap = true;
 							Rec_type = MAKE_FILE;
 							// if (total_time < 23000000) {
 							// 	file_cnt = 1;
@@ -2486,6 +2486,8 @@ int clip_total(void) {
 
 		if(Rec_type == MAKE_FILE) {
 
+			box_snap = true;
+
 			make_start = sample_gettimeus();
 
 			if (stream_state == 1) {
@@ -2549,6 +2551,9 @@ int clip_total(void) {
 			// }
 
 			pthread_t tid_makefile1, tid_makefile2, tid_makefile;
+
+			printf("Thumnail state : %d\n", thumbnail_state);
+			// thumbnail_state = THUMB_END;
 			Make_File mfd1;
 			mfd1.type = 0;
 			mfd1.cnt = file_cnt;
@@ -2778,7 +2783,7 @@ int clip_total(void) {
 						}
 					
 		    			spi_send_file(REC_BOX_ALM, file_path, 0, 0, 0);
-		    			usleep(100*1000);
+		    			usleep(200*1000);
 		    		#endif
 		    	#endif
 
@@ -2812,6 +2817,10 @@ int clip_total(void) {
 					// }
 				}
 
+				if (cfile_flag2 && (file_cnt2 > 0)) {
+					system ("cp /dev/shm/bell_m0.mp4 /tmp/mnt/sdcard");
+					system ("cp /dev/shm/bell_b0.mp4 /tmp/mnt/sdcard");
+				}
 				
 
 				// system("sync");
@@ -2867,6 +2876,8 @@ int clip_total(void) {
 					return -1;
 				}
 			}
+
+
 
 			// printf("%d %d %d\n", file_cnt, cfile_flag1, cfile_flag2);
 
@@ -2984,9 +2995,9 @@ int clip_total(void) {
 				if (temp_flag) {
 					clip_cause_t.Major = CLIP_CAUSE_MOUNT;
 					if (temp_unmount_flag)
-						clip_cause_t.Minor = CLIP_MOUNT_DISMT;
-					else
 						clip_cause_t.Minor = CLIP_MOUNT_MOUNT;
+					else
+						clip_cause_t.Minor = CLIP_MOUNT_DISMT;
 				}
 				else {
 					clip_cause_t.Major = CLIP_CAUSE_BELL;
@@ -3319,17 +3330,18 @@ int stream_total(int mode) {
 	        printf("spi init error\n");
 	        return 0;
 	    }
-	}
+	
 
-    data_sel = 4;
-	if (data_sel <= 0 || data_sel > 4) {
-		printf("Invalid Type!\n");
-		return -1;
-	}
-	ret = pthread_create(&tid_spi, NULL, spi_send_stream, NULL);
-	if(ret != 0) {
-		IMP_LOG_ERR("[Udp]", "[ERROR] %s: pthread_create spi_send_stream failed\n", __func__);
-		return -1;
+	    data_sel = 4;
+		if (data_sel <= 0 || data_sel > 4) {
+			printf("Invalid Type!\n");
+			return -1;
+		}
+		ret = pthread_create(&tid_spi, NULL, spi_send_stream, NULL);
+		if(ret != 0) {
+			IMP_LOG_ERR("[Udp]", "[ERROR] %s: pthread_create spi_send_stream failed\n", __func__);
+			return -1;
+		}
 	}
 	//////////////////////////////////////////////////////////////////////////////////////////
 #else
@@ -3402,21 +3414,21 @@ int stream_total(int mode) {
 				return -1;
 			}
 		#endif
+		
+
+		ret = pthread_create(&tid_ao, NULL, IMP_Audio_Play_Thread, NULL);
+		if(ret != 0) {
+			IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Play_Thread failed\n", __func__);
+			return -1;
+		}
+
+		ret = pthread_create(&tid_ai, NULL, IMP_Audio_Record_AEC_Thread, NULL);
+		if(ret != 0) {
+			IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Record_AEC_Thread failed\n", __func__);
+			return -1;
+		}
+
 	}	
-
-	ret = pthread_create(&tid_ao, NULL, IMP_Audio_Play_Thread, NULL);
-	if(ret != 0) {
-		IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Play_Thread failed\n", __func__);
-		return -1;
-	}
-
-	ret = pthread_create(&tid_ai, NULL, IMP_Audio_Record_AEC_Thread, NULL);
-	if(ret != 0) {
-		IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Record_AEC_Thread failed\n", __func__);
-		return -1;
-	}
-
-	
 
 	// ret = pthread_create(&tid_live, NULL, device_live_thread, NULL);
 	// if(ret != 0) {
@@ -3896,6 +3908,8 @@ int stream_total(int mode) {
 			bool make_flag = false;
 			Make_File mfd_rec[10];
 
+			make_file_start(STREAMING);
+
 			if (rec_cnt > 10) rec_cnt = 10;
 			for (int i=0; i<rec_cnt; i++) {
 				mfd_rec[i].type = 0;
@@ -3935,7 +3949,6 @@ int stream_total(int mode) {
 				streaming_rec_state = REC_SPISEND;
 		}
 		else if (streaming_rec_state == REC_SPISEND) {
-			make_file_start(STREAMING);
 			for (int i=0; i<rec_cnt; i++) {
 				FileSend fs;
 				if (stream_tag[i] == CLIP_CAUSE_STREM) {

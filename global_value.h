@@ -12,12 +12,12 @@ extern "C" {
 
 #ifndef __PHILL_REQ__
 	#define MAJOR_VER	"0"
-	#define MINOR_VER	"7"	
-	#define CAHR_VER	"w"
+	#define MINOR_VER	"8"
+	#define CAHR_VER	"d"
 #else
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"9"	
-	#define CAHR_VER	"o"
+	#define CAHR_VER	"p"
 #endif
 
 typedef struct CIRCULAR_BUFF
@@ -88,8 +88,8 @@ int move_det_xs, move_det_ys, move_det_xe, move_det_ye;
 
 #define V_SEND_RESERV 				5
 #define V_BUFF_SIZE 				256*1024
-#define MAX_REC_TIME 				63000000	// 60 * 1000 * 1000 usec
-#define ROAMING_PER_TIME 			30000000	// 60 * 1000 * 1000 usec
+#define MAX_REC_TIME 				65000000	// 60 * 1000 * 1000 usec
+#define ROAMING_PER_TIME 			35000000	// 60 * 1000 * 1000 usec
 #define THUMBNAIL_TIME 				1000000
 #define FACE_FIND_END_TIME 			5000000
 #define BELL_TIME_MIN				15000000
@@ -151,6 +151,7 @@ typedef struct FDPD_DATA
 	int br_y;
 } Fdpd_Data_t;
 
+int face_cnt_mosaic;
 Fdpd_Data_t fdpd_data[10];
 Fdpd_Data_t facial_data;
 
@@ -204,7 +205,7 @@ typedef struct  {
 
 Clip_Cause_t clip_cause_t;
 
-#define START_CHECK_TIME 3000000
+#define START_CHECK_TIME 4000000
 #define READY_BUSY_TIME 5
 
 typedef struct  {
@@ -415,7 +416,7 @@ enum REC_TYPE {
 // #define __TEST_FAKE_VEDIO__
 // #define __STREAMING_CMD__
 // #define __BOX_ALGORITH__
-// #define __G726__
+#define __G726__
 #define __FILE_SEND_CHANGE__
 
 #ifdef __TEST_FAKE_VEDIO__

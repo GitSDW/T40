@@ -1018,7 +1018,7 @@ int sample_encoder_init(int ch)
 		IMPEncoderChnAttr test_attr;
 
 		ret = IMP_Encoder_GetChnAttr(chnNum, &test_attr);
-		printf("[enc] w:%d h:%d \n", test_attr.encAttr.uWidth, test_attr.encAttr.uHeight);
+		// printf("[enc] w:%d h:%d \n", test_attr.encAttr.uWidth, test_attr.encAttr.uHeight);
 	}
 	return 0;
 }
@@ -1418,6 +1418,7 @@ printf("[%s][%d]\n",__func__,__LINE__);
 	/* Disable Cover global alpha, it is absolutely no transparent. */
 	grAttrCover.gAlphaEn = 1;
 	grAttrCover.fgAlhpa = 0x7f;
+	grAttrCover.bgAlhpa = 0x7f;
 	grAttrCover.layer = 2;
 	if (IMP_OSD_SetGrpRgnAttr(rHanderCover, grpNum, &grAttrCover) < 0) {
 		IMP_LOG_ERR(TAG, "IMP_OSD_SetGrpRgnAttr Cover error !\n");
@@ -1765,33 +1766,65 @@ IMPRgnHandle *osd_init(int grpNum)
 	IMPOSDRgnAttr rAttrBodyRect;
 	IMPOSDGrpRgnAttr grAttrBodyRect;
 	for (i = 0; i < RECT_INDEX;i++) {
-		memset(&rAttrBodyRect, 0, sizeof(IMPOSDRgnAttr));
+		// memset(&rAttrBodyRect, 0, sizeof(IMPOSDRgnAttr));
 
-		rAttrBodyRect.type = OSD_REG_RECT;
+		// rAttrBodyRect.type = OSD_REG_RECT;
+		// rAttrBodyRect.rect.p0.x = 0;
+		// rAttrBodyRect.rect.p0.y = 0;
+		// rAttrBodyRect.rect.p1.x = rAttrBodyRect.rect.p0.x + 100 - 1;
+		// rAttrBodyRect.rect.p1.y = rAttrBodyRect.rect.p0.y + 100 - 1;
+		// rAttrBodyRect.fmt = PIX_FMT_MONOWHITE;
+		// rAttrBodyRect.data.lineRectData.color = OSD_RED;
+		// rAttrBodyRect.data.lineRectData.linewidth = 5;
+		// ret = IMP_OSD_SetRgnAttr(rHanderBodyRect[i], &rAttrBodyRect);
+		// if (ret < 0) {
+		// 	IMP_LOG_ERR(TAG, "IMP_OSD_SetRgnAttr rHanderBodyRect[%d] error !\n", i);
+		// 	return NULL;
+		// }
+	
+		// if (IMP_OSD_GetGrpRgnAttr(rHanderBodyRect[i], grpNum, &grAttrBodyRect) < 0) {
+		// 	IMP_LOG_ERR(TAG, "IMP_OSD_GetGrpRgnAttr rHanderBodyRect[%d] error !\n", i);
+		// 	return NULL;
+		// }
+		// memset(&grAttrBodyRect, 0, sizeof(IMPOSDGrpRgnAttr));
+		// grAttrBodyRect.show = 0;
+		// grAttrBodyRect.layer = 1;
+		// grAttrBodyRect.scalex = 1;
+		// grAttrBodyRect.scaley = 1;
+		// if (IMP_OSD_SetGrpRgnAttr(rHanderBodyRect[i], grpNum, &grAttrBodyRect) < 0) {
+		// 	IMP_LOG_ERR(TAG, "IMP_OSD_SetGrpRgnAttr rHanderBodyRect[%d] error !\n", i);
+		// 	return NULL;
+		// }
+
+		memset(&rAttrBodyRect, 0, sizeof(IMPOSDRgnAttr));
+		rAttrBodyRect.type = OSD_REG_COVER;
 		rAttrBodyRect.rect.p0.x = 0;
 		rAttrBodyRect.rect.p0.y = 0;
-		rAttrBodyRect.rect.p1.x = rAttrBodyRect.rect.p0.x + 100 - 1;
-		rAttrBodyRect.rect.p1.y = rAttrBodyRect.rect.p0.y + 100 - 1;
-		rAttrBodyRect.fmt = PIX_FMT_MONOWHITE;
-		rAttrBodyRect.data.lineRectData.color = OSD_RED;
-		rAttrBodyRect.data.lineRectData.linewidth = 5;
-		ret = IMP_OSD_SetRgnAttr(rHanderBodyRect[i], &rAttrBodyRect);
+		rAttrBodyRect.rect.p1.x = 20 - 1;
+		rAttrBodyRect.rect.p1.y = 20 - 1 ;
+	    rAttrBodyRect.fmt = PIX_FMT_BGRA;
+		rAttrBodyRect.data.coverData.color = OSD_IPU_RED;
+		ret = IMP_OSD_SetRgnAttr(rHanderMoveCover, &rAttrBodyRect);
 		if (ret < 0) {
-			IMP_LOG_ERR(TAG, "IMP_OSD_SetRgnAttr rHanderBodyRect[%d] error !\n", i);
+			IMP_LOG_ERR(TAG, "IMP_OSD_SetRgnAttr rHanderMoveCover error !\n");
 			return NULL;
 		}
-	
-		if (IMP_OSD_GetGrpRgnAttr(rHanderBodyRect[i], grpNum, &grAttrBodyRect) < 0) {
-			IMP_LOG_ERR(TAG, "IMP_OSD_GetGrpRgnAttr rHanderBodyRect[%d] error !\n", i);
+
+		if (IMP_OSD_GetGrpRgnAttr(rHanderMoveCover, grpNum, &grAttrBodyRect) < 0) {
+			IMP_LOG_ERR(TAG, "IMP_OSD_GetGrpRgnAttr rHanderMoveCover error !\n");
 			return NULL;
+
 		}
 		memset(&grAttrBodyRect, 0, sizeof(IMPOSDGrpRgnAttr));
 		grAttrBodyRect.show = 0;
-		grAttrBodyRect.layer = 1;
-		grAttrBodyRect.scalex = 1;
-		grAttrBodyRect.scaley = 1;
+
+		/* Disable Cover global alpha, it is absolutely no transparent. */
+		grAttrBodyRect.gAlphaEn = 1;
+		grAttrBodyRect.fgAlhpa = 0xE6;
+		grAttrBodyRect.bgAlhpa = 0xFF;
+		grAttrBodyRect.layer = 4;
 		if (IMP_OSD_SetGrpRgnAttr(rHanderBodyRect[i], grpNum, &grAttrBodyRect) < 0) {
-			IMP_LOG_ERR(TAG, "IMP_OSD_SetGrpRgnAttr rHanderBodyRect[%d] error !\n", i);
+			IMP_LOG_ERR(TAG, "IMP_OSD_SetGrpRgnAttr rHanderMoveCover error !\n");
 			return NULL;
 		}
 	}
@@ -3370,7 +3403,7 @@ int sample_get_video_clip_user()
 	return 0;
 }
 
-extern void mv_cap(int mb, int cnt);
+// extern void mv_cap(int mb, int cnt);
 
 static void *sample_get_jpeg_snap(void *args)
 {
@@ -3435,7 +3468,7 @@ static void *sample_get_jpeg_snap(void *args)
 			close(snap_fd);
 			printf("%s END!\n", snap_path);
 			main_snap = false;
-			mv_cap(0, main_cnt-1);
+			// mv_cap(0, main_cnt-1);
 		}
 
 		if (box_snap && chnNum == 5) {
@@ -3462,7 +3495,7 @@ static void *sample_get_jpeg_snap(void *args)
 			close(snap_fd);
 			printf("%s END!\n", snap_path);
 			box_snap = false;
-			mv_cap(1, box_cnt-1);
+			// mv_cap(1, box_cnt-1);
 		}
 
 		if (thumbnail_snap && chnNum == 2) {

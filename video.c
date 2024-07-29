@@ -14,6 +14,7 @@
 #include "move.h"
 #include "gpio.h"
 #include "setting.h"
+#include "c_util.h"
 
 #define TAG "video"
 
@@ -366,6 +367,8 @@ uint8_t BLC_User(void) {
 
 	ae_mean = sceneattr.ae_mean;
 	// printf("Sceneattr get aemean:%d\n", sceneattr.ae_mean);
+	// printf("aeintergrationtime : %d\n", expose_inf.AeIntegrationTime);
+	AeIntegrationTime = expose_inf.AeIntegrationTime;
 
 	if (expose_inf.AeMode == IMPISP_TUNING_OPS_TYPE_AUTO) {
 		auto_flag = false;
@@ -374,7 +377,7 @@ uint8_t BLC_User(void) {
 		auto_flag = true;
 	}
 
-	if (ae_mean > 120) {
+	if (ae_mean > 140) {
 		if (ae_mean > 350) {
 			AeIntegrationTime -= 10;
 		}
@@ -467,6 +470,25 @@ int Set_Target_Bit2(uint32_t targetbit) {
 	// printf("enc rc CBR uMaxPictureSize:%d\n", encecmode.attrCbr.uMaxPictureSize);
 
 	return 0;
+}
+
+uint8_t bright_set(uint8_t bright) {
+	uint8_t mbright, bbright;
+
+	IMP_ISP_Tuning_GetBrightness(IMPVI_MAIN, &mbright);
+	IMP_ISP_Tuning_GetBrightness(IMPVI_MAIN+1, &bbright);
+
+	printf("Get Bright : %d %d\n", mbright, bbright);
+
+	if (bright != 0) {
+		mbright = bright;
+		bbright = bright;
+
+		IMP_ISP_Tuning_SetBrightness(IMPVI_MAIN, bright);
+		IMP_ISP_Tuning_SetBrightness(IMPVI_MAIN+1, bright);
+
+		printf("Set Bright : %d\n", mbright);
+	}
 }
 
 IMPCell osdcell;
@@ -878,6 +900,29 @@ int video_init(void) {
 	// Set_Target_Bit(500);
 	///////////////////////////////////////////////////////////////////
 
+	uint8_t mbright, bbright;
+
+	IMP_ISP_Tuning_GetBrightness(IMPVI_MAIN, &mbright);
+	IMP_ISP_Tuning_GetBrightness(IMPVI_MAIN+1, &bbright);
+
+	printf("Main Bright : %d %d\n", mbright, bbright);
+
+	mbright += 20;
+	bbright += 20;
+
+	IMP_ISP_Tuning_SetBrightness(IMPVI_MAIN, &mbright);
+	IMP_ISP_Tuning_SetBrightness(IMPVI_MAIN+1, &bbright);
+
+	// uint8_t contrast = 110;
+
+	// IMP_ISP_Tuning_SetContrast(IMPVI_MAIN, &contrast);
+	// IMP_ISP_Tuning_SetContrast(IMPVI_MAIN+1, &contrast);
+
+	uint8_t saturation = 200;
+
+	IMP_ISP_Tuning_SetBcshHue(IMPVI_MAIN, &saturation);
+	IMP_ISP_Tuning_SetBcshHue(IMPVI_MAIN+1, &saturation);
+
 	return 0;
 }
 
@@ -1169,6 +1214,8 @@ void *OSD_thread(void *args)
 
 	int x_cal=0, y_cal=0, w_cal=0, h_cal=0;
 	int index = 0;
+	int face_mo_cnt = 0;
+	int dis_cnt[10] = {0};
 	bool rect_flag = false;
 
 	int64_t total_time = 0;
@@ -1183,8 +1230,9 @@ void *OSD_thread(void *args)
 	// IMPOSDRgnAttr cover_rAttr;
 	IMPOSDRgnAttr mosaic_rAttr;
 	// int mosaic_index = 0;
-	uint64_t mosaic_time[10] = {0};
-	uint64_t mtime = 0;
+	int64_t mosaic_time[10] = {0};
+	int64_t now_mosaic_time = 0;
+	int64_t mtime = 0;
 	// uint64_t test_time = 0;
 	// IMPOSDGrpRgnAttr gAPMosaic;
 
@@ -1193,6 +1241,8 @@ void *OSD_thread(void *args)
 		IMP_LOG_ERR(TAG, "OSD show error\n");
 		return NULL;
 	}
+
+	set_delay_time(200*1000);
 	
 	do {
 		if (main_motion_detect > 0) {
@@ -1248,122 +1298,257 @@ void *OSD_thread(void *args)
 		// 	}
 		// }
 
-		if (fdpd_ck && Mosaic_En) {
-			fdpd_ck = false;
-			for (int j=0; j<10; j++) {
-				if (fdpd_data[j].flag && fdpd_data[j].classid == 0 && fdpd_data[j].trackid >= 0) {
-				// if (fdpd_data[j].flag && fdpd_data[j].classid == 0) {
-					index = fdpd_data[j].trackid % 10;
-					// x_cal = fdpd_data[j].ul_x - 40;
-					// x_cal = (x_cal/10)*10;
-					if (fdpd_data[j].ul_x > 40)
-						x_cal = fdpd_data[j].ul_x - 40;
-					else
-						x_cal = fdpd_data[j].ul_x;
-					x_cal = x_cal - (x_cal%10);
+		// if (check_delay_time()) {
+		// 	if (fdpd_ck && Mosaic_En) {
+		// 		fdpd_ck = false;
+				
+		// 		for (int j=0; j<10; j++) {
+		// 			if (fdpd_data[j].flag && fdpd_data[j].classid == 0 && fdpd_data[j].trackid >= 0) {
+		// 			// if (fdpd_data[j].flag && fdpd_data[j].classid == 0) {
 
-					// y_cal = fdpd_data[j].ul_y - 40;
-					// y_cal = (y_cal/10)*10;
-					if (fdpd_data[j].ul_y > 40)
-						y_cal = fdpd_data[j].ul_y - 40;
-					else
-						y_cal = fdpd_data[j].ul_y;
-					y_cal = y_cal - (y_cal%10);
+		// 				index = fdpd_data[j].trackid % 10;
+		// 				// x_cal = fdpd_data[j].ul_x - 40;
+		// 				// x_cal = (x_cal/10)*10;
+		// 				if (fdpd_data[j].ul_x > 40)
+		// 					x_cal = fdpd_data[j].ul_x - 40;
+		// 				else
+		// 					x_cal = fdpd_data[j].ul_x;
+		// 				x_cal = x_cal - (x_cal%10);
 
-					w_cal = fdpd_data[j].br_x - fdpd_data[j].ul_x;
-					h_cal = fdpd_data[j].br_y - fdpd_data[j].ul_y;
-					if (w_cal < 40 || h_cal < 40) {
-						// w_cal = 80;
-						// h_cal = 80;
-						continue;
-					}
-					else {
-						w_cal = w_cal - (w_cal%40) + 160;
-						h_cal = h_cal - (h_cal%40) + 160;
-					}
-					if(x_cal + w_cal >= 1920) x_cal = 1920 - w_cal - 1;
-					if(y_cal + h_cal >= 1080) y_cal = 1080 - h_cal - 1;
+		// 				// y_cal = fdpd_data[j].ul_y - 40;
+		// 				// y_cal = (y_cal/10)*10;
+		// 				if (fdpd_data[j].ul_y > 40)
+		// 					y_cal = fdpd_data[j].ul_y - 40;
+		// 				else
+		// 					y_cal = fdpd_data[j].ul_y;
+		// 				y_cal = y_cal - (y_cal%10);
 
-					mosaic_rAttr.type = OSD_REG_MOSAIC;
-					mosaic_rAttr.mosaicAttr.x = x_cal;
-					mosaic_rAttr.mosaicAttr.y = y_cal;
-					mosaic_rAttr.mosaicAttr.mosaic_width = w_cal;
-					mosaic_rAttr.mosaicAttr.mosaic_height = h_cal;
-					mosaic_rAttr.mosaicAttr.frame_width = FIRST_SENSOR_WIDTH;
-					mosaic_rAttr.mosaicAttr.frame_height = FIRST_SENSOR_HEIGHT;
-					mosaic_rAttr.mosaicAttr.mosaic_min_size = 40;
+		// 				w_cal = fdpd_data[j].br_x - fdpd_data[j].ul_x;
+		// 				h_cal = fdpd_data[j].br_y - fdpd_data[j].ul_y;
+		// 				if (w_cal < 40 || h_cal < 40) {
+		// 					// w_cal = 80;
+		// 					// h_cal = 80;
+		// 					continue;
+		// 				}
+		// 				else {
+		// 					w_cal = w_cal - (w_cal%40) + 160;
+		// 					h_cal = h_cal - (h_cal%40) + 160;
+		// 				}
+		// 				if(x_cal + w_cal >= 1920) x_cal = 1920 - w_cal - 1;
+		// 				if(y_cal + h_cal >= 1080) y_cal = 1080 - h_cal - 1;
 
-					// printf("mosaic[%d] x:%d y:%d w:%d h:%d\n", j, x_cal, y_cal, w_cal, h_cal);
+		// 				mosaic_rAttr.type = OSD_REG_MOSAIC;
+		// 				mosaic_rAttr.mosaicAttr.x = x_cal;
+		// 				mosaic_rAttr.mosaicAttr.y = y_cal;
+		// 				mosaic_rAttr.mosaicAttr.mosaic_width = w_cal;
+		// 				mosaic_rAttr.mosaicAttr.mosaic_height = h_cal;
+		// 				mosaic_rAttr.mosaicAttr.frame_width = FIRST_SENSOR_WIDTH;
+		// 				mosaic_rAttr.mosaicAttr.frame_height = FIRST_SENSOR_HEIGHT;
+		// 				mosaic_rAttr.mosaicAttr.mosaic_min_size = 40;
 
-					ret = IMP_OSD_SetRgnAttr(prHander[2+RECT_INDEX+index], &mosaic_rAttr);
-					if (ret != 0) {
-						IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Mosaic error\n");
-						return NULL;
-					}
-					if (mosaic_time[index] == 0) {
-						ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+index], mosdgrp, 1);
+		// 				// printf("mosaic[%d] x:%d y:%d w:%d h:%d\n", j, x_cal, y_cal, w_cal, h_cal);
+
+		// 				ret = IMP_OSD_SetRgnAttr(prHander[2+RECT_INDEX+index], &mosaic_rAttr);
+		// 				if (ret != 0) {
+		// 					IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Mosaic error\n");
+		// 					return NULL;
+		// 				}
+		// 				// else {
+		// 				// 	set_delay_time(200*1000);
+
+		// 				// }
+		// 				if (mosaic_time[index] == 0) {
+		// 					ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+index], mosdgrp, 1);
+		// 					if (ret != 0) {
+		// 						IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Mosaic error\n");
+		// 						return NULL;
+		// 					}
+		// 				}
+
+		// 				fdpd_data[j].flag = false;
+		// 				mosaic_time[index] = sample_gettimeus();
+		// 				// printf("Face Mosaic[%d] En tiem : %lld\n", index, mosaic_time[index]);
+		// 			}
+		// 		}
+		// 	}
+		// // }
+
+		// face_mo_cnt = 0;
+		// for (int k=0; k<10; k++) {
+		// 	if (mosaic_time[k] != 0) {
+		// 		// printf("c");
+		// 		face_mo_cnt++;
+		// 	}
+		// }
+
+		// for (int k=0; k<10; k++) {
+		// 	if (mosaic_time[k] != 0) {
+		// 		now_mosaic_time = sample_gettimeus();
+		// 		mtime = now_mosaic_time-mosaic_time[k];
+		// 		// if (mtime > 10000000) {
+		// 		if (mtime > 4000000) {
+		// 			if (face_mo_cnt > face_cnt_mosaic) {
+		// 				ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+k], mosdgrp, 0);
+		// 				if (ret != 0) {
+		// 					IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Mosaic error\n");
+		// 					return NULL;
+		// 				}
+		// 				printf("Face Mosaic[%d] De tiem : %lld enface : %d\n", k, now_mosaic_time, face_cnt_mosaic);
+		// 				mosaic_time[k] = 0;
+		// 			}
+		// 			// else {
+		// 			// 	printf("FMDe Fail Set:%d Cnt:%d\n", face_mo_cnt, face_cnt_mosaic);
+		// 			// }
+		// 		}
+		// 	}
+		// }
+
+
+	
+		if (check_delay_time()) {
+ 			if (Mosaic_En) {
+				for (int j=0; j<10; j++) {
+					if (fdpd_data[j].flag && fdpd_data[j].classid == 0 && fdpd_data[j].trackid >= 0) {
+						IMPOSDRgnAttr rect_rAttr;
+						int cover_w, cover_h;
+						int cover_sx, cover_sy;
+						int cover_ex, cover_ey;
+						// rect_rAttr.type = OSD_REG_RECT;
+						// rect_rAttr.rect.p0.x = fdpd_data[j].ul_x;
+						// rect_rAttr.rect.p0.y = fdpd_data[j].ul_y;
+						// rect_rAttr.rect.p1.x = fdpd_data[j].br_x - 1;
+						// rect_rAttr.rect.p1.y = fdpd_data[j].br_y - 1;
+						// rect_rAttr.fmt = PIX_FMT_MONOWHITE;
+						// rect_rAttr.data.lineRectData.color = OSD_GREEN;
+						// rect_rAttr.data.lineRectData.linewidth = 1;
+
+						cover_w = (fdpd_data[j].br_x - fdpd_data[j].ul_x)/2;
+						cover_h = (fdpd_data[j].br_y - fdpd_data[j].ul_y)/2;
+						if (fdpd_data[j].ul_x > cover_w) cover_sx = fdpd_data[j].ul_x - cover_w;
+						else cover_sx = 0;
+						if (fdpd_data[j].ul_y > cover_h) cover_sy = fdpd_data[j].ul_y - cover_h;
+						else cover_sy = 0;
+
+						if (fdpd_data[j].br_x < (1920-cover_w)) cover_ex = fdpd_data[j].br_x + cover_w;
+						else cover_ex = 1920-1;
+						if (fdpd_data[j].br_y < (1080-cover_h)) cover_ey = fdpd_data[j].br_y + cover_h;
+						else cover_ey = 1080-1;
+
+						rect_rAttr.type = OSD_REG_COVER;
+						rect_rAttr.rect.p0.x = cover_sx;
+						rect_rAttr.rect.p0.y = cover_sy;
+						rect_rAttr.rect.p1.x = cover_ex;
+						rect_rAttr.rect.p1.y = cover_ey;
+					    rect_rAttr.fmt = PIX_FMT_BGRA;
+						    //  OSD_IPU_BLACK   = 0xff000000, /**< black */
+						    //  OSD_IPU_WHITE   = 0xffffffff, /**< white*/
+						    //  OSD_IPU_RED     = 0xffff0000, /**< red */
+						    //  OSD_IPU_GREEN   = 0xff00ff00, /**< green */
+						    //  OSD_IPU_BLUE    = 0xff0000ff, /**< blue */
+						rect_rAttr.data.coverData.color = 0xff777777;
+						IMP_OSD_SetRgnAttr(prHander[2+j], &rect_rAttr);
+						ret = IMP_OSD_ShowRgn(prHander[2+j], mosdgrp, 1);
 						if (ret != 0) {
-							IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Mosaic error\n");
+							IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
 							return NULL;
 						}
+						else {
+							mosaic_time[j] = sample_gettimeus();
+						}
+						dis_cnt[j] = 0;
 					}
-
-					fdpd_data[j].flag = false;
-					mosaic_time[index] = sample_gettimeus();
-					printf("Face Mosaic[%d] En tiem : %lld\n", index, mosaic_time[index]);
+					else {
+						dis_cnt[j]++;
+						if ((dis_cnt[j] > 20) && (face_mo_cnt > face_cnt_mosaic)) {
+							dis_cnt[j] = 0;
+							ret = IMP_OSD_ShowRgn(prHander[2+j], mosdgrp, 0);
+							if (ret != 0) {
+								IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Test Cover error\n");
+								return NULL;
+							}
+							mosaic_time[j] = 0;
+						}
+					}
+				}
+				// usleep(25*1000);
+				set_delay_time(5*1000);
+			}
+			else {
+				for (int j=0; j<10; j++) {
+					if (fdpd_data[j].flag && fdpd_data[j].classid == 0 && fdpd_data[j].trackid >= 0) {
+						IMPOSDRgnAttr rect_rAttr;
+						rect_rAttr.type = OSD_REG_RECT;
+						rect_rAttr.rect.p0.x = fdpd_data[j].ul_x;
+						rect_rAttr.rect.p0.y = fdpd_data[j].ul_y;
+						rect_rAttr.rect.p1.x = fdpd_data[j].br_x - 1;
+						rect_rAttr.rect.p1.y = fdpd_data[j].br_y - 1;
+						rect_rAttr.fmt = PIX_FMT_MONOWHITE;
+						rect_rAttr.data.lineRectData.color = OSD_GREEN;
+						rect_rAttr.data.lineRectData.linewidth = 1;
+						IMP_OSD_SetRgnAttr(prHander[2+j], &rect_rAttr);
+						ret = IMP_OSD_ShowRgn(prHander[2+j], mosdgrp, 1);
+						if (ret != 0) {
+							IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
+							return NULL;
+						}
+						dis_cnt[j] = 0;
+					}
+					else {
+						dis_cnt[j]++;
+						if (dis_cnt[j] > 100) {
+							dis_cnt[j] = 0;
+							ret = IMP_OSD_ShowRgn(prHander[2+j], mosdgrp, 0);
+							if (ret != 0) {
+								IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Test Cover error\n");
+								return NULL;
+							}
+						}
+					}
+				}
+				set_delay_time(5*1000);
+			}
+		}
+		else {
+			face_mo_cnt = 0;
+			for (int k=0; k<10; k++) {
+				if (mosaic_time[k] != 0) {
+					// printf("c");
+					face_mo_cnt++;
 				}
 			}
 		}
 
-		for (int k=0; k<10; k++) {
-			if (mosaic_time[k] != 0) {
-				mtime = sample_gettimeus()-mosaic_time[k];
-				// if (mtime > 10000000) {
-				if (mtime > 5000000) {
-					ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+k], mosdgrp, 0);
-					if (ret != 0) {
-						IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Mosaic error\n");
-						return NULL;
-					}
-					printf("Face Mosaic[%d] De tiem : %lld\n", k, mosaic_time[k]);
-					mosaic_time[k] = 0;
-				}
-			}
-		}
-		
-
-		if (!Mosaic_En) {
-			if (!rect_flag) rect_flag = true;
-			for (int j=0; j<10; j++) {
-				if (fdpd_data[j].flag && fdpd_data[j].classid == 0 && fdpd_data[j].trackid >= 0) {
-					IMPOSDRgnAttr rect_rAttr;
-					rect_rAttr.type = OSD_REG_RECT;
-					rect_rAttr.rect.p0.x = fdpd_data[j].ul_x;
-					rect_rAttr.rect.p0.y = fdpd_data[j].ul_y;
-					rect_rAttr.rect.p1.x = fdpd_data[j].br_x - 1;
-					rect_rAttr.rect.p1.y = fdpd_data[j].br_y - 1;
-					rect_rAttr.fmt = PIX_FMT_MONOWHITE;
-					rect_rAttr.data.lineRectData.color = OSD_GREEN;
-					rect_rAttr.data.lineRectData.linewidth = 1;
-					IMP_OSD_SetRgnAttr(prHander[2+j], &rect_rAttr);
-					ret = IMP_OSD_ShowRgn(prHander[2+j], mosdgrp, 1);
-					if (ret != 0) {
-						IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
-						return NULL;
-					}
+		// if (!Mosaic_En) {
+		// 	if (!rect_flag) rect_flag = true;
+		// 	for (int j=0; j<10; j++) {
+		// 		if (fdpd_data[j].flag && fdpd_data[j].classid == 0 && fdpd_data[j].trackid >= 0) {
+		// 			IMPOSDRgnAttr rect_rAttr;
+		// 			rect_rAttr.type = OSD_REG_RECT;
+		// 			rect_rAttr.rect.p0.x = fdpd_data[j].ul_x;
+		// 			rect_rAttr.rect.p0.y = fdpd_data[j].ul_y;
+		// 			rect_rAttr.rect.p1.x = fdpd_data[j].br_x - 1;
+		// 			rect_rAttr.rect.p1.y = fdpd_data[j].br_y - 1;
+		// 			rect_rAttr.fmt = PIX_FMT_MONOWHITE;
+		// 			rect_rAttr.data.lineRectData.color = OSD_GREEN;
+		// 			rect_rAttr.data.lineRectData.linewidth = 1;
+		// 			IMP_OSD_SetRgnAttr(prHander[2+j], &rect_rAttr);
+		// 			ret = IMP_OSD_ShowRgn(prHander[2+j], mosdgrp, 1);
+		// 			if (ret != 0) {
+		// 				IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
+		// 				return NULL;
+		// 			}
 
 					
-				}
-				else {
-					ret = IMP_OSD_ShowRgn(prHander[2+j], mosdgrp, 0);
-					if (ret != 0) {
-						IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Test Cover error\n");
-						return NULL;
-					}
-				}
-			}
-			usleep(5*1000);
-		}
+		// 		}
+		// 		else {
+		// 			ret = IMP_OSD_ShowRgn(prHander[2+j], mosdgrp, 0);
+		// 			if (ret != 0) {
+		// 				IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Test Cover error\n");
+		// 				return NULL;
+		// 			}
+		// 		}
+		// 	}
+		// }
 
 		if (rect_flag && Mosaic_En && (clip_rec_state < REC_MP4MAKE) && 
 										(streaming_rec_state < REC_MP4MAKE) && 

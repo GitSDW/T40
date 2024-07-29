@@ -702,8 +702,8 @@ void * IMP_Audio_Record_AEC_Thread(void *argv)
 		return NULL;
 	}
 
-	int save_fd = 0;
-    save_fd = open("/tmp/mnt/sdcard/save_ai.g726", O_RDWR | O_CREAT | O_TRUNC, 0777);
+	// int save_fd = 0;
+    // save_fd = open("/tmp/mnt/sdcard/save_ai.g726", O_RDWR | O_CREAT | O_TRUNC, 0777);
 
     #ifdef __G726__
 	/* audio encode create channel. */
@@ -776,7 +776,7 @@ void * IMP_Audio_Record_AEC_Thread(void *argv)
 					buff_u8 = (uint8_t*)stream.stream;
 					memset (&AI_Cir_Buff.tx[AI_Cir_Buff.WIndex], 0, stream.len);
 					memcpy (&AI_Cir_Buff.tx[AI_Cir_Buff.WIndex], buff_u8, stream.len);
-					ret = write(save_fd, &AI_Cir_Buff.tx[AI_Cir_Buff.WIndex], stream.len);
+					// ret = write(save_fd, &AI_Cir_Buff.tx[AI_Cir_Buff.WIndex], stream.len);
 					AI_Cir_Buff.WIndex = (AI_Cir_Buff.WIndex+stream.len);
 				}
 				else {
@@ -820,7 +820,7 @@ void * IMP_Audio_Record_AEC_Thread(void *argv)
 					// }
 					memset (&AI_Cir_Buff.tx[AI_Cir_Buff.WIndex], 0, frm.len);
 					memcpy (&AI_Cir_Buff.tx[AI_Cir_Buff.WIndex], buff_u8, frm.len);
-					ret = write(save_fd, &AI_Cir_Buff.tx[AI_Cir_Buff.WIndex], frm.len);
+					// ret = write(save_fd, &AI_Cir_Buff.tx[AI_Cir_Buff.WIndex], frm.len);
 					AI_Cir_Buff.WIndex = (AI_Cir_Buff.WIndex+frm.len);// % (500*1024);
 					// printf("[CIR_BUFF Audio In]buff_space:%d WIndex:%d RIndex%d\n", buff_space, AI_Cir_Buff.WIndex, AI_Cir_Buff.RIndex);
 				}
@@ -852,8 +852,8 @@ void *IMP_Audio_Play_Thread(void *argv)
 	unsigned char *buf = NULL;
 	int ret = -1;
 	int datasize = 0, definesize = 0;
-	int save_fd = 0;
-    save_fd = open("/tmp/mnt/sdcard/save_ao.g726", O_RDWR | O_CREAT | O_TRUNC, 0777);
+	// int save_fd = 0;
+    // save_fd = open("/tmp/mnt/sdcard/save_ao.g726", O_RDWR | O_CREAT | O_TRUNC, 0777);
 
 	buf = (unsigned char *)malloc(1024);
 	if (buf == NULL) {
@@ -884,6 +884,8 @@ void *IMP_Audio_Play_Thread(void *argv)
 		definesize = 320;
 	#endif
 
+	printf("Data Play Size : %d\n", definesize);
+
 	IMPAudioOChnState play_status;
 	play_status.chnBusyNum = 0;
 
@@ -913,27 +915,38 @@ void *IMP_Audio_Play_Thread(void *argv)
 				asflg = true;
 				as_time = sample_gettimeus();
 				datasize = (AO_Cir_Buff.WIndex - AO_Cir_Buff.RIndex + A_BUFF_SIZE) % (500*1024);
-				if (!audio_start_flag){
+				if (!audio_start_flag) {
 					// printf("DataSize : %d > %d\n", datasize, definesize*20);
-				// #ifdef __G726__
-					// if (datasize > definesize*100){
-				// #else
-					if (datasize > definesize*100){
-				// #endif
-						printf("AO Start!\n");
-						audio_start_flag = true;
-						ret = IMP_AO_ClearChnBuf(ao_devID, ao_chnID);
-						if (ret != 0) {
-							IMP_LOG_ERR(TAG, "IMP_AO_ClearChnBuf error\n");
-							return NULL;
+					#ifdef __G726__
+						if (datasize > definesize*50){
+							printf("AO Start!\n");
+							audio_start_flag = true;
+							ret = IMP_AO_ClearChnBuf(ao_devID, ao_chnID);
+							if (ret != 0) {
+								IMP_LOG_ERR(TAG, "IMP_AO_ClearChnBuf error\n");
+								return NULL;
+							}
+							amp_on();
 						}
-					}
-					datasize = 0;
+						datasize = 0;
+					#else
+						if (datasize > definesize*100){
+							printf("AO Start!\n");
+							audio_start_flag = true;
+							ret = IMP_AO_ClearChnBuf(ao_devID, ao_chnID);
+							if (ret != 0) {
+								IMP_LOG_ERR(TAG, "IMP_AO_ClearChnBuf error\n");
+								return NULL;
+							}
+							amp_on();
+						}
+						datasize = 0;
+					#endif
 				}
 				else if (datasize >= definesize) {
 				// if (datasize >= definesize) {
 					// datasize = datasize > AUDIO_SAMPLE_BUF_SIZE) ? AUDIO_SAMPLE_BUF_SIZE : datasize;
-					// printf("[CIR_BUFF_AO] datasize:%d WIndex:%d RIndex%d\n", datasize, AO_Cir_Buff.WIndex, AO_Cir_Buff.RIndex);
+					// printf("[AO] DS:%d WI:%d RI:%d\n", datasize, AO_Cir_Buff.WIndex, AO_Cir_Buff.RIndex);
 					datasize = definesize;
 					memset (buf, 0, datasize);
 					memcpy (buf, &AO_Cir_Buff.tx[AO_Cir_Buff.RIndex], datasize);
@@ -1024,7 +1037,7 @@ void *IMP_Audio_Play_Thread(void *argv)
 				// udp_ao_rolling_dcnt();
 				// usleep(20*1000);
 				// printf("[AO] sindex:%d windex:%d dcnt:%d\n", Audio_Ao_Attr.sindex, Audio_Ao_Attr.windex, Audio_Ao_Attr.dcnt);
-				ret = write(save_fd, buf, datasize);
+				// ret = write(save_fd, buf, datasize);
 				datasize = 0;
 			}
 			
