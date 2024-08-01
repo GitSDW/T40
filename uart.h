@@ -72,6 +72,7 @@ int device_end(uint8_t major);
 int make_file_start(uint8_t major);
 int face_end(uint8_t major);
 int streaming_rec_end(uint8_t cus);
+int rec_enable_ack(void);
 
 #if __cplusplus
 }

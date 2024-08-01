@@ -10,13 +10,12 @@
 #include <errno.h>
 #include <time.h>
 
-
-
 #include <imp/imp_log.h>
 #include <imp/imp_common.h>
 #include <imp/imp_system.h>
 #include <imp/imp_framesource.h>
 #include <imp/imp_ivs.h>
+#include <imp/imp_osd.h>
 
 #include <ivs/ivs_common.h>
 #include <ivs/ivs_interface.h>
@@ -335,7 +334,9 @@ int sample_ivs_facepersondet_stop(int chn_num, IMPIVSInterface *interface) {
 
 //     return 0;
 // }
-
+extern int mosdgrp;
+extern int bosdgrp;
+extern IMPRgnHandle *prHander;
 
 void *fdpd_thread(void *args) 
 {
@@ -354,6 +355,7 @@ void *fdpd_thread(void *args)
     int fdpd_en_cnt = 0;
     // int mosaic_cnt[10] = {0};
     int64_t face_cnt_time = 0;
+    IMPOSDRgnAttr rect_rAttr;
 
     
     // sprintf(framefilename, "/dev/shm/faceperson.data");
@@ -408,7 +410,7 @@ void *fdpd_thread(void *args)
             person_num = 0;
             fdpd_ck = true;
             // printf("fdpd Check \n", fdpd_ck);
-            for (i = 0; i < 10; i++) {
+            for (i = 0; i < r->count; i++) {
                 if(i < r->count) {
                     int class_id = r->faceperson[i].class_id;   // 0 : face 1: person(body)
                     int track_id = r->faceperson[i].track_id;
@@ -424,6 +426,62 @@ void *fdpd_thread(void *args)
                     fdpd_data[i].ul_y = (int)show_rect->ul.y;
                     fdpd_data[i].br_x = (int)show_rect->br.x;
                     fdpd_data[i].br_y = (int)show_rect->br.y;
+
+                    // printf("confidence:%f\n", confidence);
+
+                    if (fdpd_data[i].classid == 0 && Mosaic_En) {
+                        #ifdef __PRIVERCE_SIZE_UP__
+                            int cover_w, cover_h;
+                            int cover_sx, cover_sy;
+                            int cover_ex, cover_ey;
+
+                            cover_w = (fdpd_data[i].br_x - fdpd_data[i].ul_x)/1;
+                            cover_h = (fdpd_data[i].br_y - fdpd_data[i].ul_y)/2;
+                            if (fdpd_data[i].ul_x > cover_w) cover_sx = fdpd_data[i].ul_x - cover_w;
+                            else cover_sx = 0;
+                            if (fdpd_data[i].ul_y > cover_h) cover_sy = fdpd_data[i].ul_y - cover_h;
+                            else cover_sy = 0;
+
+                            if (fdpd_data[i].br_x < (1920-cover_w)) cover_ex = fdpd_data[i].br_x + cover_w;
+                            else cover_ex = 1920-1;
+                            if (fdpd_data[i].br_y < (1080-cover_h)) cover_ey = fdpd_data[i].br_y + cover_h;
+                            else cover_ey = 1080-1;
+
+                            // printf("1 sx:%d sy:%d 2 sx:%d ey:%d\n", cover_sx, cover_sy, fdpd_data[i].ul_x, fdpd_data[i].ul_y);
+                            // printf("1 ex:%d ey:%d 2 ex:%d ey:%d\n", cover_ex, cover_ey, fdpd_data[i].br_x, fdpd_data[i].br_y);
+
+                            rect_rAttr.type = OSD_REG_COVER;
+                            rect_rAttr.rect.p0.x = cover_sx;
+                            rect_rAttr.rect.p0.y = cover_sy;
+                            rect_rAttr.rect.p1.x = cover_ex;
+                            rect_rAttr.rect.p1.y = cover_ey;
+                        #else
+                            rect_rAttr.type = OSD_REG_COVER;
+                            rect_rAttr.rect.p0.x = fdpd_data[i].ul_x;
+                            rect_rAttr.rect.p0.y = fdpd_data[i].ul_y;
+                            rect_rAttr.rect.p1.x = fdpd_data[i].br_x;
+                            rect_rAttr.rect.p1.y = fdpd_data[i].br_y;
+                        #endif
+
+
+
+                        rect_rAttr.fmt = PIX_FMT_BGRA;
+                            //  OSD_IPU_BLACK   = 0xff000000, /**< black */
+                            //  OSD_IPU_WHITE   = 0xffffffff, /**< white*/
+                            //  OSD_IPU_RED     = 0xffff0000, /**< red */
+                            //  OSD_IPU_GREEN   = 0xff00ff00, /**< green */
+                            //  OSD_IPU_BLUE    = 0xff0000ff, /**< blue */
+                        rect_rAttr.data.coverData.color = 0xff777777;
+                        IMP_OSD_SetRgnAttr(prHander[2+i], &rect_rAttr);
+                        ret = IMP_OSD_ShowRgn(prHander[2+i], mosdgrp, 1);
+                        if (ret != 0) {
+                            IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
+                            return NULL;
+                        }
+                        else {
+                            mosaic_time[i] = sample_gettimeus();
+                        }
+                    }
 
                     // printf("fdpd cnt: %d/%d class : %d track %d confidence : %f \n", i, r->count, class_id, track_id, confidence);
                 

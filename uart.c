@@ -399,10 +399,33 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             // clip_cause_t.Major = CLIP_CAUSE_BOX;
             // clip_cause_t.Minor = CLIP_BOX_OCCUR;
             // bell_rec_state = REC_START;
+            
+            ack_len = 0;
+            // ack_flag = true;
+            // printf("av_off : %d\n", av_off_flag);
+            if (av_off_flag) {
+                if (bl_state == BSS_WAIT) {
+                    bell_flag = true;
+                    bell_call_flag = false;
+                    bell_rec_state = REC_START;
+                }
+            }
+            else {
+                rec_enable_ack();
+            }
+        break;
+        case UREC_BELL_MUTE:
+            // clip_cause_t.Major = CLIP_CAUSE_BOX;
+            // clip_cause_t.Minor = CLIP_BOX_OCCUR;
+            // bell_rec_state = REC_START;
             bell_flag = true;
             bell_call_flag = false;
             ack_len = 0;
             // ack_flag = true;
+        break;
+        case UREC_RETRY:
+            printf("File Send Retry!!\n");
+            send_retry_flag = true;
         break;
         case  UREC_FACE:
             if (rbuff[index+9] == 1) {
@@ -418,7 +441,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 stream_state = 1;
                 rec_streaming_state = REC_START;
                 bell_stream_flag = true;
-                if (Rec_type == BELL_REC) {
+                if (Rec_type == BELL_REC || Rec_type == BELL_REREC) {
                     bell_call_flag = true;
                 }
                 ack_len = 0;
@@ -496,7 +519,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             printf("Light %d\n", value_buf);
         break;
         case USTREAM_REC_S:
-            if (boot_mode != 0x02) {
+            if (boot_mode == 0x00 || boot_mode == 0x03) {
                 break;
             }
             printf("Streaming Rec Start!\n");
@@ -510,10 +533,14 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 ack_len = 1;
                 ack_data[0] = 3;
                 // ack_flag = true;
+                streaming_rec_end(CAUSE_MEM);
             }
             else {
                 amp_on();
                 rec_time_s = sample_gettimeus();
+                // if (boot_mode == 0x01) {
+                //     Rec_type = STRM_REC;
+                // }
                 streaming_rec_state = REC_START;
                 rec_on = true;
                 stream_tag[rec_cnt] = CLIP_CAUSE_STREM;
@@ -525,29 +552,36 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             }
         break;
         case USTREAM_REC_E:
-            if (boot_mode != 0x02) {
+            if (boot_mode == 0x00 || boot_mode == 0x03) {
                 break;
             }
+            if (Rec_type == BELL_REC) {
+                rec_streaming_state = REC_STOP;
+                rec_end = true;
+            }
+            else {
             printf("Streaming Rec End!\n");
-            rec_time_e = sample_gettimeus()-rec_time_s;
-            printf("Rec Filecnt : %d Time : %lld total : %lld\n", rec_cnt, rec_time_e, rec_total);
-            rec_each_time[rec_cnt-1] = rec_time_e;
-            rec_total += rec_time_e;
-            streaming_rec_state = REC_STOP;
-            rec_on = false;
+                rec_time_e = sample_gettimeus()-rec_time_s;
+                printf("Rec Filecnt : %d Time : %lld total : %lld\n", rec_cnt, rec_time_e, rec_total);
+                rec_each_time[rec_cnt-1] = rec_time_e;
+                rec_total += rec_time_e;
+                streaming_rec_state = REC_STOP;
+                rec_on = false;
+                ack_len = 0;
+                if (rec_total > 57000000) {
+                    usleep(10*1000);
+                    streaming_rec_end(CAUSE_MEM);
+                }
+                else if (rec_cnt >= 9) {
+                    usleep(10*1000);
+                    streaming_rec_end(CAUSE_FILE);
+                }
+            }
             ack_len = 0;
-            if (rec_total > 57000000) {
-                usleep(10*1000);
-                streaming_rec_end(CAUSE_MEM);
-            }
-            else if (rec_cnt >= 9) {
-                usleep(10*1000);
-                streaming_rec_end(CAUSE_FILE);
-            }
             // ack_flag = true;
         break;
         case USTREAM_BELCAL:
-            if (boot_mode != 0x02) {
+            if (boot_mode == 0x00 || boot_mode == 0x03) {
                 break;
             }
             printf("Streaming Bell Call Start!\n");
@@ -560,15 +594,24 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 ack_len = 1;
                 ack_data[0] = 3;
                 // ack_flag = true;
+                streaming_rec_end(CAUSE_MEM);
             }
             else {
                 amp_on();
                 rec_time_s = sample_gettimeus();
-                streaming_rec_state = REC_START;
-                rec_on = true;
-                stream_tag[rec_cnt] = CLIP_CAUSE_BELL;
-                rec_cnt++;
-                printf("Bell Start : %d\n", rec_cnt);
+                // if (boot_mode == 0x01) {
+                //     Rec_type = STRM_REC;
+                // }
+                if (Rec_type == BELL_REC) {
+                     bell_call_flag = true;
+                }
+                else {
+                    streaming_rec_state = REC_START;
+                    rec_on = true;
+                    stream_tag[rec_cnt] = CLIP_CAUSE_BELL;
+                    rec_cnt++;
+                    printf("Bell Start : %d\n", rec_cnt);
+                }
                 ack_len = 1;
                 ack_data[0] = 1;
                 // ack_flag = true;
@@ -639,6 +682,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 printf("play : %s\n", effect_file);
                 ao_file_play_thread(effect_file);
                 cmd_end_flag = true;
+
+
             }
         break;
         case SET_SPK_VOL:
@@ -1162,6 +1207,32 @@ int door_set_fail(void) {
     uart_send(fd_uart, uart_tx, 10);
     
     printf("DSF\n");
+    
+    free(uart_tx);
+
+    return 0;
+}
+
+int rec_enable_ack(void) {
+    uint8_t *uart_tx;
+
+    uart_tx = malloc(10);
+
+    memset(uart_tx, 0, 10);
+    uart_tx[0] = 0x02;
+    uart_tx[1] = 0x01;
+    uart_tx[2] = 0x11;
+    uart_tx[3] = 0;
+    uart_tx[4] = 0;
+    uart_tx[5] = 0x00;
+    uart_tx[6] = 0x00;
+    uart_tx[7] = 0x00;
+    uart_tx[8] = 0x00;
+    uart_tx[9] = 0x03;
+
+    uart_send(fd_uart, uart_tx, 10);
+    
+    printf("REA\n");
     
     free(uart_tx);
 

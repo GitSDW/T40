@@ -2861,44 +2861,6 @@ static void *get_video_stream_user(void *args)
 			}
 		}
 		
-		// // if ((chnNum == 1 || chnNum == 4) && rec_state >= 1) {
-		// if ((chnNum == 0 || chnNum == 3) && rec_state >= 1 && (!main_rec_end || !box_rec_end) && !rec_on) {
-		// 	// if (start_time == 0)
-		// 	// 	start_time = sample_gettimeus();
-		// 	if ((sample_gettimeus()-start_time < MAX_REC_TIME) && rec_state != 2) {
-		// 		if (chnNum == 0)	ret = save_stream1(clip_fd, &stream, chnNum);
-		// 		if (chnNum == 3)	ret = save_stream2(clip_fd, &stream, chnNum);
-    	// 		if (ret < 0) {
-	    // 	    	close(clip_fd);
-		// 	    	return ((void *)ret);
-    	// 		}
-    	// 	}
-    	// 	else if(!saveend) {
-    	// 		ret = save_stream_end(clip_fd, &stream, chnNum);
-    	// 		if (ret == 1) {
-    	// 			printf("stime:%lld, endtime:%lld\n", start_time, sample_gettimeus());
-    	// 			printf("Clip%d Save End!!\n", chnNum);
-    	// 			close(clip_fd);
-    	// 			saveend = true;
-    	// 			// if (chnNum == 1)
-    	// 			// 	main_rec_end = true;
-    	// 			// if (chnNum == 4)
-		// 			// 	box_rec_end = true;
-
-		// 			if (chnNum == 0){
-    	// 				main_rec_end = true;
-    	// 				// return 0;
-		// 			}
-    	// 			if (chnNum == 3){
-		// 				box_rec_end = true;
-		// 				// return 0;
-    	// 			}
-
-    	// 			// break;
-    	// 		}
-    	// 	}
-    	// }
-
 		if (streaming_rec_state >= REC_START && streaming_rec_state <= REC_STOP) {
 			if (rec_old_cnt != rec_cnt) {
 				sprintf(stream_path, "%s/rec-%d-%d.%s", STREAM_FILE_PATH_PREFIX, chnNum, rec_cnt,
@@ -2949,31 +2911,6 @@ static void *get_video_stream_user(void *args)
 				if (streaming_rec_state == REC_STOP && rec_0_e && rec_3_e)
 					streaming_rec_state = REC_WAIT;
 			}
-
-
-
-	    	// if ((chnNum == 0 || chnNum == 3) && rec_on) {
-	    	// 	if (rec_old_cnt != rec_cnt) {
-	    	// 		close(rec_fd);
-	    	// 		rec_start = false;
-	    	// 		rec_old_cnt = rec_cnt;
-	    	// 	}
-
-	    	// 	if(!rec_start) {
-	    	// 		rec_start = true;
-	    	// 		sprintf(stream_path, "%s/rec-%d-%d.%s", STREAM_FILE_PATH_PREFIX, chnNum, rec_cnt,
-			// 			(encType == IMP_ENC_TYPE_AVC) ? "h264" : ((encType == IMP_ENC_TYPE_HEVC) ? "h265" : "jpeg"));
-			// 		rec_fd = open(stream_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
-			// 		if (rec_fd < 0) {
-			// 			IMP_LOG_ERR(TAG, "rec file open failed: %s\n", strerror(errno));
-			// 			return ((void *)-1);
-			// 		}
-			// 		printf("File Make : %s\n", stream_path);
-	    	// 	}
-
-	    	// 	if (chnNum == 0)	ret = save_stream1(rec_fd, &stream, chnNum);
-			// 	if (chnNum == 3)	ret = save_stream2(rec_fd, &stream, chnNum);
-	    	// }
 	    }
     	IMP_Encoder_ReleaseStream(chnNum, &stream);
   	} while(!bStrem);
@@ -3182,44 +3119,6 @@ static void *get_video_stream_user3(void *args)
 			}
 		}
 		
-		// // if ((chnNum == 1 || chnNum == 4) && rec_state >= 1) {
-		// if ((chnNum == 0 || chnNum == 3) && rec_state >= 1 && (!main_rec_end || !box_rec_end) && !rec_on) {
-		// 	// if (start_time == 0)
-		// 	// 	start_time = sample_gettimeus();
-		// 	if ((sample_gettimeus()-start_time < MAX_REC_TIME) && rec_state != 2) {
-		// 		if (chnNum == 0)	ret = save_stream1(clip_fd, &stream, chnNum);
-		// 		if (chnNum == 3)	ret = save_stream2(clip_fd, &stream, chnNum);
-    	// 		if (ret < 0) {
-	    // 	    	close(clip_fd);
-		// 	    	return ((void *)ret);
-    	// 		}
-    	// 	}
-    	// 	else if(!saveend) {
-    	// 		ret = save_stream_end(clip_fd, &stream, chnNum);
-    	// 		if (ret == 1) {
-    	// 			printf("stime:%lld, endtime:%lld\n", start_time, sample_gettimeus());
-    	// 			printf("Clip%d Save End!!\n", chnNum);
-    	// 			close(clip_fd);
-    	// 			saveend = true;
-    	// 			// if (chnNum == 1)
-    	// 			// 	main_rec_end = true;
-    	// 			// if (chnNum == 4)
-		// 			// 	box_rec_end = true;
-
-		// 			if (chnNum == 0){
-    	// 				main_rec_end = true;
-    	// 				// return 0;
-		// 			}
-    	// 			if (chnNum == 3){
-		// 				box_rec_end = true;
-		// 				// return 0;
-    	// 			}
-
-    	// 			// break;
-    	// 		}
-    	// 	}
-    	// }
-
 		if (streaming_rec_state >= REC_START && streaming_rec_state <= REC_STOP) {
 			if (rec_old_cnt != rec_cnt) {
 				sprintf(stream_path, "%s/rec-%d-%d.%s", STREAM_FILE_PATH_PREFIX, chnNum, rec_cnt,
@@ -3270,31 +3169,6 @@ static void *get_video_stream_user3(void *args)
 				if (streaming_rec_state == REC_STOP && rec_0_e && rec_3_e)
 					streaming_rec_state = REC_WAIT;
 			}
-
-
-
-	    	// if ((chnNum == 0 || chnNum == 3) && rec_on) {
-	    	// 	if (rec_old_cnt != rec_cnt) {
-	    	// 		close(rec_fd);
-	    	// 		rec_start = false;
-	    	// 		rec_old_cnt = rec_cnt;
-	    	// 	}
-
-	    	// 	if(!rec_start) {
-	    	// 		rec_start = true;
-	    	// 		sprintf(stream_path, "%s/rec-%d-%d.%s", STREAM_FILE_PATH_PREFIX, chnNum, rec_cnt,
-			// 			(encType == IMP_ENC_TYPE_AVC) ? "h264" : ((encType == IMP_ENC_TYPE_HEVC) ? "h265" : "jpeg"));
-			// 		rec_fd = open(stream_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
-			// 		if (rec_fd < 0) {
-			// 			IMP_LOG_ERR(TAG, "rec file open failed: %s\n", strerror(errno));
-			// 			return ((void *)-1);
-			// 		}
-			// 		printf("File Make : %s\n", stream_path);
-	    	// 	}
-
-	    	// 	if (chnNum == 0)	ret = save_stream1(rec_fd, &stream, chnNum);
-			// 	if (chnNum == 3)	ret = save_stream2(rec_fd, &stream, chnNum);
-	    	// }
 	    }
     	IMP_Encoder_ReleaseStream(chnNum, &stream);
   	} while(!bStrem);

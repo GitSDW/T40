@@ -179,6 +179,7 @@ int global_value_init(void) {
 	ota_flag = false;
 	audio_start_flag = false;
 	file_21_flag = false;
+	av_off_flag = false;
 
 	for(i=0;i<10;i++){
 		fdpd_data[i].flag = false;
@@ -187,6 +188,7 @@ int global_value_init(void) {
         fdpd_data[i].ul_y = 0;
         fdpd_data[i].br_x = 0;
         fdpd_data[i].br_y = 0;
+        mosaic_time[i] = 0;
 	}
 
 	snprintf(TimeStamp.date, 12, "%s", date_buf);
@@ -306,7 +308,7 @@ void amp_on(void) {
 		printf("Fail set Value GPIO : %d\n", PORTD+21);
 	}
 
-	Set_Vol(100,25,spk_vol_buf,spk_gain_buf);
+	// Set_Vol(100,25,spk_vol_buf,spk_gain_buf);
 
 	printf("Set AMP On!\n");
 }
@@ -565,15 +567,15 @@ void *make_mp4_clip(void *argc) {
     raw2 = file_size_get("/dev/shm/stream-3.h264");
     if (file_cnt == 1) {
     	#ifdef __H265__			
-			system("/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/stream-0.h265 -ss 0 -t 20 -c copy /dev/shm/main0.mp4");
+			system("/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/stream-0.h265 -ss 0 -t 20 -c copy /dev/shm/main0.mp4");
 			system("rm /dev/shm/stream-0.h265");
-			system("/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/stream-3.h265 -ss 0 -t 20 -c copy /dev/shm/box0.mp4");
+			system("/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/stream-3.h265 -ss 0 -t 20 -c copy /dev/shm/box0.mp4");
 			system("rm /dev/shm/stream-3.h265");
 		#else
-			system("/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/stream-0.h264 -ss 0 -t 20 -c copy /dev/shm/main0.mp4");
+			system("/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/stream-0.h264 -ss 0 -t 20 -c copy /dev/shm/main0.mp4");
 			pack1 = file_size_get("/dev/shm/main0.mp4");
 			system("rm /dev/shm/stream-0.h264");
-			system("/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/stream-3.h264 -ss 0 -t 20 -c copy /dev/shm/box0.mp4");
+			system("/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/stream-3.h264 -ss 0 -t 20 -c copy /dev/shm/box0.mp4");
 			pack2 = file_size_get("/dev/shm/box0.mp4");
 			system("rm /dev/shm/stream-3.h264");
 		#endif
@@ -585,42 +587,42 @@ void *make_mp4_clip(void *argc) {
     }
 	else if (file_cnt > 0 && type == 0) {
 		#ifdef __H265__			
-			system("/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/stream-0.h265 -c copy /dev/shm/main.mp4");
+			system("/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/stream-0.h265 -c copy /dev/shm/main.mp4");
 			system("rm /dev/shm/stream-0.h265");
-			system("/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/stream-3.h265 -c copy /dev/shm/box.mp4");
+			system("/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/stream-3.h265 -c copy /dev/shm/box.mp4");
 			system("rm /dev/shm/stream-3.h265");
 		#else
-			system("/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/stream-0.h264 -c copy /dev/shm/main.mp4");
+			system("/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/stream-0.h264 -c copy /dev/shm/main.mp4");
 			pack1 = file_size_get("/dev/shm/main.mp4");
 			system("rm /dev/shm/stream-0.h264");
-			system("/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/stream-3.h264 -c copy /dev/shm/box.mp4");
+			system("/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/stream-3.h264 -c copy /dev/shm/box.mp4");
 			pack2 = file_size_get("/dev/shm/box.mp4");
 			system("rm /dev/shm/stream-3.h264");
 		#endif
 
 		printf("main : raw : %d pack : %d delta : %d\n", raw1, pack1, pack1-raw1);
 		printf("bott : raw : %d pack : %d delta : %d\n", raw2, pack2, pack2-raw2);
-		// system("/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/stream-4.h264 -c copy /dev/shm/box.mkv");
+		// system("/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/stream-4.h264 -c copy /dev/shm/box.mkv");
 		for (int i=0; i<file_cnt; i++){
 			if (i == 0) {
 				memset(file_sep, 0, 100);
-				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/main.mp4 -ss 0 -t 20 -c copy /dev/shm/main%d.mp4", i);
+				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/main.mp4 -ss 0 -t 20 -c copy /dev/shm/main%d.mp4", i);
 				printf("%s\n", file_sep);
 				system(file_sep);
 				memset(file_sep, 0, 100);
-				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/box.mp4 -ss 0 -t 20 -c copy /dev/shm/box%d.mp4", i);
-				// sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/box.mkv -ss 0 -t 12 -c copy /dev/shm/box%d.mkv", i);
+				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/box.mp4 -ss 0 -t 20 -c copy /dev/shm/box%d.mp4", i);
+				// sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/box.mkv -ss 0 -t 12 -c copy /dev/shm/box%d.mkv", i);
 				printf("%s\n", file_sep);
 				system(file_sep);
 			}
 			else {
 				memset(file_sep, 0, 100);
-				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/main.mp4 -ss %d.4 -t 20 -c copy /dev/shm/main%d.mp4", (i*20)-1, i);
+				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/main.mp4 -ss %d.4 -t 20 -c copy /dev/shm/main%d.mp4", (i*20)-1, i);
 				printf("%s\n", file_sep);
 				system(file_sep);
 				memset(file_sep, 0, 100);
-				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/box.mp4 -ss %d.4 -t 20 -c copy /dev/shm/box%d.mp4", (i*20)-1, i);
-				// sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/box.mkv -ss %d.4 -t 12 -c copy /dev/shm/box%d.mkv", (i*12)-1, i);
+				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/box.mp4 -ss %d.4 -t 20 -c copy /dev/shm/box%d.mp4", (i*20)-1, i);
+				// sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/box.mkv -ss %d.4 -t 12 -c copy /dev/shm/box%d.mkv", (i*12)-1, i);
 				printf("%s\n", file_sep);
 				system(file_sep);
 			}
@@ -656,10 +658,10 @@ void *make_mp4_clip1(void *argc) {
 
     if (file_cnt == 1) {
     	#ifdef __H265__			
-			system("/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/stream-0.h265 -ss 0 -t 20 -c copy /dev/shm/main0.mp4");
+			system("/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/stream-0.h265 -ss 0 -t 20 -c copy /dev/shm/main0.mp4");
 			system("rm /dev/shm/stream-0.h265");
 		#else
-			system("/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/stream-0.h264 -ss 0 -t 20 -c copy /dev/shm/main0.mp4");
+			system("/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/stream-0.h264 -ss 0 -t 20 -c copy /dev/shm/main0.mp4");
 			pack1 = file_size_get("/dev/shm/main0.mp4");
 			system("rm /dev/shm/stream-0.h264");
 		#endif
@@ -670,26 +672,26 @@ void *make_mp4_clip1(void *argc) {
     }
 	else if (file_cnt > 0 && type == 0) {
 		#ifdef __H265__			
-			system("/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/stream-0.h265 -c copy /dev/shm/main.mp4");
+			system("/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/stream-0.h265 -c copy /dev/shm/main.mp4");
 			system("rm /dev/shm/stream-0.h265");
 		#else
-			system("/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/stream-0.h264 -c copy /dev/shm/main.mp4");
+			system("/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/stream-0.h264 -c copy /dev/shm/main.mp4");
 			pack1 = file_size_get("/dev/shm/main.mp4");
 			system("rm /dev/shm/stream-0.h264");
 		#endif
 
 		printf("main : raw : %d pack : %d delta : %d\n", raw1, pack1, pack1-raw1);
-		// system("/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/stream-4.h264 -c copy /dev/shm/box.mkv");
+		// system("/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/stream-4.h264 -c copy /dev/shm/box.mkv");
 		for (int i=0; i<file_cnt; i++){
 			if (i == 0) {
 				memset(file_sep, 0, 100);
-				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/main.mp4 -ss 0 -t 20 -c copy /dev/shm/main%d.mp4", i);
+				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/main.mp4 -ss 0 -t 20 -c copy /dev/shm/main%d.mp4", i);
 				printf("%s\n", file_sep);
 				system(file_sep);
 			}
 			else {
 				memset(file_sep, 0, 100);
-				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/main.mp4 -ss %d.4 -t 20 -c copy /dev/shm/main%d.mp4", (i*20)-1, i);
+				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/main.mp4 -ss %d.4 -t 20 -c copy /dev/shm/main%d.mp4", (i*20)-1, i);
 				printf("%s\n", file_sep);
 				system(file_sep);
 			}
@@ -725,10 +727,10 @@ void *make_mp4_clip2(void *argc) {
 
     if (file_cnt == 1) {
     	#ifdef __H265__			
-			system("/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/stream-3.h265 -ss 0 -t 20 -c copy /dev/shm/box0.mp4");
+			system("/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/stream-3.h265 -ss 0 -t 20 -c copy /dev/shm/box0.mp4");
 			system("rm /dev/shm/stream-3.h265");
 		#else
-			system("/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/stream-3.h264 -ss 0 -t 20 -c copy /dev/shm/box0.mp4");
+			system("/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/stream-3.h264 -ss 0 -t 20 -c copy /dev/shm/box0.mp4");
 			pack2 = file_size_get("/dev/shm/box0.mp4");
 			system("rm /dev/shm/stream-3.h264");
 		#endif
@@ -739,10 +741,10 @@ void *make_mp4_clip2(void *argc) {
     }
 	else if (file_cnt > 0 && type == 0) {
 		#ifdef __H265__			
-			system("/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/stream-3.h265 -c copy /dev/shm/box.mp4");
+			system("/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/stream-3.h265 -c copy /dev/shm/box.mp4");
 			system("rm /dev/shm/stream-3.h265");
 		#else
-			system("/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/stream-3.h264 -c copy /dev/shm/box.mp4");
+			system("/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/stream-3.h264 -c copy /dev/shm/box.mp4");
 			pack2 = file_size_get("/dev/shm/box.mp4");
 			system("rm /dev/shm/stream-3.h264");
 		#endif
@@ -752,14 +754,14 @@ void *make_mp4_clip2(void *argc) {
 		for (int i=0; i<file_cnt; i++){
 			if (i == 0) {
 				memset(file_sep, 0, 100);
-				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/box.mp4 -ss 0 -t 20 -c copy /dev/shm/box%d.mp4", i);
-				// sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/box.mkv -ss 0 -t 12 -c copy /dev/shm/box%d.mkv", i);
+				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/box.mp4 -ss 0 -t 20 -c copy /dev/shm/box%d.mp4", i);
+				// sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/box.mkv -ss 0 -t 12 -c copy /dev/shm/box%d.mkv", i);
 				printf("%s\n", file_sep);
 				system(file_sep);
 			}
 			else {
 				memset(file_sep, 0, 100);
-				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/box.mp4 -ss %d.4 -t 20 -c copy /dev/shm/box%d.mp4", (i*20)-1, i);
+				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/box.mp4 -ss %d.4 -t 20 -c copy /dev/shm/box%d.mp4", (i*20)-1, i);
 				printf("%s\n", file_sep);
 				system(file_sep);
 			}
@@ -781,37 +783,37 @@ void *make_mp4_bell(void *argc) {
 
 	if (file_cnt > 0 && type == 1) {
 		#ifdef __H265__			
-			system("/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/bell-0.h265 -c copy /dev/shm/bell_m.mp4");
+			system("/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/bell-0.h265 -c copy /dev/shm/bell_m.mp4");
 			system("rm /dev/shm/bell-0.h265");
-			system("/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/bell-3.h265 -c copy /dev/shm/bell_b.mp4");
+			system("/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/bell-3.h265 -c copy /dev/shm/bell_b.mp4");
 			system("rm /dev/shm/bell-3.h265");
 		#else
-			system("/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/bell-0.h264 -c copy /dev/shm/bell_m.mp4");
+			system("/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/bell-0.h264 -c copy /dev/shm/bell_m.mp4");
 			system("rm /dev/shm/bell-0.h264");
-			system("/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/bell-3.h264 -c copy /dev/shm/bell_b.mp4");
+			system("/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/bell-3.h264 -c copy /dev/shm/bell_b.mp4");
 			system("rm /dev/shm/bell-3.h264");
 		#endif
-		// system("/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/bell-4.h264 -c copy /dev/shm/bell_b.mkv");
+		// system("/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/bell-4.h264 -c copy /dev/shm/bell_b.mkv");
 		for (int i=0; i<file_cnt; i++){
 			if (i == 0) {
 				memset(file_sep, 0, 100);
-				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/bell_m.mp4 -ss 0 -t 20 -c copy /dev/shm/bell_m%d.mp4", i);
+				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/bell_m.mp4 -ss 0 -t 20 -c copy /dev/shm/bell_m%d.mp4", i);
 				printf("%s\n", file_sep);
 				system(file_sep);
 				memset(file_sep, 0, 100);
-				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/bell_b.mp4 -ss 0 -t 20 -c copy /dev/shm/bell_b%d.mp4", i);
-				// sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/bell_b.mkv -ss 0 -t 12 -c copy /dev/shm/bell_b%d.mkv", i);
+				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/bell_b.mp4 -ss 0 -t 20 -c copy /dev/shm/bell_b%d.mp4", i);
+				// sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/bell_b.mkv -ss 0 -t 12 -c copy /dev/shm/bell_b%d.mkv", i);
 				printf("%s\n", file_sep);
 				system(file_sep);
 			}
 			else {
 				memset(file_sep, 0, 100);
-				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/bell_m.mp4 -ss %d.4 -t 20 -c copy /dev/shm/bell_m%d.mp4", (i*20)-1, i);
+				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/bell_m.mp4 -ss %d.4 -t 20 -c copy /dev/shm/bell_m%d.mp4", (i*20)-1, i);
 				printf("%s\n", file_sep);
 				system(file_sep);
 				memset(file_sep, 0, 100);
-				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/bell_b.mp4 -ss %d.4 -t 20 -c copy /dev/shm/bell_b%d.mp4", (i*20)-1, i);
-				// sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/bell_b.mkv -ss %d.4 -t 12 -c copy /dev/shm/bell_b%d.mkv", (i*12)-1, i);
+				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/bell_b.mp4 -ss %d.4 -t 20 -c copy /dev/shm/bell_b%d.mp4", (i*20)-1, i);
+				// sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/bell_b.mkv -ss %d.4 -t 12 -c copy /dev/shm/bell_b%d.mkv", (i*12)-1, i);
 				printf("%s\n", file_sep);
 				system(file_sep);
 			}
@@ -822,12 +824,89 @@ void *make_mp4_bell(void *argc) {
 	return (void*) 0;
 }
 
+void *make_mp4_streamrec(void *argc) {
+	int type, file_cnt, index;
+	char file_sep[128] = {0};
+    char file_path[128] = {0};
+
+	Make_File *mfd =(Make_File*)argc;
+	type = mfd->type;
+	file_cnt = mfd->cnt;
+	index = mfd->index;
+
+	printf("[%s] Type : %d Cnt : %d index : %d\n", __func__, type, file_cnt, index);
+
+	if (file_cnt > 0) {
+		if (file_cnt == 1) {
+			#ifdef __H265__
+				memset(file_sep, 0, 256);
+				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/rec-0-%d.h265 -ss 0 -t 20 -c copy /dev/shm/rec0_%d_0.mp4", index+1, index+1);
+				system(file_sep);
+				memset(file_sep, 0, 256);
+				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/rec-3-%d.h265 -ss 0 -t 20 -c copy /dev/shm/rec3_%d_0.mp4", index+1, index+1);
+				system(file_sep);
+			#else
+				memset(file_sep, 0, 256);
+				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/rec-0-%d.h264 -ss 0 -t 20 -c copy /dev/shm/rec0_%d_0.mp4", index+1, index+1);
+				system(file_sep);
+				memset(file_sep, 0, 256);
+				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/rec-3-%d.h264 -ss 0 -t 20 -c copy /dev/shm/rec3_%d_0.mp4", index+1, index+1);
+				system(file_sep);
+			#endif
+			rfile_flag[index] = true;
+		}
+		else {
+			#ifdef __H265__
+				memset(file_sep, 0, 256);
+				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/rec-0-%d.h265 -c copy /dev/shm/rec0_%d.mp4", index+1, index+1);
+				system(file_sep);
+				memset(file_sep, 0, 256);
+				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/rec-3-%d.h265 -c copy /dev/shm/rec1_%d.mp4", index+1, index+1);
+				system(file_sep);
+			#else
+				memset(file_sep, 0, 256);
+				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/rec-0-%d.h264 -c copy /dev/shm/rec0_%d.mp4", index+1, index+1);
+				system(file_sep);
+				memset(file_sep, 0, 256);
+				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/rec-3-%d.h264 -c copy /dev/shm/rec3_%d.mp4", index+1, index+1);
+				system(file_sep);
+			#endif
+
+			for (int j=0; j<file_cnt; j++) {
+				if (j == 0) {
+					memset(file_path, 0, 100);
+					sprintf(file_path, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/rec0_%d.mp4 -ss 0 -t 20 -c copy /dev/shm/rec0_%d_%d.mp4", index+1, index+1, j);
+					printf("%s\n", file_path);
+					system(file_path);
+					memset(file_path, 0, 100);
+					sprintf(file_path, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/rec3_%d.mp4 -ss 0 -t 20 -c copy /dev/shm/rec3_%d_%d.mp4", index+1, index+1, j);
+					printf("%s\n", file_path);
+					system(file_path);
+				}
+				else {
+					memset(file_path, 0, 100);
+					sprintf(file_path, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/rec0_%d.mp4 -ss %d.4 -t 20 -c copy /dev/shm/rec0_%d_%d.mp4", index+1, (j*20)-1, index+1, j);
+					printf("%s\n", file_path);
+					system(file_path);
+					memset(file_path, 0, 100);
+					sprintf(file_path, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/rec3_%d.mp4 -ss %d.4 -t 20 -c copy /dev/shm/rec3_%d_%d.mp4", index+1, (j*20)-1, index+1, j);
+					printf("%s\n", file_path);
+					system(file_path);
+				}
+			}
+			rfile_flag[index] = true;
+		}
+	}
+
+	return (void*) 0;
+}
+
 void *AV_Off(void *argc) {
 	printf("b\n");
 	bStrem = true;
 	// usleep(50*1000);
 	video_deinit();
-	Deinit_Audio_In();
+	// Deinit_Audio_In();
 	printf("a\n");
 
 	return (void*) 0;
@@ -841,14 +920,8 @@ int Setting_Total(void);
 
 int main(int argc, char **argv) {
 	int ret = 0, mode = 0;
-    bool up_streming_flag = false;
-    bool dn_streming_flag = false;
-    // bool aec_test_flag = false;
     bool camera_test_flag = false;
-    bool fdpd_flag = false;
     bool adc_flag = false;
-    // bool led_flag = false;
-    // char file_sep[100] = {0};
     int gval = 0;
     
 
@@ -876,10 +949,6 @@ int main(int argc, char **argv) {
 		printf("Fail GPIO Init\n");
 		return -1;
 	}
-	// set_system_time_from_file();
-
-	
-
     pthread_t tid_ao, tid_ai;//, tid_aio_aec;
     pthread_t tid_udp_in, tid_udp_out, tid_spi;
     pthread_t tid_stream, tid_snap, tid_move, tim_osd, tid_fdpd, adc_thread_id;
@@ -895,10 +964,7 @@ int main(int argc, char **argv) {
 		// printf("Move Ex : %d %d %d %d\n", settings.move_ex_s_x, settings.move_ex_s_y, settings.move_ex_e_x, settings.move_ex_e_y);
     }
 
-    // Set_Vol(100,25,spk_vol_buf,spk_gain_buf);
     Set_Vol(100,25,0,0);
-
-    // isd_crop(0, 0, 1920, 1080, 0);
 
     // isd_crop(400, 460, 1100, 620, 1);
 
@@ -908,21 +974,11 @@ int main(int argc, char **argv) {
 
     isd_crop(408, 459, 1104, 612, 1);
 
-    // printf("expval : %d\n", ExpVal);
-
-
-
     boot_mode = mode = start_up_mode();
     // printf("Mode : %d\n", mode);
     // mode = 2;
     if (mode == 1){
-    	// printf("Clip Mode!!\n");
-    	// if (ExpVal > 1000) gpio_LED_Set(1);
-    // #ifndef __PHILL_REQ__
     	ret = clip_total();
-    // #else
-    	// ret = clip_total_fake();
-    // #endif
     	if(ret < 0){
         	printf("Clip Mode error\n");
         	return 0;
@@ -936,8 +992,7 @@ int main(int argc, char **argv) {
     	}
     }
     else if(mode == 2){
-    	// printf("Streming Mode!!\n");
-    	// if (ExpVal > 1000) gpio_LED_Set(1);
+    	printf("Streming Mode!!\n");
     	ret = stream_total(0);
     	if(ret < 0){
     		printf("Strem Mode Error\n");
@@ -945,7 +1000,7 @@ int main(int argc, char **argv) {
     	}
     }
     else if(mode == 3){
-    	// printf("Setting Mode!!\n");
+    	printf("Setting Mode!!\n");
     	Setting_Total();
     }
 
@@ -954,38 +1009,8 @@ int main(int argc, char **argv) {
 		int cmd = 255;
 		int jpg_index = 255;
 
-		printf("cmd 1  Package Find Test.\n");
-		// printf("cmd 2  Audio Up Streaming Start!\n");
-		// printf("cmd 3  Audio Down Streaming test!\n");
-		printf("cmd 4  Audio Effects test!\n");
-		// printf("cmd 5  Audio In-Out AEC Test!\n");
-		printf("cmd 6  Audio IN/Out Vol, Gain Set!\n");
-		printf("cmd 7  LED Test!\n");
-		printf("cmd 8  Camera Test!\n");
-		printf("cmd 9  Grid Test!\n");
-		printf("cmd 10 snap shot!\n");
-		printf("cmd 11 thumbnail Test!\n");
-		printf("cmd 12 GPIO Mode Test!\n");
-		printf("cmd 13 adc test\n");
-		printf("cmd 14 Spi Read Test!\n");
-		printf("cmd 15 Spi Loop Test!\n");
-		printf("cmd 16 Streming Mode!!\n");
-		printf("cmd 17 Clip Mode!!\n");
-		printf("cmd 18 Fake SPI Test!\n");
-		printf("cmd 19 Face Clip Test!!\n");
-		printf("cmd 20 PCM Save Start/End\n");
-		printf("cmd 21 Box LED ON/OFF\n");
-		printf("cmd 22 Box Camera Crop Test\n");
-		printf("cmd 23 Distortion Test\n");
-		printf("cmd 24 Flicker Test\n");
-		printf("cmd 25 Moasic On/Off\n");
-		printf("cmd 26 Uart Test\n");
-		printf("cmd 27 ISP integration time Test\n");
-		printf("cmd 28 Dot Test\n");
-		printf("cmd 29 Back Light Compresion\n");
-		printf("cmd 30 Setting Value Test\n");
-		printf("cmd 31 Set/Get Time\n");
-		printf("cmd 32 Save Time to file\n");
+		printf("cmd 1  Sound Test.\n");
+		
 		printf("cmd 90 Reset Test\n");
 		printf("cmd 99 : exit\n");
 
@@ -993,891 +1018,53 @@ int main(int argc, char **argv) {
 		ST_Flush();
 		
 		if (cmd == 1) {
-			char *before_img = NULL;
-    		char *after_img  = NULL;
-    		char *sistic_img = "/dev/shm/corimg1.jpg";
-			int threshold = 70;
-			double sim = 0.0;
-			const char* folderPath = "/dev/shm"; // 탐색할 폴더 경로 설정
-    		int fileCount;
-    		char** jpgFiles = NULL;
-			printf("cmd 1 Package Find Test.\n");
-			/////////////// jpg file select. ///////////////////////////
-			jpgFiles = listJPGFiles(folderPath, &fileCount);
-			if (fileCount == 0) {
-     	   		printf("No JPG files found in the specified folder.\n");
-        		continue;
-    		}
-
-    		displayFileList(jpgFiles, fileCount);
-
-    		printf("Before JPG Index : ");
-    		jpg_index = scanf_index();
-    		if (jpg_index >= 0 && jpg_index < fileCount) {
-    			before_img = jpgFiles[jpg_index];
-    		}
-    		else {
-    			printf("Invalid index.\n");
-    			continue;
-    		}
-
-    		printf("After JPG Index : ");
-    		jpg_index = scanf_index();
-    		if (jpg_index >= 0 && jpg_index < fileCount) {
-    			after_img = jpgFiles[jpg_index];
-    		}
-    		else {
-    			printf("Invalid index.\n");
-    			continue;
-    		}
-
-    		printf("Threshold Value(0~100) : ");
-    		threshold = scanf_index();
-    		if (threshold < 0 || threshold > 100) {
-    			printf("Threshold Value Invalid!!\n");
-    			continue;
-    		}
-
-    		printf("b:%s a:%s t:%d\n", before_img, after_img, threshold);
-
-
-    		//////////////// Package Fine Start ////////////////////////////////
-    		sim = calculateSimilarity(before_img, after_img);
-    		if (sim < 0.95) {
-    			ret = package_sistic(before_img, after_img);
-				if(ret < 0) {
-					printf("package_sistic Fail!\n");
-					return ret;
-				}
-
-				ret = package_find(sistic_img, after_img, 65);
-				if(ret < 0) {
-					printf("package_find Fail!\n");
-					return ret;
-				}
-	    		else {
-        			printf("Box Count : %d\n", ret);
-        			if (ret == 0) {
-        	    		sim = calculateSimilarity(sistic_img, after_img);
-    	        		// printf("similarity:%f %\n", sim);
-    	        		// std::cout << "Similarity:" << sim << "\n" << std::ends;
-            			
-        			}
-    			}
-    		}
-    		else {
-    			printf("Chang Not Find!\n");
-    			printf("Similarity:%f\n", sim);
-    		}
-    		freeFileList(jpgFiles, fileCount);
-		}
-		else if (cmd == 2) {
-			box_change();
-		}
-		// else if (cmd == 2) {
-		// 	if (!up_streming_flag) {
-		// 	printf("cmd 2 Audio Up Streaming Start!\n");
-		// 	up_streming_flag = true;
-		// 		// pthread_attr_init(&ai_attr);
-		// 		// pthread_attr_setinheritsched(&ai_attr, PTHREAD_EXPLICIT_SCHED);
-		// 		// pthread_attr_setschedpolicy(&ai_attr, SCHED_RR);
-
-		// 		// struct sched_param ao_param;
-		// 		// ao_param.sched_priority = 7;			// thread Importance
-		// 		// pthread_attr_setschedparam(&ai_attr, &ao_param);
-
-		// 		// ret = pthread_create(&tid_ai, &ai_attr, IMP_Audio_Play_Thread, NULL);
-    	// 		ret = pthread_create(&tid_ai, NULL, IMP_Audio_Record_AEC_Thread, NULL);
-		// 		if(ret != 0) {
-		// 			IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Record_AEC_Thread failed\n", __func__);
-		// 			return -1;
-		// 		}
-
-				
-		// 	}
-		// }
-		else if (cmd == 3) {
-			system("unzip /dev/shm/fw.zip -d /dev/shm");
-			system("chmod 777 /dev/shm/setup.sh");
-			system("./dev/shm/setup.sh");
-	        // system("unzip /tmp/mnt/sdcard/isc.zip -d /tmp/mnt/sdcard");
-		}
-		// else if (cmd == 3) {
-		// 	if (!dn_streming_flag) {
-		// 		printf("cmd 3 Audio Down Streaming test!\n");
-		// 		dn_streming_flag = true;
-		// 		// pthread_attr_t ao_attr, ai_attr, udp_in_attr, udp_out_attr;
-
-    	// 		// pthread_attr_init(&udp_out_attr);
-		// 		// pthread_attr_setinheritsched(&udp_out_attr, PTHREAD_EXPLICIT_SCHED);
-		// 		// pthread_attr_setschedpolicy(&udp_out_attr, SCHED_RR);
-
-		// 		// struct sched_param ao_udp_param;
-		// 		// ao_udp_param.sched_priority = 5;		// thread Importance
-		// 		// pthread_attr_setschedparam(&udp_out_attr, &ao_udp_param);
-
-    	// 		// ret = pthread_create(&tid_udp_in, &udp_out_attr, udp_recv_pthread, NULL);
-    	// 		ret = pthread_create(&tid_udp_in, NULL, udp_recv_pthread, NULL);
-		// 		if(ret != 0) {
-		// 			IMP_LOG_ERR("[Udp]", "[ERROR] %s: pthread_create udp_recv_pthread failed\n", __func__);
-		// 			return -1;
-		// 		}
-
-		// 		// pthread_attr_init(&ao_attr);
-		// 		// pthread_attr_setinheritsched(&ao_attr, PTHREAD_EXPLICIT_SCHED);
-		// 		// pthread_attr_setschedpolicy(&ao_attr, SCHED_RR);
-
-		// 		// struct sched_param ao_param;
-		// 		// ao_param.sched_priority = 7;			// thread Importance
-		// 		// pthread_attr_setschedparam(&ao_attr, &ao_param);
-
-		// 		// ret = pthread_create(&tid_ao, &ao_attr, IMP_Audio_Play_Thread, NULL);
-    	// 		ret = pthread_create(&tid_ao, NULL, IMP_Audio_Play_Thread, NULL);
-		// 		if(ret != 0) {
-		// 			IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Play_Thread failed\n", __func__);
-		// 			return -1;
-		// 		}
-		// 	}
-		// }
-		else if (cmd == 4) {
+			int ao_vol, ao_gain, ao_index;
 			char* effect_file = NULL;
-    		int effect_index = 255;
-			printf("cmd 4 Audio Effects test!\n");
-			printf("Effect #(0~6) : ");
-			effect_index = scanf_index();
-			if (effect_index >= 0 && effect_index < 7) {
-				if (effect_index == 0) effect_file = "/tmp/mnt/sdcard/effects/start_16.wav";
-				else if (effect_index == 1) effect_file = "/tmp/mnt/sdcard/effects/end_16.wav";
-				else if (effect_index == 2) effect_file = "/tmp/mnt/sdcard/effects/takeon_16.wav";
-				else if (effect_index == 3) effect_file = "/tmp/mnt/sdcard/effects/takeoff_16.wav";
-				else if (effect_index == 4) effect_file = "/tmp/mnt/sdcard/effects/ready_16.wav";
-				else if (effect_index == 5) effect_file = "/tmp/mnt/sdcard/effects/start2c.wav";
-				else if (effect_index == 6) effect_file = "/tmp/mnt/sdcard/effects/start3c.wav";
-				printf("play : %s\n", effect_file);
-				ao_file_play_thread(effect_file);
-			}
-			else if (effect_index >=7 && effect_index < 9) {
-				if (effect_index == 7) effect_file = "/tmp/mnt/sdcard/effects/save_ao.pcm";
-				else if (effect_index == 8) effect_file = "/tmp/mnt/sdcard/effects/test_out.pcm";
-				printf("play : %s\n", effect_file);
-				ao_file_play_pcm_thread(effect_file);
-			}
-			else {
-				printf("Invalid #!\n");
-				continue;
-			}
-			
-		}
-		// else if (cmd == 5) {
-		// 	if (!aec_test_flag) {
-		// 		printf("cmd 5 Audio In-Out AEC Test!\n");
-		// 		aec_test_flag = true;
-		// 		// pthread_attr_init(&ao_attr);
-		// 		// pthread_attr_setinheritsched(&ao_attr, PTHREAD_EXPLICIT_SCHED);
-		// 		// pthread_attr_setschedpolicy(&ao_attr, SCHED_RR);
+			static bool ao_init = false;
 
-		// 		// struct sched_param ao_param;
-		// 		// ao_param.sched_priority = 7;			// thread Importance
-		// 		// pthread_attr_setschedparam(&ao_attr, &ao_param);
+			printf("cmd 1  Sound Test.\n");
 
-		// 		// ret = pthread_create(&tid_aioint , &ao_attr, IMP_Audio_Play_Thread, NULL);
-    	// 		ret = pthread_create(&tid_aio_aec, NULL, IMP_Audio_InOut_AEC_Thread, NULL);
-		// 		if(ret != 0) {
-		// 			IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_InOut_AEC_Thread failed\n", __func__);
-		// 			return -1;
-		// 		}
-		// 	}
-		// }
-		else if (cmd == 6) {
-			printf("cmd 6 Audio IN/Out Vol, Gain Set!\n");
-			Get_Vol();
-			int ai_vol = 100, ai_gain = 20, ao_vol = 100, ao_gain = 20;
-			printf("Audio In Vol:");
-			ai_vol = scanf_index();
-			if (ai_vol < 0 || ai_vol > 100) {
-				printf("Invalid Value!!\n");
-				continue;
-			}
-			printf("Audio In gain:");
-			ai_gain = scanf_index();
-			if (ai_gain < 0 || ai_gain > 30) {
-				printf("Invalid Value!!\n");
-				continue;
-			}
-			printf("Audio Out Vol:");
-			ao_vol = scanf_index();
-			if (ao_vol < 0 || ao_vol > 100) {
-				printf("Invalid Value!!\n");
-				continue;
-			}
-			printf("Audio Out gain:");
-			ao_gain = scanf_index();
-			if (ao_gain < 0 || ao_gain > 30) {
-				printf("Invalid Value!!\n");
-				continue;
-			}
-
-			printf("Set Ai vol:%d\n", ai_vol);
-			printf("Set Ai gain:%d\n", ai_gain);
-			printf("Set Ao vol:%d\n", ao_vol);
-			printf("Set Ao gain:%d\n", ao_gain);
-			Set_Vol(ai_vol, ai_gain, ao_vol, ao_gain);
-		}
-		else if (cmd == 7) {
-			// int led_duty = 0;
-			// printf("cmd 7 LED Test!\n");
-			// if (!led_flag) {
-			// 	system("echo 6 > /sys/class/pwm/pwmchip0/export");
-				
-			// 	led_flag = true;
-			// }
-			// printf("Duty?");
-			// led_duty = scanf_index();
-			// system("echo 1000000 > /sys/class/pwm/pwmchip0/pwm6/period");
-			// memset(file_sep, 0, 100);
-			// sprintf(file_sep, "echo %d > /sys/class/pwm/pwmchip0/pwm6/duty_cycle", 10000*(led_duty));
-			// printf(file_sep);
-			// printf("\n");
-			// system(file_sep);
-			// system("echo 0 > /sys/class/pwm/pwmchip0/pwm6/enable");
-			// system("echo 1 > /sys/class/pwm/pwmchip0/pwm6/enable");
-
-			gpio_LED_Set(1);
-		}
-		else if (cmd == 8) {
-			int sel = 0;
-			printf("cmd 8 Camera Test!\n");
-			printf("Select Data Send Type(1:UDP, 2:SPI):");
-			sel = scanf_index();
-			if (sel == 1) {
-				printf("Input IP:");
-				scanf_string(ip);
-				printf("ip:%s %d\n", ip, strlen(ip));
-				ret = pthread_create(&tid_udp_out, NULL, udp_send_pthread, NULL);
-				if(ret != 0) {
-					IMP_LOG_ERR("[Udp]", "[ERROR] %s: pthread_create udp_send_pthread failed\n", __func__);
-					return -1;
-				}
-			}
-    		else if(sel == 2) {
-    			printf("Select Type(1:Main, 2:Box, 3:Audio 4:All):");
-				data_sel = scanf_index();
-				if (data_sel <= 0 || data_sel > 4) {
-					printf("Invalid Type!\n");
-					continue;
-				}
-				//////////////// SPI Init ////////////////////////////////////////////////////////////////
-				ret = spi_init();
-    			if(ret < 0){
-    			    printf("spi init error\n");
-    			    return 0;
-    			}
-
-				if (data_sel <= 0 || data_sel > 4) {
-					printf("Invalid Type!\n");
-					return -1;
-				}
-
-				// pthread_attr_t spi_send_attr;
-
-    			// pthread_attr_init(&spi_send_attr);
-				// pthread_attr_setinheritsched(&spi_send_attr, PTHREAD_EXPLICIT_SCHED);
-				// pthread_attr_setschedpolicy(&spi_send_attr, SCHED_RR);
-
-				// struct sched_param spi_send_param;
-				// spi_send_param.sched_priority = 5;		// thread Importance
-				// pthread_attr_setschedparam(&spi_send_attr, &spi_send_param);
-
-    			// ret = pthread_create(&tid_spi, &spi_send_attr, spi_send_stream, NULL);
-
-    			ret = pthread_create(&tid_spi, NULL, spi_send_stream, NULL);
-				if(ret != 0) {
-					IMP_LOG_ERR("[Udp]", "[ERROR] %s: pthread_create spi_send_stream failed\n", __func__);
-					return -1;
-				}
-
-				
-				//////////////////////////////////////////////////////////////////////////////////////////
-			}
-			else {
-				printf("Invalid Selection!\n");
-				continue;
-			}
-
-
-			if (!camera_test_flag) {
-				stream_state = 1;
-				clip_rec_state = REC_START;
-				// rec_stop = false;
-			#ifndef __TEST_FAKE_VEDIO__
-				ret = pthread_create(&tim_osd, NULL, OSD_thread, NULL);
-				if(ret != 0) {
-					IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create OSD_thread failed\n", __func__);
-					return -1;
-				}
-				 
-				ret = pthread_create(&tid_stream, NULL, get_video_stream_user_thread, NULL);
-				if(ret != 0) {
-					IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create get_video_stream_user_thread failed\n", __func__);
-					return -1;
-				}
-
-				// pthread_t tid_clip;
-				// ret = pthread_create(&tid_clip, NULL, get_video_clip_user_thread, NULL);
+			if (!ao_init) {
+				ao_init = true;
+				amp_on();
+				// pthread_t tid_ao;
+				// ret = pthread_create(&tid_ao, NULL, IMP_Audio_Play_Thread, NULL);
 				// if(ret != 0) {
-				// 	IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create get_video_clip_user_thread failed\n", __func__);
+				// 	IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Play_Thread failed\n", __func__);
 				// 	return -1;
 				// }
-
-				ret = pthread_create(&tid_snap, NULL, get_snap_stream_user_thread, NULL);
-				if(ret != 0) {
-					IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create get_snap_stream_user_thread failed\n", __func__);
-					return -1;
-				}
-
-				ret = pthread_create(&tid_move, NULL, move_detecte_thread, NULL);
-				if(ret != 0) {
-					IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create move_detecte_thread failed\n", __func__);
-					return -1;
-				}
-
-				ret = pthread_create(&tid_fdpd, NULL, fdpd_thread, NULL);
-				if(ret != 0) {
-					IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create fdpd_thread failed\n", __func__);
-					return -1;
-				}
-
-			#else
-				ret = pthread_create(&tid_stream, NULL, get_video_stream_test_thread, NULL);
-				if(ret != 0) {
-					IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create get_video_stream_user_thread failed\n", __func__);
-					return -1;
-				}
-			#endif
-				
-				
-
-				if (sel == 1) {
-					ret = pthread_create(&tid_udp_in, NULL, udp_recv_pthread, NULL);
-					if(ret != 0) {
-						IMP_LOG_ERR("[Udp]", "[ERROR] %s: pthread_create udp_recv_pthread failed\n", __func__);
-						return -1;
-					}
-				}
-
-
-				dn_streming_flag = true;
-    			ret = pthread_create(&tid_ao, NULL, IMP_Audio_Play_Thread, NULL);
-				if(ret != 0) {
-					IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Play_Thread failed\n", __func__);
-					return -1;
-				}
-
-				up_streming_flag = true;
-				ret = pthread_create(&tid_ai, NULL, IMP_Audio_Record_AEC_Thread, NULL);
-				if(ret != 0) {
-					IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Record_AEC_Thread failed\n", __func__);
-					return -1;
-				}
-
-				camera_test_flag = true;
 			}
 
-
-		}
-		else if (cmd == 9) {
-			int grid;
-			printf("cmd 9 Grid Test!\n");
-			printf("Select Grid Number(0~%d):", GRID_COVER_INDEX);
-			grid = scanf_index();
-
-			if(!grid_cover_flag[grid]){
-				grid_cover_flag[grid] = true;
-			}
-			else {
-				grid_cover_flag[grid] = false;
-			}
-			osd_grid_show(grid);
-		}
-		else if (cmd == 10) {
-			int snap;
-			printf("main : 1\n");
-			printf("secoend : 2\n");
-			printf("cmd 10 snap shot!\n");
-			snap = scanf_index();
-			if (snap == 1) {
-				main_snap = true;
-			}
-			else if (snap == 2) {
-				box_snap = true;
-			}
-			else {
-				printf("Invalid Selection!\n");
-			}
-		}
-		else if (cmd == 11) {
-			printf("cmd 11 thumbnail Test!\n");
-			thum_face_data.flag[0] = true;
-			thum_face_data.x[0] = 100;
-			thum_face_data.y[0] = 200;
-			thum_face_data.ex[0] = 500;
-			thum_face_data.ey[0] = 600;
-			thumbnail_make(thum_face_data);
-		}
-		else if (cmd == 12) {
-			int mode;
-			printf("cmd 12 GPIO Mode Test!\n");
-			mode = start_up_mode();
-			printf("mode : %d (1:clip/2:stream/3:setting/0:test)\n", mode);
-		}
-		
-		// else if (cmd == 13) {
-		// 	char file_sep[100] = {0};
-		// 	system("/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/stream-1.h265 -c copy /dev/shm/main.mp4");
-		// 	system("/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/stream-4.h265 -c copy /dev/shm/box.mp4");
-		// 	for (int i=0; i<4; i++){
-		// 		memset(file_sep, 0, 100);
-		// 		sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/main.mp4 -ss %d.4 -t 12 -c copy /dev/shm/main%d.mp4", (i*12)-1, i);
-		// 		system(file_sep);
-		// 		memset(file_sep, 0, 100);
-		// 		sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/box.mp4 -ss %d.4 -t 12 -c copy /dev/shm/box%d.mp4", (i*12)-1, i);
-		// 		system(file_sep);
-		// 	}
-		// 	system("sync");
-		// }
-		else if (cmd == 13) {
-			if (adc_flag == false) {
-				printf("cmd 13 adc test\n");
-				system("echo 54 > /sys/class/gpio/export");
-				system("echo out > /sys/class/gpio/gpio54/direction");
-				system("echo 1 > /sys/class/gpio/gpio54/value");
-				// /* get value thread */
-				adc_init();
-				
-				adc_flag = true;
-			}
-			ret = pthread_create(&adc_thread_id, NULL, adc_get_voltage_thread, NULL);
-			if (ret != 0) {
-				printf("error: pthread_create error!!!!!!");
-				return -1;
-			}
-    	}
-    	else if (cmd == 14) {
-    		printf("cmd 14 : spi read test");
-    		ret = gpio_get_val(PORTB+18);
-			if(ret < 0){
-				printf("Ready Busy GPIO not Set : %d\n", PORTB+18);
-			}
-    		ret = spi_init();
-    		if(ret < 0){
-    		    printf("spi init error\n");
-    		    return 0;
-    		}
-			test_spi_rw();
-		}
-		else if (cmd == 15) {
-			int sdly;
-			printf("cmd 15 : spi loop test");
-			// printf("Delay:");
-			sdly = 1;
-			// sdly = scanf_index();
-			ret = spi_init();
-    		if(ret < 0){
-    		    printf("spi init error\n");
-    		    return 0;
-    		}
-			test_spi_onekbytes(sdly);
-		}
-		else if (cmd == 16) {
-			printf("cmd 17 Streming Mode!!\n");
-    		ret = stream_total(0);
-    		if(ret < 0){
-    			printf("Strem Mode Error\n");
-    			return 0;
-    		}
-		}
-		else if (cmd == 17) {
-			printf("cmd 18 Clip Mode!!\n");
-    		ret = clip_total();
-    		if(ret < 0){
-        		printf("Clip Mode error\n");
-        		return 0;
-    		}
-		}
-		// else if (cmd == 18) {
-		// 	printf("cmd 16 Fake SPI Test!\n");
-		// 	data_sel = 4;
-		// 	//////////////// SPI Init ////////////////////////////////////////////////////////////////
-		// 	ret = spi_init();
-   		// 	if(ret < 0){
-   		// 	    printf("spi init error\n");
-   		// 	    return 0;
-   		// 	}
-		// 	if (data_sel <= 0 || data_sel > 4) {
-		// 		printf("Invalid Type!\n");
-		// 		return -1;
-		// 	}
-  		// 	ret = pthread_create(&tid_spi, NULL, spi_test_send_stream, NULL);
-		// 	if(ret != 0) {
-		// 		IMP_LOG_ERR("[Udp]", "[ERROR] %s: pthread_create spi_send_stream failed\n", __func__);
-		// 		return -1;
-		// 	}
-		// 	//////////////////////////////////////////////////////////////////////////////////////////
-		// 	if (!camera_test_flag) {
-		// 		stream_state = 1;
-		// 		clip_rec_state = REC_START;
-		// 		// rec_stop = false;
-		// 		ret = pthread_create(&tim_osd, NULL, OSD_thread, NULL);
-		// 		if(ret != 0) {
-		// 			IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create OSD_thread failed\n", __func__);
-		// 			return -1;
-		// 		}
-				 
-		// 		ret = pthread_create(&tid_stream, NULL, get_video_stream_user_thread, NULL);
-		// 		if(ret != 0) {
-		// 			IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create get_video_stream_user_thread failed\n", __func__);
-		// 			return -1;
-		// 		}
-				
-		// 		// ret = pthread_create(&tid_clip, NULL, get_video_clip_user_thread, NULL);
-		// 		// if(ret != 0) {
-		// 		// 	IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create get_video_clip_user_thread failed\n", __func__);
-		// 		// 	return -1;
-		// 		// }
-
-		// 		ret = pthread_create(&tid_snap, NULL, get_snap_stream_user_thread, NULL);
-		// 		if(ret != 0) {
-		// 			IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create get_snap_stream_user_thread failed\n", __func__);
-		// 			return -1;
-		// 		}
-
-		// 		ret = pthread_create(&tid_move, NULL, move_detecte_thread, NULL);
-		// 		if(ret != 0) {
-		// 			IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create move_detecte_thread failed\n", __func__);
-		// 			return -1;
-		// 		}
-
-		// 		ret = pthread_create(&tid_fdpd, NULL, fdpd_thread, NULL);
-		// 		if(ret != 0) {
-		// 			IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create fdpd_thread failed\n", __func__);
-		// 			return -1;
-		// 		}
-				
-		// 		camera_test_flag = true;
-
-		// 		// up_streming_flag = true;
-    	// 		// ret = pthread_create(&tid_ai, NULL, IMP_Audio_Record_AEC_Thread, NULL);
-		// 		// if(ret != 0) {
-		// 		// 	IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Record_AEC_Thread failed\n", __func__);
-		// 		// 	return -1;
-		// 		// }
-		// 	}
-
-		// }
-		else if (cmd == 19) {
-			printf("cmd 19 Face Clip Test!!\n");
-			spi_send_fake_file(REC_CLIP_F);
-			usleep(15000*1000);
-			spi_send_fake_file(REC_CLIP_B);
-			usleep(15000*1000);
-		}
-		else if (cmd == 20) {
-			printf("cmd 20 PCM Save Start/End\n");
-			if (save_pcm == 0){
-				printf("PCM Save Start!\n");
-				save_pcm = 1;
-			}
-			else if(save_pcm == 1){
-				printf("PCM Save End!\n");
-				save_pcm = 2;
-				while (pcm_in == 0) {};
-				if (pcm_in){
-					save_pcm = 3;
-					system("cp /dev/shm/test_in.pcm /tmp/mnt/sdcard/effects");
-					system("cp /dev/shm/test_out.pcm /tmp/mnt/sdcard/effects");
-					system("sync");
-					printf("pcm Test Copy end!\n");
-				}
-			}
-		}
-		else if (cmd == 21) {
-			printf("cmd 21 Box LED ON/OFF\n");
-			ret = gpio_set_val(PORTD+6, gval);
-			if(ret < 0){
-				printf("Fail set Value GPIO : %d\n", PORTD+6);
-				return -1;
-			}
-			if (gval == 0) gval = 1;
-			else gval = 0;
-		}
-		else if (cmd == 22) {
-			int x, y, w, h, c;
-			printf("cmd 22 Box Camera Crop Test\n");
-			printf("Set X:");
-			x = scanf_index();
-			printf("Set Y:");
-			y = scanf_index();
-			printf("Set Width:");
-			w = scanf_index();
-			printf("Set Height:");
-			h = scanf_index();
-			printf("Cam select[0:main/1:box]:");
-			c = scanf_index();
-
-			isd_crop(x, y, w, h, c);
-		}
-		else if (cmd == 23) {
-			int x, y, w, h, str, c;
-			printf("cmd 23 Distortion Test\n");
-			printf("Set Center X:");
-			x = scanf_index();
-			printf("Set Center Y:");
-			y = scanf_index();
-			printf("Set Width:");
-			w = scanf_index();
-			printf("Set Height:");
-			h = scanf_index();
-			printf("Set strength:");
-			str = scanf_index();
-			printf("Cam select[0:main/1:box]:");
-			c = scanf_index();
-
-			isd_distortion(x, y, w, h, str, c);
-		}
-		else if (cmd == 24) {
-			int freq, mode;
-			printf("cmd 24 Flicker Test\n");
-			printf("Set Flicker Freq:");
-			freq = scanf_index();
-			printf("0:disable 1:normal 2:auto 3:value dep\n");
-			printf("Set Flicker Mode:");
-			mode = scanf_index();
-
-			isp_filcker (freq, mode);
-			isp_filcker_get();
-		}
-		else if (cmd == 25) {
-			printf("cmd 25 Moasic On/Off\n");
-			if (!Mosaic_En) Mosaic_En = true;
-			else Mosaic_En = false;
-		}
-		else if (cmd == 26) {
-			int type = 0;
-			printf("cmd 26 Uart Test\n");
-			printf("1: rx Thread 2: Tx Test\n");
-			type = scanf_index();
-			if (type == 1) {
-				ret = pthread_create(&tid_uart, NULL, uart_thread, NULL);
-				if(ret != 0) {
-					IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create uart_thread failed\n", __func__);
-					return -1;
-				}
-			}
-			else if (type == 2) {
-				uart_tx_test();
-			}
-			else {
-				printf("Tyep Invaild.\n");
-			}
-		}
-		else if (cmd == 27) {
-			uint32_t isp_igtime = 132;
-			int getset = 0;
-			printf("cmd 27 ISP integration time Test\n");
-			printf("time Get/Set(0/1):");
-			getset = scanf_index();
-			if (getset > 0) {
-				printf("Value:");
-				isp_igtime = (uint32_t)scanf_index();
-			}
-			isp_igtime = isp_integration_time(getset, isp_igtime);
-			
-		}
-		else if (cmd == 28) {
-			printf("cmd 28 Dot Test\n");
-			if (!dot_En) dot_En = true;
-			else dot_En = false;
-		}
-		else if (cmd == 29) {
-			int getset = 0;
-			uint8_t val = 0;
-			printf("cmd 29 Back Light Compresion\n");
-			getset = scanf_index();
-			if (getset > 0) {
-				printf("Value:");
-				val = scanf_index();
-			}
-			SceneceSet(getset, val);
-		}
-		else if (cmd == 30) {
-			printf("cmd 30 Setting Value Test\n");
-			printf("Vol:");
-			settings.spk_vol = scanf_index();
-			Setting_Save();
-		}
-		else if (cmd == 31) {
-			int sget = 0;
-			int year = 2024;
-			int month = 4;
-			int day = 5;
-			int hour = 9;
-			int min = 31;
-			int sec = 0;
-			printf("cmd 31 Set/Get Time\n");
-			printf("Time Set:1/Time Get :2\n");
-			printf("Set/Get : ");
-			sget = scanf_index();
-			if (sget < 1 || sget > 2) {
-				printf("Invaild Set/Get Value!\n");
+			printf("Test Audio Out Volume(0~120) : ");
+			ao_vol = scanf_index();
+			if (ao_vol < 0 || ao_vol > 120) {
+				printf("Volume Set Fail!!\n");
 				continue;
 			}
-			if (sget == 1) {
-				printf("Year:");
-				year = scanf_index();
-				if (year < 1900 || year > 2100) {
-					printf("Invalid Set Year!\n");
-				}
-				printf("month:");
-				month = scanf_index();
-				if (month < 1 || month > 12) {
-					printf("Invalid Set month!\n");
-				}
-				printf("day:");
-				day = scanf_index();
-				if (day < 1 || day > 31) {
-					printf("Invalid Set day!\n");
-				}
-				printf("hour:");
-				hour = scanf_index();
-				if (hour < 0 || hour > 23) {
-					printf("Invalid Set hour!\n");
-				}
-				printf("min:");
-				min = scanf_index();
-				if (min < 0 || min > 59) {
-					printf("Invalid Set Year!\n");
-				}
-				printf("sec:");
-				sec = scanf_index();
-				if (sec < 0 || sec > 59) {
-					printf("Invalid Set sec!\n");
-				}
-				// printf("Set Date : %d %d %d %d %d %d\n", year, month, day, hour, min, sec);
-				SetTime(year, month, day, hour, min, sec);
+			printf("Test Audio Out Gain(0~31) : ");
+			ao_gain = scanf_index();
+			if (ao_gain < 0 || ao_gain > 31) {
+				printf("Gain Set Fail!!\n");
+				continue;
 			}
-			else if(sget == 2) {
-				GetTime();
+			Set_Vol(100,25,ao_vol,ao_gain);
+
+			printf("Test Audio Number(1~5) : ");
+			ao_index = scanf_index();
+			if (ao_index < 1 || ao_index > 5) {
+				printf("Audio Index Set Fail!!\n");
+				continue;
 			}
 
-		}
-		else if (cmd == 32) {
-			printf("cmd 32 Save Time to file\n");
-			record_shutdown_time();
-		}
-		else if (cmd == 33) {
-			uint32_t targetbit = 500;
-			printf("cmd 33 Target Bit Change!\n");
-			targetbit = scanf_index();
-			Set_Target_Bit(targetbit);
-		}
-		else if (cmd == 34) {
-			char filepath1[] = "/tmp/mnt/sdcard/isc.zip";
-			char md5_hash_code1[33] = {0};
-			// // test_hash222(filepath1);
-			// test_md5(filepath1);
-			// system("cp /tmp/mnt/sdcard/isc.zip /dev/shm/isc.zip");
-			// char filepath2[] = "/dev/shm/isc.zip";
-			// test_md5(filepath2);
-			md5_get(filepath1, md5_hash_code1);
-		}
-		else if (cmd == 35) {
-			printf("cmd 35 Save File Test!\n");
-
-			system("ubi_mount");
-
-			file_name_get(&Save_movie1, 0);
-
-			for(int i=0;i<Save_movie1.cnt;i++) {
-				// char sepp[128];
-				printf("File[%d]:%s\n", i, Save_movie1.name[i]);
-				// sprintf(sepp, "/maincam/%s", Save_movie.name[i]);
-				spi_send_save_file("/maincam/", Save_movie1.name[i]);
-			}
-
-		}
-		else if (cmd == 36) {
-			int max_sharp = 0, max_foucs = 0;
-			double avr_sharp, avr_focus;
-			char file_name[128];
-			Focus_Sharpness fs_t[10];
-
-			for (int q=0; q<10; q++) {
-				main_snap = true;
-				while (main_snap);
-
-				memset(file_name , 0x00, 128);
-				sprintf(file_name, "/dev/shm/main%d.jpg", q);
-				// sharpness[q] = Sharpness_cal(file_name);
-				ret = focus_and_sharpness_cal(file_name, (Focus_Sharpness2*)&fs_t[q]);
-				// printf("now:%f max:%f\n", sharpness[q],  sharpness[max_sharp]);
-				if (fs_t[q].sharpness > fs_t[max_sharp].sharpness){
-					max_sharp = q;
-					// printf("Max Q : %d\n", max_sharp);
-				}
-
-				if (fs_t[q].focus > fs_t[max_foucs].focus){
-					max_foucs = q;
-					// printf("Max Q : %d\n", max_sharp);
-				}
-			}
-
-			avr_sharp = 0;
-			avr_focus = 0;
-
-			for (int q=0; q<10; q++){
-				if (q != max_sharp) {
-					avr_sharp += fs_t[q].sharpness;
-					// printf("shapness add %d : %f\n", q, avr_sharp);
-				}
-
-				if (q != max_foucs) {
-					avr_focus += fs_t[q].focus;
-					// printf("focus add %d : %f\n", q, avr_focus);
-				}
-			}
-			printf("Avrage Focus : %f\n", avr_focus/9);
-			printf("Avrage Sharpness : %f\n", avr_sharp/9);
-		}
-		else if (cmd == 37) {
-			int dim_val = 0;
-			int64_t dimming_e = 0;
-			int dimming_val = 90;
-			bool dimming_up = true;
-			printf("cmd 37 Dimming Test\n");
-			printf("Type : ");
-			dim_val = scanf_index();
-			gpio_LED_dimming(dim_val);
-			while (dim_val == 2) {
-				if (dimming) {
-					dimming_e =  sample_gettimeus() - dimming_s;
-					if ((dimming_e > 30000) & dimming_up) {
-						dimming_s = sample_gettimeus();
-						dimming_val -= 1;
-						LED_dimming (dimming_val);
-						if (dimming_val <= 10) {
-							dimming_up = false;
-						}
-					}
-					else if ((dimming_e > 30000) & !dimming_up) {
-						dimming_s = sample_gettimeus();
-						dimming_val += 1;
-						LED_dimming (dimming_val);
-						if (dimming_val >= 90) {
-							dimming_up = true;
-						}
-					}
-				}
-			}
+			if (ao_index == 1) effect_file = "/tmp/mnt/sdcard/effects/test1.wav";
+            else if (ao_index == 2) effect_file = "/tmp/mnt/sdcard/effects/test2.wav";
+            else if (ao_index == 3) effect_file = "/tmp/mnt/sdcard/effects/test3.wav";
+            else if (ao_index == 4) effect_file = "/tmp/mnt/sdcard/effects/test4.wav";
+            else if (ao_index == 5) effect_file = "/tmp/mnt/sdcard/effects/test5.wav";
+            printf("play : %s\n", effect_file);
+            ao_file_play_thread(effect_file);
+            printf("Audio Out Test End!!\n");
+			continue;
 		}
 		else if (cmd == 90) {
 			printf("cmd 90 Reset Test\n");
@@ -1909,87 +1096,13 @@ int main(int argc, char **argv) {
 
 	sleep(1);
 	
-	if (up_streming_flag) {
-		sleep(0.5);
-		// ret = pthread_kill(tid_ai, 0);
-		// if (ret == 0) {
-			// pthread_cancel(tid_ai);
-		// }
-		// else {
-			pthread_join(tid_ai, NULL);
-		// }
-	}
-
-	// sleep(0.5);
-	// ret = pthread_kill(tid_udp_out, 0);
-	// if (ret == 0) {
-	// 	pthread_cancel(tid_udp_out);
-	// }
-	// else {
-	// 	pthread_join(tid_udp_out, NULL);
-	// }
-
-	sleep(0.5);
-	// ret = pthread_kill(tid_spi, 0);
-	// if (ret == 0) {
-		// pthread_cancel(tid_spi);
-	// }
-	// else {
-		pthread_join(tid_spi, NULL);
-	// }
-	
-	if (dn_streming_flag) {
-		// sleep(0.5);
-		// ret = pthread_kill(tim_osd, 0);
-		// if (ret == 0) {
-			// pthread_cancel(tim_osd);
-		// }
-		// else {
-			pthread_join(tim_osd, NULL);
-		// }
-
-		// ret = pthread_kill(tid_udp_in, 0);
-		// if (ret == 0) {
-			// pthread_cancel(tid_udp_in);
-		// }
-		// else {
-			pthread_join(tid_udp_in, NULL);
-		// }
-
-		// ret = pthread_kill(tid_ao, 0);
-		// if (ret == 0) {
-			// pthread_cancel(tid_ao);
-		// }
-		// else {
-			pthread_join(tid_ao, NULL);
-		// }
-	}
-
-	// if (aec_test_flag) {
-		// ret = pthread_kill(tid_aio_aec, 0);
-		// if (ret == 0) {
-			// pthread_cancel(tid_aio_aec);
-		// }
-		// else {
-			// pthread_join(tid_aio_aec, NULL);
-		// }
-	// }
-
-	if (camera_test_flag) {
-		// ret = pthread_kill(tid_stream, 0);
-		// if (ret == 0) {
-			// pthread_cancel(tid_stream);
-		// }
-		// else {
-			pthread_join(tid_stream, NULL);
-			// pthread_join(tid_clip, NULL);
-			
-		// }
-	}
-
-	if (fdpd_flag) {
-		pthread_join(tid_fdpd, NULL);
-	}
+	pthread_join(tid_ai, NULL);
+	pthread_join(tid_spi, NULL);
+	pthread_join(tim_osd, NULL);
+	pthread_join(tid_udp_in, NULL);
+	pthread_join(tid_ao, NULL);
+	pthread_join(tid_stream, NULL);
+	pthread_join(tid_fdpd, NULL);
 
 	if (adc_flag){
 		pthread_join(adc_thread_id, NULL);
@@ -2012,16 +1125,19 @@ int clip_total(void) {
 	int file_cnt = 0, file_cnt2 = 0;
 	int fpdp_cnt = 0;
 	bool start_flag = false;
-	// bool ubi_flag = false;
-	// bool spi_th_flag = false;
+	bool box_send_flag = false;
 	
 	int64_t end_time = 0, total_time = 0;
 	int64_t start_time2 = 0, end_time2 = 0, total_time2 = 0;
 	char file_path[128] = {0};
 	char file_sep[100] = {0};
+	int file_each_cnt[10] = {0};
 
 	uint8_t major_buf1, major_buf2;
 
+	int64_t rec_time_e = 0;
+    int64_t rec_now = 0;
+    int64_t retry_time = 0;
 
 	pthread_t tid_ao, tid_ai;
     pthread_t tid_stream, tid_snap, tid_move, tim_osd, tid_fdpd;
@@ -2058,6 +1174,7 @@ int clip_total(void) {
     thumbnail_state = 0;
     stream_state = 0;
 	clip_rec_state = REC_START;
+	av_off_flag = true;
 	// rec_stop = false;
 	ret = pthread_create(&tim_osd, NULL, OSD_thread, NULL);
 	if(ret != 0) {
@@ -2185,14 +1302,8 @@ int clip_total(void) {
 		#endif
 		}
 		else {
-			
-
 			if (Rec_type == CLIP_REC){
 				total_time = sample_gettimeus() - start_time;
-
-				// if(total_time > THUMBNAIL_TIME) {
-					// printf("Thumb : %d fr : %d\n", thumbnail_state, fr_state);
-				// }
 
 				if((total_time > THUMBNAIL_TIME) && (fr_state == FR_WAIT) &&
 					(thumbnail_state == THUMB_WAIT || thumbnail_state == THUMB_END)) {
@@ -2269,33 +1380,6 @@ int clip_total(void) {
 					}
 				#endif
 
-				// if (!spi_th_flag && (thumbnail_state == THUMB_END) && (stream_state == 1)) {
-				// 	printf("Clip Streaming Start!!\n");
-				// 	spi_th_flag = true;
-				// 	data_sel = 4;
-				// 	if (data_sel <= 0 || data_sel > 4) {
-				// 		printf("Invalid Type!\n");
-				// 		return -1;
-				// 	}
-				// 	ret = pthread_create(&tid_spi, NULL, spi_send_stream, NULL);
-				// 	if(ret != 0) {
-				// 		IMP_LOG_ERR("[Udp]", "[ERROR] %s: pthread_create spi_send_stream failed\n", __func__);
-				// 		return -1;
-				// 	}
-				// 	ret = pthread_create(&tid_ao, NULL, IMP_Audio_Play_Thread, NULL);
-				// 	if(ret != 0) {
-				// 		IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Play_Thread failed\n", __func__);
-				// 		return -1;
-				// 	}
-
-				// 	ret = pthread_create(&tid_ai, NULL, IMP_Audio_Record_AEC_Thread, NULL);
-				// 	if(ret != 0) {
-				// 		IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Record_AEC_Thread failed\n", __func__);
-				// 		return -1;
-				// 	}
-				// 	if (rec_streaming_state == REC_START) rec_streaming_state = REC_ING;
-				// 	// if (fr_state != FR_END) fr_state = FR_END;
-				// }
 
 				if (start_flag && (face_cnt != 0) && !roaming_person) {
 					printf("Face Check!\n");
@@ -2330,11 +1414,17 @@ int clip_total(void) {
 
 				if ((total_time > MAX_REC_TIME) && (clip_rec_state == REC_ING)) {	// 60Sec Time Over -> Clip Stop
 					// rec_stop = true;
-					printf("CLIP END:Time Over! %lld\n", total_time);
 					clip_rec_state = REC_STOP;
+					printf("CLIP END:Time Over! %lld\n", total_time);
 					// box_snap = true;
 					Rec_type = MAKE_FILE;
 					file_cnt = 3;
+				}
+
+				if (rec_on) {
+					clip_rec_state = REC_STOP;
+					printf("CLIP END:Stream REC! %lld\n", total_time);
+					Rec_type = STRM_REC;
 				}
 				
 			#ifndef __PHILL_REQ__
@@ -2371,10 +1461,7 @@ int clip_total(void) {
 
 				
 			}
-			else if (Rec_type == BELL_REC){
-
-
-				
+			else if (Rec_type == BELL_REC) {
 				total_time2 = sample_gettimeus() - start_time2;
 				if (total_time2%10000000 == 0){
 					printf("Rec T:%d time : %lld\n", Rec_type, total_time2);
@@ -2392,54 +1479,34 @@ int clip_total(void) {
 						major_buf2 = REC_BELL_SNAP_B;
 					}
 
-					if (!netwrok_busy) {
-						if (Ready_Busy_Check() > 0){
-							printf("Bell/Temp Dual JPG Send!\n");
-							memset(file_path, 0, 64);
-							sprintf(file_path, "/dev/shm/bell_m.jpg");
-							memset(file_sep, 0, 64);
-							sprintf(file_sep, "/dev/shm/bell_b.jpg");
-							spi_send_file_dual(major_buf1, major_buf2, file_path, file_sep);
-						}
-						else {
-							printf("Fail to Dual Bell JPG Send.\n");
-						}
+					av_off_flag = false;
 
+					if (Ready_Busy_Check() > 0){
+						printf("Bell/Temp Dual JPG Send!\n");
+						// memset(file_path, 0, 64);
+						// sprintf(file_path, "/dev/shm/bell_m.jpg");
+						// memset(file_sep, 0, 64);
+						// sprintf(file_sep, "/dev/shm/bell_b.jpg");
+						box_resize("/dev/shm/bell_b.jpg", "dev/shm/bell_b_r.jpg");
+						spi_send_file_dual(major_buf1, major_buf2, "/dev/shm/bell_m.jpg", "dev/shm/bell_b_r.jpg");
+					}
+					else {
+						printf("Fail to Dual Bell JPG Send.\n");
 					}
 
 					face_end(REC);
 
-					stream_state = 1;
-					data_sel = 4;
+					// stream_state = 1;
+					// data_sel = 4;
 
 					bl_state = BSS_END;
 				}
 
-				// if (!spi_th_flag && (stream_state == 1)) {
-				// 	printf("Bell Streaming Start!!\n");
-				// 	spi_th_flag = true;
-				// 	data_sel = 4;
-				// 	if (data_sel <= 0 || data_sel > 4) {
-				// 		printf("Invalid Type!\n");
-				// 		return -1;
-				// 	}
-				// 	ret = pthread_create(&tid_spi, NULL, spi_send_stream, NULL);
-				// 	if(ret != 0) {
-				// 		IMP_LOG_ERR("[Udp]", "[ERROR] %s: pthread_create spi_send_stream failed\n", __func__);
-				// 		return -1;
-				// 	}
-				// 	ret = pthread_create(&tid_ao, NULL, IMP_Audio_Play_Thread, NULL);
-				// 	if(ret != 0) {
-				// 		IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Play_Thread failed\n", __func__);
-				// 		return -1;
-				// 	}
-
-				// 	ret = pthread_create(&tid_ai, NULL, IMP_Audio_Record_AEC_Thread, NULL);
-				// 	if(ret != 0) {
-				// 		IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Record_AEC_Thread failed\n", __func__);
-				// 		return -1;
-				// 	}
-				// }
+				if (rec_on) {
+					bell_rec_state = REC_STOP;
+					printf("BELL END:Stream REC! %lld\n", total_time);
+					Rec_type = STRM_REC;
+				}
 
 				if ((rec_streaming_state == REC_STOP) && (total_time2 > BELL_TIME_MIN)) {
 					rec_streaming_state = REC_MP4MAKE;
@@ -2486,15 +1553,12 @@ int clip_total(void) {
 
 		if(Rec_type == MAKE_FILE) {
 
-			box_snap = true;
-
-			make_start = sample_gettimeus();
-
-			if (stream_state == 1) {
-				continue;
+			if (rec_on) {
+				printf("MAKEFILE:Stream REC! %lld\n", total_time);
+				Rec_type = STRM_REC;
 			}
 
-
+			if (stream_state == 1) continue;
 
 			if ((clip_rec_state == REC_WAIT && bell_rec_state == REC_WAIT) ||
 				(clip_rec_state == REC_WAIT && bell_rec_state == REC_READY))
@@ -2527,7 +1591,14 @@ int clip_total(void) {
 				}
 				printf("Detection End! BELL END. file cnt : %d\n", file_cnt2);
 			}
-			else continue;
+			else {
+				// printf("clip:%d bell:%d\n", clip_rec_state, bell_rec_state);
+				continue;
+			}
+
+			make_start = sample_gettimeus();
+
+			box_snap = true;
 
 			while(box_snap);
 
@@ -2551,38 +1622,47 @@ int clip_total(void) {
 			// }
 
 			pthread_t tid_makefile1, tid_makefile2, tid_makefile;
-
 			printf("Thumnail state : %d\n", thumbnail_state);
-			// thumbnail_state = THUMB_END;
-			Make_File mfd1;
-			mfd1.type = 0;
-			mfd1.cnt = file_cnt;
-			cfile_flag1 = cfile_flag2 = false;
+			if (!cfile_flag1 && !cfile_flag2) {			
+				if (thumbnail_state == THUMB_END) {
+					Make_File mfd1;
+					mfd1.type = 0;
+					mfd1.cnt = file_cnt;
+					cfile_flag1 = cfile_flag2 = false;
 
-			ret = pthread_create(&tid_makefile1, NULL, make_mp4_clip1,(void*)&mfd1);
-			if(ret != 0) {
-				IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Record_AEC_Thread failed\n", __func__);
-				return -1;
-			}
-			ret = pthread_create(&tid_makefile2, NULL, make_mp4_clip2,(void*)&mfd1);
-			if(ret != 0) {
-				IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Record_AEC_Thread failed\n", __func__);
-				return -1;
-			}
-
-			if (file_cnt2 > 0) {
-				Make_File mfd2;
-				mfd2.type = 1;
-				mfd2.cnt = file_cnt2;
-				bfile_flag = false;
-				ret = pthread_create(&tid_makefile, NULL, make_mp4_bell,(void*)&mfd2);
-				if(ret != 0) {
-					IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Record_AEC_Thread failed\n", __func__);
-					return -1;
+					ret = pthread_create(&tid_makefile1, NULL, make_mp4_clip1,(void*)&mfd1);
+					if(ret != 0) {
+						IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Record_AEC_Thread failed\n", __func__);
+						return -1;
+					}
+					ret = pthread_create(&tid_makefile2, NULL, make_mp4_clip2,(void*)&mfd1);
+					if(ret != 0) {
+						IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Record_AEC_Thread failed\n", __func__);
+						return -1;
+					}
+				}
+				else {
+					cfile_flag1 = cfile_flag2 = true;
+					file_cnt = 0;
+					printf("Final Clip File Cnt : %d\n", file_cnt);
 				}
 			}
-			else {
-				bfile_flag = true;
+
+			if (!bfile_flag) {			
+				if (file_cnt2 > 0) {
+					Make_File mfd2;
+					mfd2.type = 1;
+					mfd2.cnt = file_cnt2;
+					bfile_flag = false;
+					ret = pthread_create(&tid_makefile, NULL, make_mp4_bell,(void*)&mfd2);
+					if(ret != 0) {
+						IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Record_AEC_Thread failed\n", __func__);
+						return -1;
+					}
+				}
+				else {
+					bfile_flag = true;
+				}
 			}
 
 			// if (main_rec_end && box_rec_end) {
@@ -2770,115 +1850,104 @@ int clip_total(void) {
 		    		}
 		    	#else
 		    		#ifndef __PHILL_REQ__
-			    		memset(file_path, 0, 64);
-						sprintf(file_path, "/dev/shm/box0.jpg");
-						box_resize(file_path);
+		    			if (!box_send_flag) {
+				    		// memset(file_path, 0, 64);
+							// sprintf(file_path, "/dev/shm/box0.jpg");
+							box_resize("/dev/shm/box0.jpg", "dev/shm/box_r.jpg");
 
-						memset(file_path, 0, 64);
-						sprintf(file_path, "/dev/shm/box_r.jpg");
+							// memset(file_path, 0, 64);
+							// sprintf(file_path, "/dev/shm/box_r.jpg");
 
-						if (!file_21_flag) {
-							file_21_flag = true;
-							make_file_start(REC);
-						}
-					
-		    			spi_send_file(REC_BOX_ALM, file_path, 0, 0, 0);
-		    			usleep(200*1000);
+							if (!file_21_flag) {
+								file_21_flag = true;
+								make_file_start(REC);
+							}
+						
+			    			spi_send_file(REC_BOX_ALM, "/dev/shm/box_r.jpg", 0, 0, 0);
+			    			box_send_flag = true;
+			    			usleep(200*1000);
+			    		}
 		    		#endif
 		    	#endif
 
 				while (!cfile_flag1 || !cfile_flag2 || !bfile_flag || (stream_state == 1)) 
 				{
-					// printf("%d %d %d / %d %d / %d\n", file_cnt, cfile_flag1, cfile_flag2, file_cnt2, bfile_flag, stream_state);
-					// if (!spi_th_flag && (stream_state == 1)) {
-					// 	printf("make file Streaming Start!!\n");
-					// 	spi_th_flag = true;
-					// 	data_sel = 4;
-					// 	if (data_sel <= 0 || data_sel > 4) {
-					// 		printf("Invalid Type!\n");
-					// 		return -1;
-					// 	}
-					// 	ret = pthread_create(&tid_spi, NULL, spi_send_stream, NULL);
-					// 	if(ret != 0) {
-					// 		IMP_LOG_ERR("[Udp]", "[ERROR] %s: pthread_create spi_send_stream failed\n", __func__);
-					// 		return -1;
-					// 	}
-					// 	ret = pthread_create(&tid_ao, NULL, IMP_Audio_Play_Thread, NULL);
-					// 	if(ret != 0) {
-					// 		IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Play_Thread failed\n", __func__);
-					// 		return -1;
-					// 	}
+					if (rec_on) {
+						printf("SEND FILE:Stream REC! %lld\n", total_time);
+						Rec_type = STRM_REC;
+						break;
+					}
 
-					// 	ret = pthread_create(&tid_ai, NULL, IMP_Audio_Record_AEC_Thread, NULL);
-					// 	if(ret != 0) {
-					// 		IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Record_AEC_Thread failed\n", __func__);
-					// 		return -1;
-					// 	}
-					// }
+					if (bell_flag) {
+						break;
+					}
 				}
 
-				if (cfile_flag2 && (file_cnt2 > 0)) {
-					system ("cp /dev/shm/bell_m0.mp4 /tmp/mnt/sdcard");
-					system ("cp /dev/shm/bell_b0.mp4 /tmp/mnt/sdcard");
-				}
+				// if (cfile_flag2 && (file_cnt2 > 0)) {
+				// 	system ("cp /dev/shm/bell_m0.mp4 /tmp/mnt/sdcard");
+				// 	system ("cp /dev/shm/bell_b0.mp4 /tmp/mnt/sdcard");
+				// }
 				
 
 				// system("sync");
 
 				printf("mp4 Time : %lld\n", sample_gettimeus() - make_start);
 
-				Rec_type = SEND_FILE;
+				if (bell_flag) {
+					bell_flag = false;
+					bell_snap_m = bell_snap_b = true;
+					// while(!bell_snap_m && !bell_snap_b) ;
+					printf("Bell ReStart!!\n");
+					Rec_type = BELL_REREC;
+					bfile_flag = false;
+
+					bl_state = BSS_START;
+
+					start_time2 = end_time2 = sample_gettimeus();
+				}
+				else {
+					Rec_type = SEND_FILE;
+				}
 			}
 		}
 
 		if (Rec_type == SEND_FILE) {
-			// printf("send stream test!\n");
+			if (rec_on) {
+				printf("SEND FILE:Stream REC! %lld\n", total_time);
+				Rec_type = STRM_REC;
+				continue;
+			}
 
-			// if (!spi_th_flag && (stream_state == 1)) {
-			// 	printf("file send Streaming Start!!\n");
-			// 	spi_th_flag = true;
-			// 	data_sel = 4;
-			// 	if (data_sel <= 0 || data_sel > 4) {
-			// 		printf("Invalid Type!\n");
-			// 		return -1;
-			// 	}
-			// 	ret = pthread_create(&tid_spi, NULL, spi_send_stream, NULL);
-			// 	if(ret != 0) {
-			// 		IMP_LOG_ERR("[Udp]", "[ERROR] %s: pthread_create spi_send_stream failed\n", __func__);
-			// 		return -1;
-			// 	}
-			// 	ret = pthread_create(&tid_ao, NULL, IMP_Audio_Play_Thread, NULL);
-			// 	if(ret != 0) {
-			// 		IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Play_Thread failed\n", __func__);
-			// 		return -1;
-			// 	}
+			if (bell_flag) {
+				bell_flag = false;
+				bell_snap_m = bell_snap_b = true;
+				while(!bell_snap_m && !bell_snap_b) ;
+				printf("Bell ReStart!!\n");
+				Rec_type = BELL_REREC;
+				bfile_flag = false;
 
-			// 	ret = pthread_create(&tid_ai, NULL, IMP_Audio_Record_AEC_Thread, NULL);
-			// 	if(ret != 0) {
-			// 		IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Record_AEC_Thread failed\n", __func__);
-			// 		return -1;
-			// 	}
-			// }
+				bl_state = BSS_START;
+
+				start_time2 = end_time2 = sample_gettimeus();
+				continue;
+			}
 
 			if (stream_state == 1) continue;
 
+			
+
 			if (file_cnt == 1 && cfile_flag1 && cfile_flag2 && file_cnt2 == 0) {
-				// printf("b\n");
-				// bStrem = true;
-				// // usleep(50*1000);
-				// video_deinit();
-				// Deinit_Audio_In();
-				// printf("a\n");
 				pthread_t tid_avoff;
+
+				av_off_flag = false;
+
 				ret = pthread_create(&tid_avoff, NULL, AV_Off, NULL);
 				if(ret != 0) {
 					IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create AV_Off failed\n", __func__);
 					return -1;
 				}
+				
 			}
-
-
-
 			// printf("%d %d %d\n", file_cnt, cfile_flag1, cfile_flag2);
 
 			////// Fine Spi Send /////////
@@ -2887,10 +1956,7 @@ int clip_total(void) {
 					file_21_flag = true;
 					make_file_start(REC);
 				}
-				printf("Clip file sendn");
-				// uint32_t nowtime = 0;
-				
-				
+				printf("Clip file send\n");
 
 				#ifdef __FILE_SEND_CHANGE__
 					FileSend fs;
@@ -2899,20 +1965,61 @@ int clip_total(void) {
 					fs.tag2 = clip_cause_t.Minor;
 					fs.filenum = 0;
 					fs.filecnt = file_cnt;
-					ret = spi_send_total_clip(&fs);
-					if(ret < 0) {
-						printf("File Send Fail!!\n");
-					}
-					else if (ret == 2) { 
-						// make_file_start(REC);
-						printf("file send stop : streaming\n");
-						// continue;
-					}
-					else {
-						file_cnt = 0;
-					}
+					send_retry_flag = false;
+					// ret = spi_send_total_clip(&fs);
+					// if(ret < 0) {
+					// 	printf("File Send Fail!!\n");
+					// }
+					// else if (ret == 2) { 
+					// 	// make_file_start(REC);
+					// 	printf("file send stop : streaming\n");
+					// 	// continue;
+					// }
+					// else {
+					// 	file_cnt = 0;
+					// }
 
-					if (stream_state == 1) {
+					// if (Ready_Busy_Check() > 0){
+						ret = spi_send_total_clip(&fs);
+						if(ret < 0) {
+							printf("File Send Fail!!\n");
+							if (send_retry < 3) {
+								int secss = 0;
+								retry_time = sample_gettimeus();
+								while(1) {
+									if (send_retry_flag) {
+										send_retry++;
+										printf("Clip Retry : %d\n", send_retry);
+										break;
+									}
+									if ((sample_gettimeus() - retry_time)%1000000 == 0){
+										secss++;
+										printf("sec:%d\n", secss);
+									}
+									if ((sample_gettimeus() - retry_time) > 15000000) {
+										printf("Clip Retry timeout!");
+										send_retry = 4;
+										break;
+									}
+								}
+								if (send_retry <= 3) continue;
+							}
+						}
+						else if (ret == 2) {
+							// make_file_start(REC);
+							printf("file send stop : streaming\n");
+							// continue;
+						}
+						else {
+							file_cnt = 0;
+							send_retry = 0;
+						}
+					// }
+					// else {
+						// printf("Start RB Fail!\n");
+					// }
+
+					if (stream_state == 1 || bell_flag) {
 						continue;
 					}
 				#else
@@ -2985,7 +2092,7 @@ int clip_total(void) {
 
 
 			if (file_cnt2 > 0 && bfile_flag) { 
-				printf("Bell file sendn");
+				printf("Bell file send");
 				
 				if (!file_21_flag) {
 					file_21_flag = true;
@@ -3013,10 +2120,32 @@ int clip_total(void) {
 					fs.tag2 = clip_cause_t.Minor;
 					fs.filenum = 0;
 					fs.filecnt = file_cnt2;
+					send_retry_flag = false;
 					if (Ready_Busy_Check() > 0){
 						ret = spi_send_total_clip(&fs);
 						if(ret < 0) {
 							printf("File Send Fail!!\n");
+							if (send_retry < 3) {
+								int secss = 0;
+								retry_time = sample_gettimeus();
+								while(1) {
+									if (send_retry_flag) {
+										send_retry++;
+										printf("Clip Retry : %d\n", send_retry);
+										break;
+									}
+									if ((sample_gettimeus() - retry_time)%1000000 == 0){
+										secss++;
+										printf("sec:%d\n", secss);
+									}
+									if ((sample_gettimeus() - retry_time) > 15000000) {
+										printf("Clip Retry timeout!");
+										send_retry = 4;
+										break;
+									}
+								}
+								if (send_retry <= 3) continue;
+							}
 						}
 						else if (ret == 2) {
 							// make_file_start(REC);
@@ -3025,13 +2154,14 @@ int clip_total(void) {
 						}
 						else {
 							file_cnt2 = 0;
+							send_retry = 0;
 						}
 					}
 					else {
 						printf("Start RB Fail!\n");
 					}
 
-					if (stream_state == 1) {
+					if (stream_state == 1 || bell_flag) {
 						continue;
 					}
 				#else
@@ -3101,6 +2231,74 @@ int clip_total(void) {
 				#endif
 			}
 
+			if (streaming_rec_state == REC_SPISEND) {
+				// for (int i=0; i<rec_cnt; i++) {
+				int i = 0;
+					FileSend fs;
+					if (stream_tag[i] == CLIP_CAUSE_STREM) {
+						fs.minor = REC_STREAMING_M;
+						fs.tag1 = CLIP_CAUSE_STREM;
+						fs.tag2 = CLIP_STREAM_REC;
+					}
+					else {
+						fs.minor = REC_CLIP_F;
+						fs.tag1 = CLIP_CAUSE_BELL;
+						fs.tag2 = CLIP_BELL_CALL;
+					}
+					fs.filenum = i;
+					fs.filecnt = file_each_cnt[i];
+					send_retry_flag = false;
+					if (Ready_Busy_Check() > 0) { 
+						ret = spi_send_total_stream_clip(&fs);
+						if(ret < 0) {
+							printf("File Send Fail!!\n");
+							if (send_retry < 3) {
+								int secss = 0;
+								retry_time = sample_gettimeus();
+								while(1) {
+									if (send_retry_flag) {
+										send_retry++;
+										printf("Clip Retry : %d\n", send_retry);
+										break;
+									}
+									if ((sample_gettimeus() - retry_time)%1000000 == 0){
+										secss++;
+										printf("sec:%d\n", secss);
+									}
+									if ((sample_gettimeus() - retry_time) > 15000000) {
+										printf("Clip Retry timeout!");
+										send_retry = 4;
+										break;
+									}
+								}
+								if (send_retry <= 3) continue;
+							}
+						}
+						else if (ret == 2) {
+							printf("Stream Re:connect!\n");
+						}
+						else {
+							streaming_rec_state = REC_SENDEND;
+							send_retry = 0;
+						}
+					}
+					else {
+						printf("Start RB Faile!\n");
+					}
+				// }
+
+				if (streaming_rec_state == REC_RECONNECT) {
+					continue;
+				}
+				else {
+					device_end(STREAMING);
+					printf("Streaming Mode End!!\n");
+					bUart = true;
+					sleep(2);
+					break;
+				}
+			}
+
 			system("sync");
 
 			// system("rm /tmp/mnt/sdcard/mp4/*");
@@ -3113,6 +2311,233 @@ int clip_total(void) {
 			printf("Make Time : %lld\n", sample_gettimeus() - make_start);
 
 			break;
+		}
+
+		if (Rec_type == STRM_REC) {
+			
+
+			if (streaming_rec_state == REC_RECONNECT) {
+				printf("Stream Re:Connect!\n");
+				system("rm /dev/shm/*.mp4");
+				streaming_rec_state = REC_WAIT;
+				
+			}
+			else if (streaming_rec_state == REC_ING) {
+				rec_now = sample_gettimeus() - rec_time_s;
+				if (rec_total + rec_now >= 60000000) {
+	            	rec_on = false;
+	            	rec_total += rec_time_s;
+	            	rec_mem_flag = true;
+	            	streaming_rec_state = REC_STOP;
+	            	mem_full_flag = true;
+	            	streaming_rec_end(CAUSE_MEM);
+	            	// stream_state = 0;
+				}
+
+				if (rec_end) {
+					if (rec_cnt > 0) {
+						rec_time_e = sample_gettimeus()-rec_time_s;
+						printf("Rec Time : %lld total : %lld\n", rec_time_e, rec_total);
+		            	rec_on = false;
+		            	rec_each_time[rec_cnt-1] = rec_time_e;
+		            	rec_total += rec_time_s;
+		            	rec_mem_flag = true;
+		            	streaming_rec_state = REC_STOP;
+		            	mem_full_flag = true;
+		            	streaming_rec_end(CAUSE_MEM);
+		            }
+		            else {
+		            	device_end(STREAMING);
+						printf("Streaming Mode End!!\n");
+						bUart = true;
+						sleep(2);
+						break;
+		            }
+				}
+			}
+			else if (streaming_rec_state == REC_WAIT) {
+				if (!rec_mem_flag) {
+					rec_mem_flag = true;
+					streaming_rec_end(CAUSE_MEM);
+				}
+				if (rec_end) {
+					streaming_rec_state = REC_MP4MAKE;
+					rec_end = false;
+					stream_state = 0;
+				}			
+			}
+			else if (streaming_rec_state == REC_MP4MAKE) {
+				pthread_t tid_makerec[10];
+				bool make_flag = false;
+				Make_File mfd_rec[10];
+
+				make_file_start(STREAMING);
+
+				if (rec_cnt > 10) rec_cnt = 10;
+				for (int i=0; i<rec_cnt; i++) {
+					mfd_rec[i].type = 0;
+					mfd_rec[i].index = i;
+					if (rec_each_time[i] < 23000000)
+						mfd_rec[i].cnt = 1;
+					else if(rec_each_time[i] < 43000000)
+						mfd_rec[i].cnt = 2;
+					else
+						mfd_rec[i].cnt = 3;
+
+					file_each_cnt[i] = mfd_rec[i].cnt;
+
+					rfile_flag[i] = false;
+
+					ret = pthread_create(&tid_makerec[i], NULL, make_mp4_streamrec,(void*)&mfd_rec[i]);
+					if(ret != 0) {
+						IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create make_mp4_streamrec %d failed\n", __func__, i);
+						return -1;
+					}
+				}
+
+				while(!make_flag) {
+					for (int i=0; i<rec_cnt;) {
+						// printf("flag[%d] %d\n", i, rfile_flag[i]);
+						if (rfile_flag[i] == false) {
+							i = rec_cnt;
+						}
+						else {
+							i++;
+							if (rec_cnt == i) {
+								make_flag = true;
+							}
+						}
+					}
+				}
+				printf("Stream REC State End!!\n");
+
+				stream_state = 0;
+				streaming_rec_state = REC_SPISEND;
+				Rec_type = SEND_FILE;
+			}
+
+			// if (!rec_on){
+			// 	Rec_type = MAKE_FILE;
+			// }
+		}
+		if (Rec_type == BELL_REREC) {
+			// printf("******************************BELL RESTART!********************************\n");
+			total_time2 = sample_gettimeus() - start_time2;
+			if (total_time2%10000000 == 0){
+				printf("Rec T:%d time : %lld\n", Rec_type, total_time2);
+			}
+
+			if (!bell_snap_m && !bell_snap_b && bl_state < BSS_SEND) bl_state = BSS_SEND;
+			// else printf("m %d b %d state %d\n", bell_snap_m, bell_snap_b, bl_state);
+
+			if (bl_state == BSS_SEND) {
+				if (temp_flag) {
+					major_buf1 = REC_TEMP_SNAP_M;
+					major_buf2 = REC_TEMP_SNAP_B;
+				}
+				else {
+					major_buf1 = REC_BELL_SNAP_M;
+					major_buf2 = REC_BELL_SNAP_B;
+				}
+
+				av_off_flag = false;
+
+				if (Ready_Busy_Check() > 0){
+					printf("Bell/Temp Dual JPG Send!\n");
+					// memset(file_path, 0, 64);
+					// sprintf(file_path, "/dev/shm/bell_m.jpg");
+					// memset(file_sep, 0, 64);
+					// sprintf(file_sep, "/dev/shm/bell_b.jpg");
+					box_resize("/dev/shm/bell_b.jpg", "dev/shm/bell_b_r.jpg");
+					spi_send_file_dual(major_buf1, major_buf2, "/dev/shm/bell_m.jpg", "dev/shm/bell_b_r.jpg");
+				}
+				else {
+					printf("Fail to Dual Bell JPG Send.\n");
+				}
+
+				// stream_state = 1;
+				// data_sel = 4;
+
+				bl_state = BSS_END;
+			}
+
+			if (bl_state == BSS_END) {
+				
+				if ((rec_streaming_state == REC_STOP) && (total_time2 > BELL_TIME_MIN)) {
+					bell_rec_state = REC_STOP;
+					printf("BELL END:Steaming End! %lld\n", total_time);
+				}
+
+				if ((total_time2 > MAX_REC_TIME) && (bell_rec_state == REC_ING) && (bell_rec_state < REC_STOP)) {	// 60Sec Time Over -> Clip Stop
+					 bell_rec_state = REC_STOP;
+					printf("BELL END:Time Over! %lld\n", total_time);
+					
+				}
+
+				if ((total_time2 > BELL_TIME_MIN) && (person_cnt == 0) && (main_motion_detect == 0) && (bell_rec_state < REC_STOP)) {
+					if ((sample_gettimeus() - end_time2) > CLIP_CLOSE_TIME) {
+						bell_rec_state = REC_STOP;
+						printf("BELL END:Move End! %lld\n", total_time);
+					}
+				}
+				else {
+					end_time2 = sample_gettimeus();
+				}
+
+				if ((bell_rec_state == REC_STOP) && (bell_stream_flag == false)) {
+					stream_state = 0;
+					bl_state = BSS_MAKE;
+				}
+			}
+
+			if (bl_state == BSS_MAKE) {
+				// printf("Make File!!\n");
+				if (bell_rec_state == REC_WAIT)
+				{
+					if (bell_rec_state == REC_WAIT) bell_rec_state = REC_MP4MAKE;
+
+					if (total_time2 < 2000000){
+						file_cnt2 = 0;
+					}
+					else if (total_time2 < 23000000) {
+						file_cnt2 = 1;
+					}
+					else if (total_time2 < 43000000) {
+						file_cnt2 = 2;
+					}
+					else if (total_time2 >= 43000000) {
+						file_cnt2 = 3;
+					}
+					printf("Detection End! BELL END. file cnt : %d\n", file_cnt2);
+				}
+				else continue;
+			
+
+				pthread_t tid_makefile;
+
+				if (!bfile_flag) {			
+					if (file_cnt2 > 0) {
+						Make_File mfd2;
+						mfd2.type = 1;
+						mfd2.cnt = file_cnt2;
+						bfile_flag = false;
+						ret = pthread_create(&tid_makefile, NULL, make_mp4_bell,(void*)&mfd2);
+						if(ret != 0) {
+							IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Record_AEC_Thread failed\n", __func__);
+							return -1;
+						}
+					}
+					else {
+						bfile_flag = true;
+					}
+				}
+
+				while (!bfile_flag) ;
+
+				printf("ReBell end!!\n");
+
+				Rec_type = SEND_FILE;
+			}
 		}
 	}while(1);
 
@@ -3206,82 +2631,7 @@ int clip_total_fake(void) {
 }
 
 
-void *make_mp4_streamrec(void *argc) {
-	int type, file_cnt, index;
-	char file_sep[128] = {0};
-    char file_path[128] = {0};
 
-	Make_File *mfd =(Make_File*)argc;
-	type = mfd->type;
-	file_cnt = mfd->cnt;
-	index = mfd->index;
-
-	printf("[%s] Type : %d Cnt : %d index : %d\n", __func__, type, file_cnt, index);
-
-	if (file_cnt > 0) {
-		if (file_cnt == 1) {
-			#ifdef __H265__
-				memset(file_sep, 0, 256);
-				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/rec-0-%d.h265 -ss 0 -t 20 -c copy /dev/shm/rec0_%d_0.mp4", index+1, index+1);
-				system(file_sep);
-				memset(file_sep, 0, 256);
-				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/rec-3-%d.h265 -ss 0 -t 20 -c copy /dev/shm/rec3_%d_0.mp4", index+1, index+1);
-				system(file_sep);
-			#else
-				memset(file_sep, 0, 256);
-				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/rec-0-%d.h264 -ss 0 -t 20 -c copy /dev/shm/rec0_%d_0.mp4", index+1, index+1);
-				system(file_sep);
-				memset(file_sep, 0, 256);
-				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/rec-3-%d.h264 -ss 0 -t 20 -c copy /dev/shm/rec3_%d_0.mp4", index+1, index+1);
-				system(file_sep);
-			#endif
-			rfile_flag[index] = true;
-		}
-		else {
-			#ifdef __H265__
-				memset(file_sep, 0, 256);
-				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/rec-0-%d.h265 -c copy /dev/shm/rec0_%d.mp4", index+1, index+1);
-				system(file_sep);
-				memset(file_sep, 0, 256);
-				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/rec-3-%d.h265 -c copy /dev/shm/rec1_%d.mp4", index+1, index+1);
-				system(file_sep);
-			#else
-				memset(file_sep, 0, 256);
-				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/rec-0-%d.h264 -c copy /dev/shm/rec0_%d.mp4", index+1, index+1);
-				system(file_sep);
-				memset(file_sep, 0, 256);
-				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/rec-3-%d.h264 -c copy /dev/shm/rec3_%d.mp4", index+1, index+1);
-				system(file_sep);
-			#endif
-
-			for (int j=0; j<file_cnt; j++) {
-				if (j == 0) {
-					memset(file_path, 0, 100);
-					sprintf(file_path, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/rec0_%d.mp4 -ss 0 -t 20 -c copy /dev/shm/rec0_%d_%d.mp4", index+1, index+1, j);
-					printf("%s\n", file_path);
-					system(file_path);
-					memset(file_path, 0, 100);
-					sprintf(file_path, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/rec3_%d.mp4 -ss 0 -t 20 -c copy /dev/shm/rec3_%d_%d.mp4", index+1, index+1, j);
-					printf("%s\n", file_path);
-					system(file_path);
-				}
-				else {
-					memset(file_path, 0, 100);
-					sprintf(file_path, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/rec0_%d.mp4 -ss %d.4 -t 20 -c copy /dev/shm/rec0_%d_%d.mp4", index+1, (j*20)-1, index+1, j);
-					printf("%s\n", file_path);
-					system(file_path);
-					memset(file_path, 0, 100);
-					sprintf(file_path, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/rec3_%d.mp4 -ss %d.4 -t 20 -c copy /dev/shm/rec3_%d_%d.mp4", index+1, (j*20)-1, index+1, j);
-					printf("%s\n", file_path);
-					system(file_path);
-				}
-			}
-			rfile_flag[index] = true;
-		}
-	}
-
-	return (void*) 0;
-}
 
 #define STREAMING_SPI
 
@@ -3293,9 +2643,6 @@ int stream_total(int mode) {
 	// int64_t oldt_time = 0;
 	// char file_path[64] = {0};
 #ifdef __STREAMING_CMD__
-
-	bool up_streming_flag = false;
-    bool dn_streming_flag = false;
 
     bool adc_flag = false;
     bool led_flag = false;
@@ -3484,35 +2831,9 @@ int stream_total(int mode) {
 		ST_Flush();
 
 		if (cmd == 1) {
-			if (!up_streming_flag) {
-				printf("cmd 1 Audio Up Streaming Start!\n");
-				up_streming_flag = true;
-   				ret = pthread_create(&tid_ai, NULL, IMP_Audio_Record_AEC_Thread, NULL);
-				if(ret != 0) {
-					IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Record_AEC_Thread failed\n", __func__);
-					return -1;
-				}
-			}
+			
 		}
 		else if (cmd == 2) {
-			if (!dn_streming_flag) {
-				printf("cmd 2 Audio Down Streaming test!\n");
-				dn_streming_flag = true;
-
-	#ifdef STREAMING_SPI
-				pthread_t tid_udp_in;
-    			ret = pthread_create(&tid_udp_in, NULL, udp_recv_pthread, NULL);
-				if(ret != 0) {
-					IMP_LOG_ERR("[Udp]", "[ERROR] %s: pthread_create udp_recv_pthread failed\n", __func__);
-					return -1;
-				}
-	#endif
-    			ret = pthread_create(&tid_ao, NULL, IMP_Audio_Play_Thread, NULL);
-				if(ret != 0) {
-					IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Play_Thread failed\n", __func__);
-					return -1;
-				}
-			}
 		}
 		else if (cmd == 3) {
 			char* effect_file = NULL;
@@ -3753,17 +3074,17 @@ int stream_total(int mode) {
 				for(int i=0; i<rec_cnt; i++) {
 				#ifdef __H265__		
 					memset(file_sep, 0, 256);
-					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/rec-0-%d.h265 -c copy /dev/shm/rec0_%d.mp4", i+1, i+1);
+					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/rec-0-%d.h265 -c copy /dev/shm/rec0_%d.mp4", i+1, i+1);
 					system(file_sep);
 					memset(file_sep, 0, 256);
-					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/rec-3-%d.h265 -c copy /dev/shm/rec1_%d.mp4", i+1, i+1);
+					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/rec-3-%d.h265 -c copy /dev/shm/rec1_%d.mp4", i+1, i+1);
 					system(file_sep);
 				#else
 					memset(file_sep, 0, 256);
-					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/rec-0-%d.h264 -c copy /dev/shm/rec0_%d.mp4", i+1, i+1);
+					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/rec-0-%d.h264 -c copy /dev/shm/rec0_%d.mp4", i+1, i+1);
 					system(file_sep);
 					memset(file_sep, 0, 256);
-					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/rec-3-%d.h264 -c copy /dev/shm/rec1_%d.mp4", i+1, i+1);
+					sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -y -i /dev/shm/rec-3-%d.h264 -c copy /dev/shm/rec1_%d.mp4", i+1, i+1);
 					system(file_sep);
 				#endif
 
@@ -3987,158 +3308,6 @@ int stream_total(int mode) {
 				break;
 			}
 		}
-
-		// if (streaming_rec_state >= REC_START && streaming_rec_state < REC_STOP) {
-		// 	rec_now = sample_gettimeus() - rec_time_s;
-		// 	if (rec_total + rec_now >= 60000000) {
-		// 		streaming_rec_state = REC_STOP;
-        //     	rec_on = false;
-        //     	rec_total += rec_time_s;
-        //     	rec_mem_flag = true;
-        //     	streaming_rec_end(CAUSE_MEM);
-		// 	}
-		// }
-		// if (rec_end) {
-		// 	make_file_start(STREAMING);
-		// 	test_up_time = sample_gettimeus();
-		// 	if (streaming_rec_state == REC_START || streaming_rec_state == REC_ING) {
-		// 		rec_time_e = sample_gettimeus()-rec_time_s;
-        //     	printf("Rec Time : %lld total : %lld\n", rec_time_e, rec_total);
-        //     	rec_each_time[rec_cnt-1] = rec_time_e;
-        //     	rec_total += rec_time_e;
-        //     	streaming_rec_state = REC_STOP;
-        //     	rec_on = false;
-		// 	}
-		// 	rec_end = false;
-		// 	printf("cmd 20 streaming end & save file send\n");
-		// 	// bExit = 1;
-		// 	// bStrem = true;
-		// 	stream_state = 0;
-
-		// 	if (streaming_rec_state == REC_READY) {
-		// 		printf("Streaming Mode End!!\n");
-		// 	}
-		// 	else {
-		// 		while (streaming_rec_state != REC_WAIT);
-
-		// 		if (streaming_rec_state == REC_WAIT) streaming_rec_state = REC_MP4MAKE;
-		// 		else printf("streaming_rec_state Error:%d\n", streaming_rec_state);
-
-		// 		if (streaming_rec_state == REC_MP4MAKE) {
-		// 			int file_cnt_rec = 0;
-		// 			// make_file_start(STREAMING);
-		// 			for(int i=0; i<rec_cnt; i++) {
-		// 			#ifdef __H265__
-		// 				memset(file_sep, 0, 256);
-		// 				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/rec-0-%d.h265 -c copy /dev/shm/rec0_%d.mp4", i+1, i+1);
-		// 				system(file_sep);
-		// 				memset(file_sep, 0, 256);
-		// 				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/rec-3-%d.h265 -c copy /dev/shm/rec1_%d.mp4", i+1, i+1);
-		// 				system(file_sep);
-		// 			#else
-		// 				memset(file_sep, 0, 256);
-		// 				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/rec-0-%d.h264 -c copy /dev/shm/rec0_%d.mp4", i+1, i+1);
-		// 				system(file_sep);
-		// 				memset(file_sep, 0, 256);
-		// 				sprintf(file_sep, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/rec-3-%d.h264 -c copy /dev/shm/rec3_%d.mp4", i+1, i+1);
-		// 				system(file_sep);
-		// 				sprintf(file_sep, "cp /dev/shm/rec0_%d.mp4 /tmp/mnt/sdcard/pcktest.mp4", i+1);
-		// 				system(file_sep);
-		// 			#endif
-
-		// 				system("cp /dev/shm/rec3_1.mp4 /tmp/mnt/sdcard/box.mp4");
-
-		// 				if (rec_each_time[i] < 23000000)
-		// 					file_cnt_rec = 1;
-		// 				else if(rec_each_time[i] < 43000000)
-		// 					file_cnt_rec = 2;
-		// 				else
-		// 					file_cnt_rec = 3;
-
-
-		// 				for (int j=0; j<file_cnt_rec; j++) {
-
-		// 					if (j == 0) {
-		// 						memset(file_path, 0, 100);
-		// 						sprintf(file_path, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/rec0_%d.mp4 -ss 0 -t 20 -c copy /dev/shm/rec0_%d_%d.mp4", i+1, i+1, j);
-		// 						printf("%s\n", file_path);
-		// 						system(file_path);
-		// 						memset(file_path, 0, 100);
-		// 						sprintf(file_path, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/rec3_%d.mp4 -ss 0 -t 20 -c copy /dev/shm/rec3_%d_%d.mp4", i+1, i+1, j);
-		// 						printf("%s\n", file_path);
-		// 						system(file_path);
-		// 					}
-		// 					else {
-		// 						memset(file_path, 0, 100);
-		// 						sprintf(file_path, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/rec0_%d.mp4 -ss %d.4 -t 20 -c copy /dev/shm/rec0_%d_%d.mp4", i+1, (j*20)-1, i+1, j);
-		// 						printf("%s\n", file_path);
-		// 						system(file_path);
-		// 						memset(file_path, 0, 100);
-		// 						sprintf(file_path, "/tmp/mnt/sdcard/./ffmpeg -i /dev/shm/rec3_%d.mp4 -ss %d.4 -t 20 -c copy /dev/shm/rec3_%d_%d.mp4", i+1, (j*20)-1, i+1, j);
-		// 						printf("%s\n", file_path);
-		// 						system(file_path);
-		// 					}
-		// 					#ifndef __FILE_SEND_CHANGE__
-		// 						if (Ready_Busy_Check() > 0){
-		// 							printf("rec0_%d_%d.mp4 Start!\n", i+1, j);
-		// 							memset(file_path, 0, 128);
-		// 							sprintf(file_path, "/dev/shm/rec0_%d_%d.mp4", i+1, j);
-		// 							spi_send_file(REC_STREAMING_M, file_path, i, j+1, 1);
-		// 							// spi_send_fake_file(REC_STREAMING_M);
-		// 						}
-		// 						else {
-		// 							printf("Fail to Send rec0_%d_%d.mp4\n", i+1, j);
-		// 						}
-								
-		// 						if (Ready_Busy_Check() > 0){
-		// 							printf("rec3_%d_%d.mp4 Start!\n", i+1, j);
-		// 							memset(file_path, 0, 128);
-		// 							sprintf(file_path, "/dev/shm/rec3_%d_%d.mp4", i+1, j);
-		// 							spi_send_file(REC_STREAMING_B, file_path, i, j+1, 2);
-		// 							// spi_send_fake_file(REC_STREAMING_B);
-		// 						}
-		// 						else {
-		// 							printf("Fail to Send rec3_%d_%d.mp4\n", i+1, j);
-		// 						}
-		// 					#endif
-		// 				}
-		// 				#ifdef __FILE_SEND_CHANGE__
-		// 					FileSend fs;
-		// 					if (stream_tag[i] == CLIP_CAUSE_STREM) {
-		// 						fs.minor = REC_STREAMING_M;
-		// 						fs.tag1 = CLIP_CAUSE_STREM;
-		// 						fs.tag2 = CLIP_STREAM_REC;
-		// 					}
-		// 					else {
-		// 						fs.minor = REC_CLIP_F;
-		// 						fs.tag1 = CLIP_CAUSE_BELL;
-		// 						fs.tag2 = CLIP_BELL_CALL;
-		// 					}
-		// 					fs.filenum = i;
-		// 					fs.filecnt = file_cnt_rec;
-		// 					if (i == 0 || (Ready_Busy_Check() > 0)) { 
-		// 						ret = spi_send_total_stream_clip(&fs);
-		// 						if(ret < 0) {
-		// 							printf("File Send Fail!!\n");
-		// 						}
-		// 					}
-		// 					else {
-		// 						printf("Start RB Faile!\n");
-		// 					}
-		// 				#endif
-		// 			}
-		// 			printf("up load time : %lld\n", sample_gettimeus() - test_up_time);
-		// 			system("cp /dev/shm/rec3_1.mp4 /tmp/mnt/sdcard/box.mp4");
-		// 			system("sync");
-		// 		}
-		// 	}
-		// 	device_end(STREAMING);
-		// 	printf("Streaming Mode End!!\n");
-		// 	bUart = true;
-		// 	sleep(2);
-		// 	break;
-		// }
-
 #endif
 			
 	}while(1);

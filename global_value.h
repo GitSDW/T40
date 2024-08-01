@@ -13,11 +13,11 @@ extern "C" {
 #ifndef __PHILL_REQ__
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"8"
-	#define CAHR_VER	"d"
+	#define CAHR_VER	"g"
 #else
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"9"	
-	#define CAHR_VER	"p"
+	#define CAHR_VER	"r"
 #endif
 
 typedef struct CIRCULAR_BUFF
@@ -240,6 +240,7 @@ int64_t rec_total;
 int64_t rec_time_s;
 int64_t rec_each_time[10];
 int64_t audio_timeout;
+int64_t mosaic_time[10];
 
 int stream_state;
 int thumbnail_state;
@@ -249,7 +250,6 @@ int fr_state;
 int polling_err_cnt;
 int rec_cnt;
 
-// int rec_state;
 int clip_rec_state;
 int streaming_rec_state;
 int rec_streaming_state;
@@ -262,11 +262,8 @@ int bl_state;
 
 int spk_vol_buf;
 int spk_gain_buf;
+int send_retry;
 
-
-// bool rec_stop;
-// bool main_rec_end;
-// bool box_rec_end;
 bool main_snap;
 bool box_snap;
 bool thumbnail_snap;
@@ -307,6 +304,9 @@ bool bOTA, ota_flag;
 bool audio_start_flag;
 bool file_21_flag;
 bool rfile_flag[10];
+bool mem_full_flag;
+bool av_off_flag;
+bool send_retry_flag;
 
 
 extern int bExit;
@@ -334,6 +334,7 @@ enum BELL_SNAP_STATE {
   BSS_SEND,  					// 2
   // THUMB_SUCCESS,		// 3
   BSS_END,					// 3
+  BSS_MAKE,
 };
 
 enum TEMP_SNAP_STATE {
@@ -352,6 +353,7 @@ enum REC_STATE {
 	REC_WAIT,				// 4
 	REC_MP4MAKE,		// 5
 	REC_SPISEND,
+	REC_SENDEND,
 	REC_RECONNECT,
 };
 
@@ -408,9 +410,10 @@ enum CLIP_MOUNT {
 enum REC_TYPE {
 	CLIP_REC   		= 0,	// 0
 	BELL_REC 		= 1,  	// 1
-	TEMP_REC    	= 2,
-	MAKE_FILE		= 3,
-	SEND_FILE 		= 4,
+	MAKE_FILE		= 2,
+	SEND_FILE 		= 3,
+	STRM_REC 		= 4,
+	BELL_REREC 		= 5,
 };
 
 // #define __TEST_FAKE_VEDIO__
@@ -418,6 +421,7 @@ enum REC_TYPE {
 // #define __BOX_ALGORITH__
 #define __G726__
 #define __FILE_SEND_CHANGE__
+#define __PRIVERCE_SIZE_UP__
 
 #ifdef __TEST_FAKE_VEDIO__
 	int led_cnt;

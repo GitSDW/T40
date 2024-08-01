@@ -186,7 +186,7 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
     return box_cnt;
 }
 
-int box_resize(char *imgpath1) {
+int box_resize(char *imgpath1, char *outpath) {
     // int64_t cv_time = sample_gettimeus();
     // int64_t cv_buf;
     // int boxscale=0, boxscale2=0;
@@ -194,6 +194,7 @@ int box_resize(char *imgpath1) {
 
     // 이미지 파일 경로 설정
     string imagePath = imgpath1;
+    string outPath = outpath;
 
     cv::Mat img1 = cv::imread(imagePath);
     // cv::imwrite("/tmp/mnt/sdcard/box_a.jpg", img1);
@@ -214,7 +215,7 @@ int box_resize(char *imgpath1) {
 
     img1 = img1(roi);
 
-    cv::imwrite("/dev/shm/box_r.jpg", img1);
+    cv::imwrite(outPath, img1);
     // cv::imwrite("/tmp/mnt/sdcard/box_r.jpg", img1);
 
     return box_cnt;
@@ -795,7 +796,7 @@ int thumbnail_make(Thum_Data_t cont) {
         ///////////////// Log Point /////////////////
     }
 
-    resizeImage(mosaic, 640, 360);
+    resizeImage(mosaic, 640, 480);
 
     // 모자이크 처리된 이미지 저장
     imwrite(outputImagePath, mosaic);
@@ -814,6 +815,8 @@ int facecrop_make(Fdpd_Data_t cont) {
     cy = (cont.ul_y + cont.br_y)/2;
     size = cont.br_y - cont.ul_y;
     size = size*2;
+    if (size > 500) size = 500;
+
     x = cx - (size/2);
     y = cy - (size/2);
 
@@ -822,6 +825,18 @@ int facecrop_make(Fdpd_Data_t cont) {
 
     if (x+size >= 1920) x = 1920-size-1;
     if (y+size >= 1080) y = 1080-size-1;
+    
+    // }
+    // else {
+    //     x = cx - 250;
+    //     y = cy - 250;
+
+    //     if (x < 0) x = 0;
+    //     if (y < 0) y = 0;
+
+    //     if (x+500 > 1920) x = 1920-500-1;
+    //     if (y+500 > 1080) y = 1080-500-1;
+    // }
 
     printf("cx:%d cy:%d size:%d x:%d y:%d\n", cx, cy, size, x, y);
     try {

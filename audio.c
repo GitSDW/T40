@@ -909,6 +909,8 @@ void *IMP_Audio_Play_Thread(void *argv)
 			return NULL;
 		}
 
+		// if (play_status.chnBusyNum) printf("buf busy : %d\n", play_status.chnBusyNum);
+
 		if (play_status.chnBusyNum < 20) {
 			pthread_mutex_lock(&buffMutex_ao);
 			if (AO_Cir_Buff.RIndex != AO_Cir_Buff.WIndex) {
@@ -962,6 +964,7 @@ void *IMP_Audio_Play_Thread(void *argv)
 					memcpy(buf, &AO_Cir_Buff.tx[AO_Cir_Buff.RIndex], datasize);
 					AO_Cir_Buff.RIndex = AO_Cir_Buff.WIndex = 0;
 					audio_start_flag = false;
+					printf("AO reinit!\n");
 				}
 			}
 			pthread_mutex_unlock(&buffMutex_ao);
@@ -1070,6 +1073,7 @@ void ao_file_play_thread(void *argv)
 	int size = 0;
 	int ret = -1;
 	int old_chnbusy=0, old_busy_cnt=0;
+	bool stop_flag = false;
 	// int total = 0;
 
 	buf = (unsigned char *)malloc(AUDIO_SAMPLE_BUF_SIZE);
@@ -1094,20 +1098,22 @@ void ao_file_play_thread(void *argv)
 	do {
 		if (bExit) break;
 
-		size = fread(buf, 1, AUDIO_SAMPLE_BUF_SIZE, play_file);
-		// if (size < AUDIO_SAMPLE_BUF_SIZE)
-			// break;
-		if (size == 0)
-			break;
+		if (!stop_flag) {
+			size = fread(buf, 1, AUDIO_SAMPLE_BUF_SIZE, play_file);
+			// if (size < AUDIO_SAMPLE_BUF_SIZE)
+				// break;
+			if (size == 0)
+				break;
 
-		/* Step 5: send frame data. */
-		IMPAudioFrame frm;
-		frm.virAddr = (uint32_t *)buf;
-		frm.len = size;
-		ret = IMP_AO_SendFrame(ao_devID, ao_chnID, &frm, NOBLOCK);
-		if (ret != 0) {
-			IMP_LOG_ERR(TAG, "send Frame Data error\n");
-			return;
+			/* Step 5: send frame data. */
+			IMPAudioFrame frm;
+			frm.virAddr = (uint32_t *)buf;
+			frm.len = size;
+			ret = IMP_AO_SendFrame(ao_devID, ao_chnID, &frm, BLOCK);
+			if (ret != 0) {
+				IMP_LOG_ERR(TAG, "send Frame Data error\n");
+				return;
+			}
 		}
 
 		IMPAudioOChnState play_status;
@@ -1127,6 +1133,8 @@ void ao_file_play_thread(void *argv)
 				if (old_busy_cnt%10 == 0) {
 					printf("busynum:%d\n", play_status.chnBusyNum);
 				}
+				if (play_status.chnBusyNum > 18) stop_flag = true;
+				else if (play_status.chnBusyNum > 5) stop_flag = false;
 			}
 		}
 

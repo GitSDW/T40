@@ -926,6 +926,9 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
     int sz_file;
     int len = 0;
     int wcnt = 0;
+
+    stream_state = 0;
+    usleep(300*1000);
     
     if ( 0 > stat(file, &file_info)) {
     	printf("File Size Not Check!!\n");
@@ -1084,6 +1087,9 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
 
         printf("m:%d t1:%d t2:%d fn:%d fc:%d\n", fs->minor, fs->tag1, fs->tag2, fs->filenum, fs->filecnt);
 
+        stream_state = 0;
+        usleep(300*1000);
+
         for (cnt=0; cnt<(fs->filecnt); cnt++) {
             memset(file, 0, 128);
             if (fs->tag1 == CLIP_CAUSE_BELL || fs->tag1 == CLIP_CAUSE_MOUNT) {
@@ -1156,9 +1162,9 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
         read_buff[5] = cnt*2;
         read_buff[6] = fs->tag1;
         read_buff[7] = fs->tag2;
-        // printf("S 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", 
-        //     read_buff[0], read_buff[1], read_buff[2], read_buff[3],
-        //     read_buff[4], read_buff[5], read_buff[6], read_buff[7]);
+        printf("S 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", 
+            read_buff[0], read_buff[1], read_buff[2], read_buff[3],
+            read_buff[4], read_buff[5], read_buff[6], read_buff[7]);
         Make_Spi_Packet(tx_buff, read_buff, len, REC, REC_STREAM_STR);
         // printf("S 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", 
         //             tx_buff[0], tx_buff[1], tx_buff[2], tx_buff[3],
@@ -1257,9 +1263,9 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
             read_buff[7] = scnt+1;
             read_buff[8] = 1;
             printf("File Size : %d pckcnt : %d wcnt : %d\n", sz_file[(scnt*2)], sz_file[(scnt*2)]/FILE_READ_LENGTH, wcnt);
-            // printf("E1 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", 
-            //     read_buff[0], read_buff[1], read_buff[2], read_buff[3],
-            //     read_buff[4], read_buff[5], read_buff[6], read_buff[7], read_buff[8]);
+            printf("E1 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", 
+                read_buff[0], read_buff[1], read_buff[2], read_buff[3],
+                read_buff[4], read_buff[5], read_buff[6], read_buff[7], read_buff[8]);
             Make_Spi_Packet(tx_buff, read_buff, len, REC, REC_STREAM_END);
             // printf("E1 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", 
             //         tx_buff[0], tx_buff[1], tx_buff[2], tx_buff[3],
@@ -1359,9 +1365,9 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
             read_buff[7] = scnt+1;
             read_buff[8] = 2;
             printf("File Size : %d pckcnt : %d wcnt : %d\n", sz_file[(scnt*2)+1], sz_file[(scnt*2)+1]/FILE_READ_LENGTH, wcnt);
-            // printf("E2 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", 
-            //     read_buff[0], read_buff[1], read_buff[2], read_buff[3],
-            //     read_buff[4], read_buff[5], read_buff[6], read_buff[7], read_buff[8]);
+            printf("E2 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", 
+                read_buff[0], read_buff[1], read_buff[2], read_buff[3],
+                read_buff[4], read_buff[5], read_buff[6], read_buff[7], read_buff[8]);
             Make_Spi_Packet(tx_buff, read_buff, len, REC, REC_STREAM_END);
             // printf("E2 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", 
             //         tx_buff[0], tx_buff[1], tx_buff[2], tx_buff[3],
@@ -1408,6 +1414,9 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
         // uint8_t seq = 0;
 
         printf("m:%d t1:%d t2:%d fn:%d fc:%d\n", fs->minor, fs->tag1, fs->tag2, fs->filenum, fs->filecnt);
+
+        stream_state = 0;
+        usleep(300*1000);
 
         for (cnt=0; cnt<(fs->filecnt); cnt++) {
             memset(file, 0, 128);
@@ -1617,6 +1626,9 @@ int spi_send_file_face(uint8_t minor, int fcnt)
     char file[64];
     int i = 0;
 
+    stream_state = 0;
+    usleep(300*1000);
+
     for (i=0; i<fcnt; i++) {
 
         sprintf(file, "/dev/shm/face_crop%d.jpg", i);
@@ -1734,6 +1746,8 @@ int spi_send_file_dual(uint8_t minor1, uint8_t minor2, char *file1, char *file2)
     int len = 0;
     int wcnt = 0;
  
+    stream_state = 0;
+    usleep(300*1000);
     
     if ( 0 > stat(file1, &file_info1)) {
         printf("File1 Size Not Check!!\n");
@@ -1904,8 +1918,6 @@ int spi_send_fake_file(uint8_t minor)
     int ret = -1;
     int dly = 3;
     int sz_file;
-    
-    
     
     sz_file = 1024*600;
     // sz_file = 900*20 + 450;

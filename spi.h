@@ -68,6 +68,8 @@ typedef enum {
 	UREC_STREAM		= 0x43,
 	UREC_TEMPER 	= 0x44,
 	UREC_STREAM_END = 0x45,
+	UREC_BELL_MUTE 	= 0x46,
+	UREC_RETRY  	= 0x47,
 
 	REC_ACK  		= 0x80,
 	REC_DATE  		= 0x7E,
