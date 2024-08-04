@@ -1367,12 +1367,15 @@ int clip_total(void) {
 						#else
 							if (Ready_Busy_Check() > 0 && thumbnail_state == THUMB_END) {
 								send_retry_flag = false;
-								ret = spi_send_file_face(REC_SNAPSHOT, face_crop_cnt);
+								uint8_t snap_minor = 0;
+								if (face_crop_cnt > 0) snap_minor = REC_FACESHOT;
+								else snap_minor = REC_SNAPSHOT;
+								ret = spi_send_file_face(snap_minor, face_crop_cnt);
 								if (ret < 0) {
 									retry_time = sample_gettimeus();
 									while (!send_retry_flag) {
 										if (send_retry_flag) {
-											spi_send_file_face(REC_SNAPSHOT, face_crop_cnt);
+											spi_send_file_face(snap_minor, face_crop_cnt);
 										}
 										if ((sample_gettimeus() - retry_time) > 15000000) {
 											dp("Motion Cap Faile!\n");

@@ -912,11 +912,11 @@ int video_init(void) {
 
 	dp("Main Bright : %d %d\n", mbright, bbright);
 
-	mbright += 20;
-	bbright += 20;
+	// mbright += 20;
+	// bbright += 20;
 
-	IMP_ISP_Tuning_SetBrightness(IMPVI_MAIN, &mbright);
-	IMP_ISP_Tuning_SetBrightness(IMPVI_MAIN+1, &bbright);
+	// IMP_ISP_Tuning_SetBrightness(IMPVI_MAIN, &mbright);
+	// IMP_ISP_Tuning_SetBrightness(IMPVI_MAIN+1, &bbright);
 
 	// uint8_t contrast = 110;
 

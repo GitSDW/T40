@@ -1813,6 +1813,8 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
         
         dp("Face File Count : %d\n", read_buff[5]);
         Make_Spi_Packet(tx_buff, read_buff, len, REC, REC_STREAM_STR);
+        dp("0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", 
+            read_buff[0], read_buff[1], read_buff[2], read_buff[3], read_buff[4], read_buff[5]);
 
         spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
 
