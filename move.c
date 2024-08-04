@@ -53,7 +53,7 @@ int sample_ivs_move_start(int grp_num, int chn_num, IMPIVSInterface **interface)
     //MOVE_VERSION_NUM defined in ivs_inf_move.h.
     uint32_t move_ver = move_get_version_info();
     if(move_ver != MOVE_VERSION_NUM){
-        printf("The version numbers of head file and lib do not match, head file version: %08x, lib version: %08x\n", MOVE_VERSION_NUM, move_ver);        
+        dp("The version numbers of head file and lib do not match, head file version: %08x, lib version: %08x\n", MOVE_VERSION_NUM, move_ver);        
         return -1;
     }
     //check ivs version    
@@ -180,7 +180,7 @@ IMPIVSInterface *inteface = NULL;
 
 static void *sample_ivs_move_get_result_process(void *arg)
 {
-	printf("move detect\n");
+	dp("move detect\n");
 	int ret = 0;
 	int chn_num = (int)arg;
 	move_param_output_t *result = NULL;
@@ -200,7 +200,7 @@ static void *sample_ivs_move_get_result_process(void *arg)
 		return (void *)-1;
 	}
 
-	printf("Move Start!!\n");
+	dp("Move Start!!\n");
 
 	// move_end = true;
 	detect_flag = false;
@@ -221,15 +221,15 @@ static void *sample_ivs_move_get_result_process(void *arg)
   		
   		// ex_check = false;
 		if (result->ret > 0) {
-			// printf("[Alive]result->ret=%d result->count%d result->detcount%d\n", result->ret, result->count, result->detcount);
+			// dp("[Alive]result->ret=%d result->count%d result->detcount%d\n", result->ret, result->count, result->detcount);
 			for (int j=0; j<8; j++){
 				if (result->rects[j].ul.x == 0 && result->rects[j].ul.y == 0 && result->rects[j].br.x == 0 && result->rects[j].br.y == 0){
-					// printf("[%d]Not Detection Position!\n", j);
+					// dp("[%d]Not Detection Position!\n", j);
 				}
 				else if (((result->rects[j].ul.x >= move_det_xs && result->rects[j].ul.x <= move_det_xe) && (result->rects[j].ul.y >= move_det_ys && result->rects[j].ul.y <= move_det_ye)) &&
 					( (result->rects[j].br.x >= move_det_xs && result->rects[j].br.x <= move_det_xe) && (result->rects[j].br.y >= move_det_ys && result->rects[j].br.y <= move_det_ye)))
 				{
-					// printf("Prohibited Areas, Motion Not Detection!!!\n ");
+					// dp("Prohibited Areas, Motion Not Detection!!!\n ");
 					if (!move_flag) {
 						detect_flag = true;;
 					}
@@ -237,7 +237,7 @@ static void *sample_ivs_move_get_result_process(void *arg)
 						// ex_check = true;
 
 						det_ex_cnt = 0;
-						// printf("EX Area!!\n");
+						// dp("EX Area!!\n");
 						det_ex_cnt2++;
 						if (det_ex_cnt2 > 2) {
 							detect_flag = false;
@@ -249,10 +249,10 @@ static void *sample_ivs_move_get_result_process(void *arg)
 						// 	min_pixel_y2 = result->rects[j].ul.y;
 						// 	max_pixel_x2 = result->rects[j].br.x;
 						// 	max_pixel_y2 = result->rects[j].br.y;
-						// 	printf("2ret:%d\n", result->ret);
-						// 	printf("2count:%d\n", result->count);
-						// 	printf("2blksize:%d\n", result->blockSize);
-						// 	printf("2rectcnt:%d\n", result->rectcnt);
+						// 	dp("2ret:%d\n", result->ret);
+						// 	dp("2count:%d\n", result->count);
+						// 	dp("2blksize:%d\n", result->blockSize);
+						// 	dp("2rectcnt:%d\n", result->rectcnt);
 						// 	ex_w = result->rects[j].br.x - result->rects[j].ul.x;
 						// 	if (ex_w < 0) ex_w *= -1;
 						// 	ex_h = result->rects[j].br.y - result->rects[j].ul.y;
@@ -275,7 +275,7 @@ static void *sample_ivs_move_get_result_process(void *arg)
 					// bufv = bufw*bufh;
 
 					// }
-					// printf("sx:%d sy:%d ex:%d ey:%d\n", result->rects[j].ul.x , result->rects[j].ul.y, result->rects[j].br.x, result->rects[j].br.x );
+					// dp("sx:%d sy:%d ex:%d ey:%d\n", result->rects[j].ul.x , result->rects[j].ul.y, result->rects[j].br.x, result->rects[j].br.x );
 					// if (!detect_flag && (center_x < move_det_xs || center_x > move_det_xe) && (center_y < move_det_ys || center_y > move_det_ye)){
 					// if (result->rectcnt > 1 && (ex_v < bufv)){
 						// detect_flag = true;;
@@ -283,22 +283,22 @@ static void *sample_ivs_move_get_result_process(void *arg)
 					// }
 					if (det_ex_cnt < 5) {
 						det_ex_cnt++;
-						// printf("1Out Area! %d\n", det_ex_cnt);
+						// dp("1Out Area! %d\n", det_ex_cnt);
 					}
 					else {
 						det_ex_cnt = 0;
 						detect_flag = true;
-						// printf("2Out Area! %d\n", det_ex_cnt);
+						// dp("2Out Area! %d\n", det_ex_cnt);
 						// if (!ex_flag) {
 						// 	ex_flag = true;
 						// 	min_pixel_x = result->rects[j].ul.x;
 						// 	min_pixel_y = result->rects[j].ul.y;
 						// 	max_pixel_x = result->rects[j].br.x;
 						// 	max_pixel_y = result->rects[j].br.y;
-						// 	printf("1ret:%d\n", result->ret);
-						// 	printf("1count:%d\n", result->count);
-						// 	printf("1blksize:%d\n", result->blockSize);
-						// 	printf("1rectcnt:%d\n", result->rectcnt);
+						// 	dp("1ret:%d\n", result->ret);
+						// 	dp("1count:%d\n", result->count);
+						// 	dp("1blksize:%d\n", result->blockSize);
+						// 	dp("1rectcnt:%d\n", result->rectcnt);
 						// }
 					}
 					// else if (result->rectcnt == 1){
@@ -309,11 +309,11 @@ static void *sample_ivs_move_get_result_process(void *arg)
 					// 		min_pixel_y = result->rects[j].ul.y;
 					// 		max_pixel_x = result->rects[j].br.x;
 					// 		max_pixel_y = result->rects[j].br.y;
-					// 		printf("1ret:%d\n", result->ret);
-					// 		printf("1count:%d\n", result->count);
-					// 		printf("1blksize:%d\n", result->blockSize);
-					// 		printf("1rectcnt:%d\n", result->rectcnt);
-					// 		printf("1detcnt:%d\n", result->detcount);
+					// 		dp("1ret:%d\n", result->ret);
+					// 		dp("1count:%d\n", result->count);
+					// 		dp("1blksize:%d\n", result->blockSize);
+					// 		dp("1rectcnt:%d\n", result->rectcnt);
+					// 		dp("1detcnt:%d\n", result->detcount);
 					// 	}
 					// }
 				}
@@ -330,7 +330,7 @@ static void *sample_ivs_move_get_result_process(void *arg)
 				detect_off_timer = 0;
 				main_motion_detect++;
 			}
-			// printf("Movement!! %d\n", detect_on_cnt);
+			// dp("Movement!! %d\n", detect_on_cnt);
 		}
 		else{
 			detect_off_cnt++;
@@ -340,7 +340,7 @@ static void *sample_ivs_move_get_result_process(void *arg)
 				main_motion_detect = 0;
 				detect_off_timer++;
 			}
-			// printf("No movement!! %d\n", detect_off_timer);
+			// dp("No movement!! %d\n", detect_off_timer);
 			
 		}
 
@@ -378,7 +378,7 @@ IMPCell ivs_cell = {DEV_ID_IVS, 0, 0};
 
 int move_init(IMPCell source_framecell)
 {
-    // printf("move init\n");
+    // dp("move init\n");
 	int ret;
 	
 
@@ -412,7 +412,7 @@ int move_init(IMPCell source_framecell)
 
 int move(void)
 {
-    // printf("move\n");
+    // dp("move\n");
 	int ret;
 	pthread_t ivs_tid;
 
@@ -430,7 +430,7 @@ int move(void)
 		IMP_LOG_ERR(TAG, "sample_ivs_get_result_stop failed\n");
 		return -1;
 	}
-	printf("move join\n");
+	dp("move join\n");
 
 	return 0;
 }
@@ -438,7 +438,7 @@ int move(void)
 
 int move_deinit(IMPCell source_framecell)
 {
-    printf("move deinit\n");
+    dp("move deinit\n");
 	int ret;
 
 	/* Step.9 stop to ivs */

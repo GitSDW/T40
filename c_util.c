@@ -45,7 +45,7 @@ int check_delay_time(void)
         }
     }
     else {
-        // printf("Not Set Timer!\n");
+        // dp("Not Set Timer!\n");
         return 1;
     }
 }
@@ -62,10 +62,10 @@ void set_delay_time(int64_t ti)
         {
             set_time = sample_gettimeus();
             cnt_time = ti;
-            // printf("Set Timer:%lld\n", cnt_time);
+            // dp("Set Timer:%lld\n", cnt_time);
         }
         else {
-            // printf("Already Set!\n");
+            // dp("Already Set!\n");
         }
     }
 }
@@ -134,9 +134,9 @@ char** listJPGFiles(const char* folderPath, int* fileCount) {
 
 // 파일 리스트 출력 함수
 void displayFileList(char** fileList, int fileCount) {
-    printf("JPG Files in the Folder:\n");
+    dp("JPG Files in the Folder:\n");
     for (int i = 0; i < fileCount; ++i) {
-        printf("[%d] %s\n", i, fileList[i]);
+        dp("[%d] %s\n", i, fileList[i]);
     }
 }
 
@@ -156,7 +156,7 @@ char** listFilesInDirectory(const char* directory, const char* filename) {
         if (entry->d_type == DT_REG) {  // 디렉토리가 아니라면
             filecmp_cnt = strcmp(entry->d_name, filename);
             if (filecmp_cnt == 95) {
-                // printf("%s %s %d\n", entry->d_name, filename, filecmp_cnt);
+                // dp("%s %s %d\n", entry->d_name, filename, filecmp_cnt);
                 fileList[count] = malloc(strlen(entry->d_name) + 1);
                 strcpy(fileList[count], entry->d_name);
                 count++;
@@ -180,12 +180,12 @@ int FileShow(const char* directory, const char* filename) {
 
     // 파일 리스트 출력
     for (int i = 0; files[i] != NULL; ++i) {
-        printf("%s\n", files[i]);
+        dp("%s\n", files[i]);
         for (int j=10; j > 0; j--) {
             sprintf(file_name, "%s_%d.mp4", filename, j);
             ret = strcmp(files[i], file_name);
             if (ret == 0) {
-                printf("%s[%d]:%d %s %s\n", __func__, i, ret, files[i], file_name);
+                dp("%s[%d]:%d %s %s\n", __func__, i, ret, files[i], file_name);
                 if (result < j) {
                     result = j;
                 }
@@ -216,7 +216,7 @@ int SetTime(int year, int month, int day, int hour, int min, int sec) {
     tzset();
 
     // 시간을 설정할 값으로 변경
-    // printf("%s : %d %d %d %d %d %d\n", __func__, year, month, day, hour, min, sec);
+    // dp("%s : %d %d %d %d %d %d\n", __func__, year, month, day, hour, min, sec);
     local_time->tm_year = year - 1900; // 년도는 1900년을 기준으로 설정
     local_time->tm_mon  = month - 1; // 월은 0부터 시작하므로 4월은 3
     local_time->tm_mday = day;
@@ -233,7 +233,7 @@ int SetTime(int year, int month, int day, int hour, int min, int sec) {
         return 1;
     }
 
-    printf("Set Time: %s", asctime(local_time));
+    dp("Set Time: %s", asctime(local_time));
 
     return 0;
 }
@@ -247,7 +247,7 @@ int GetTime() {
     local_time = localtime(&current_time);
 
     // 시간 출력
-    printf("Now Time: %s", asctime(local_time));
+    dp("Now Time: %s", asctime(local_time));
 
     return 0;
 }
@@ -299,17 +299,17 @@ void set_system_time_from_file() {
         fprintf(stderr, "Error setting system time\n");
     }
 
-    printf("System time has been set from file.\n");
+    dp("System time has been set from file.\n");
 }
 
 int file_ck(const char* filename) {
 
     // access 함수를 사용하여 파일이 존재하는지 확인
     if (access(filename, F_OK) != -1) {
-        printf("File Exist.\n");
+        dp("File Exist.\n");
         return 1;
     } else {
-        printf("Not Found File.\n");
+        dp("Not Found File.\n");
         return 0;
     }
 
@@ -375,7 +375,7 @@ void delete_oldest_file(const char* folder_path) {
         perror("Fail to Delete!");
         exit(EXIT_FAILURE);
     }
-    printf("Oldest file del: %s\n", oldest_file_name);
+    dp("Oldest file del: %s\n", oldest_file_name);
 }
 
 int old_file_del(void) {
@@ -391,7 +391,7 @@ int old_file_del(void) {
     while ((entry1 = readdir(folder1)) != NULL) {
         // 파일명에서 날짜 추출
         char* date = extract_date_from_filename(entry1->d_name);
-        printf("File1: %s, Date: %s\n", entry1->d_name, date);
+        dp("File1: %s, Date: %s\n", entry1->d_name, date);
         free(date);
         file_count++;
     }
@@ -407,7 +407,7 @@ int old_file_del(void) {
     while ((entry2 = readdir(folder2)) != NULL) {
         // 파일명에서 날짜 추출
         char* date = extract_date_from_filename(entry2->d_name);
-        printf("File2: %s, Date: %s\n", entry2->d_name, date);
+        dp("File2: %s, Date: %s\n", entry2->d_name, date);
         free(date);
         file_count++;
     }
@@ -415,7 +415,7 @@ int old_file_del(void) {
 
     // 파일 개수가 최대 파일 개수를 초과하는 경우 가장 오래된 파일 삭제
     if (file_count > MAX_FILES) {
-        printf("File Num over %d. Oldest file delete.\n", MAX_FILES);
+        dp("File Num over %d. Oldest file delete.\n", MAX_FILES);
         delete_oldest_file(FOLDER1_PATH);
         delete_oldest_file(FOLDER2_PATH);
     }
@@ -444,7 +444,7 @@ int file_name_get(SaveFile *filelist, int topbot) {
         }
 
         // 파일 개수 출력
-        // printf("File Count: %d\n", file_count);
+        // dp("File Count: %d\n", file_count);
 
         // 다시 폴더 처음부터 열기
         rewinddir(dir);
@@ -453,7 +453,7 @@ int file_name_get(SaveFile *filelist, int topbot) {
         while ((ent = readdir(dir)) != NULL) {
             if (strcmp(ent->d_name, ".") != 0 && strcmp(ent->d_name, "..") != 0) {
                 sprintf(filelist->name[cnt], "%s", ent->d_name);
-                // printf("%d%s\n", cnt, ent->d_name);
+                // dp("%d%s\n", cnt, ent->d_name);
                 cnt++;
             }
         }
@@ -470,7 +470,7 @@ int file_name_get(SaveFile *filelist, int topbot) {
         }
 
         // 파일 개수 출력
-        // printf("File Count: %d\n", file_count);
+        // dp("File Count: %d\n", file_count);
 
         // 다시 폴더 처음부터 열기
         rewinddir(dir);
@@ -479,7 +479,7 @@ int file_name_get(SaveFile *filelist, int topbot) {
         while ((ent = readdir(dir)) != NULL) {
             if (strcmp(ent->d_name, ".") != 0 && strcmp(ent->d_name, "..") != 0) {
                 sprintf(filelist->name[cnt], "%s", ent->d_name);
-                // printf("%d%s\n", cnt, ent->d_name);
+                // dp("%d%s\n", cnt, ent->d_name);
                 cnt++;
             }
         }
@@ -503,18 +503,18 @@ int md5_get(char *filepath, char *md5_char)
     FILE *fp;
 
     sprintf(buff, "md5sum %s", filepath);
-    printf("filepath:%s\n", buff);
+    dp("filepath:%s\n", buff);
 
     int fd = open(filepath, O_RDONLY);
     if (fd < 0) {
-        printf("File Not exist!\n");
+        dp("File Not exist!\n");
         return -1;
     }
 
     fp = popen(buff, "r");
     if (NULL == fp)
     {
-        printf("md5 fail!\n");
+        dp("md5 fail!\n");
         perror("popen() 실패");
         return -1;
     }
@@ -524,7 +524,7 @@ int md5_get(char *filepath, char *md5_char)
     for(int i=0; i<1024; i++) {
         if (buff[i] != ' ') {
             md5_char[i] = buff[i];
-            // printf("i:%d char:%c\n", i, md5_char[i]);
+            // dp("i:%d char:%c\n", i, md5_char[i]);
         }
         else {
             md5_char[i] = 0;
@@ -532,7 +532,7 @@ int md5_get(char *filepath, char *md5_char)
         }
     }
 
-    printf("hash : %s\n", md5_char);
+    dp("hash : %s\n", md5_char);
 
     pclose(fp);
 

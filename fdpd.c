@@ -55,7 +55,7 @@ int sample_ivs_facepersondet_start(int grp_num, int chn_num, IMPIVSInterface **i
     //FACEPERSONDET_VERSION_NUM defined in ivs_inf_facepersondet.h .
     uint32_t facepersondet_ver = facepersondet_get_version_info();
     if(facepersondet_ver != FACEPERSONDET_VERSION_NUM){
-        printf("The version numbers of head file and lib do not match, head file version: %08x, lib version: %08x\n", FACEPERSONDET_VERSION_NUM, facepersondet_ver);
+        dp("The version numbers of head file and lib do not match, head file version: %08x, lib version: %08x\n", FACEPERSONDET_VERSION_NUM, facepersondet_ver);
         return -1;
     }
     //check ivs version
@@ -161,7 +161,7 @@ int sample_ivs_facepersondet_stop(int chn_num, IMPIVSInterface *interface) {
 }
 
 // int main(int argc, char *argv[]) {
-//     printf("faceperson detect\n");
+//     dp("faceperson detect\n");
 //     int ret = 0;
 //     IMPIVSInterface *inteface = NULL;
 //     facepersondet_param_output_t *result = NULL;
@@ -268,7 +268,7 @@ int sample_ivs_facepersondet_stop(int chn_num, IMPIVSInterface *interface) {
 //             }
 //         }
 //         if(r->count > 0) {
-//             printf("r->count %d\n", r->count);
+//             dp("r->count %d\n", r->count);
 //             for(int i = 0; i < r->count; i++) {
 //                 int track_id = r->faceperson[i].track_id;
 //                 int class_id = r->faceperson[i].class_id;
@@ -279,7 +279,7 @@ int sample_ivs_facepersondet_stop(int chn_num, IMPIVSInterface *interface) {
 //                 y0 = (int)show_rect->ul.y;
 //                 x1 = (int)show_rect->br.x;
 //                 y1 = (int)show_rect->br.y;
-//                 printf("faceperson location: class[%d] [%d, %d, %d, %d] \n", class_id,x0, y0, x1, y1);
+//                 dp("faceperson location: class[%d] [%d, %d, %d, %d] \n", class_id,x0, y0, x1, y1);
 //             }
 //         }
 //         ret = IMP_IVS_ReleaseResult(2, (void *)result);
@@ -340,7 +340,7 @@ extern IMPRgnHandle *prHander;
 
 void *fdpd_thread(void *args) 
 {
-    printf("faceperson detect\n");
+    dp("faceperson detect\n");
     int ret = 0;
     int i;
     // uint64_t now_time;
@@ -409,7 +409,7 @@ void *fdpd_thread(void *args)
             face_num = 0;
             person_num = 0;
             fdpd_ck = true;
-            // printf("fdpd Check \n", fdpd_ck);
+            // dp("fdpd Check \n", fdpd_ck);
             for (i = 0; i < r->count; i++) {
                 if(i < r->count) {
                     int class_id = r->faceperson[i].class_id;   // 0 : face 1: person(body)
@@ -427,7 +427,7 @@ void *fdpd_thread(void *args)
                     fdpd_data[i].br_x = (int)show_rect->br.x;
                     fdpd_data[i].br_y = (int)show_rect->br.y;
 
-                    // printf("confidence:%f\n", confidence);
+                    // dp("confidence:%f\n", confidence);
 
                     if (fdpd_data[i].classid == 0 && Mosaic_En) {
                         #ifdef __PRIVERCE_SIZE_UP__
@@ -447,8 +447,8 @@ void *fdpd_thread(void *args)
                             if (fdpd_data[i].br_y < (1080-cover_h)) cover_ey = fdpd_data[i].br_y + cover_h;
                             else cover_ey = 1080-1;
 
-                            // printf("1 sx:%d sy:%d 2 sx:%d ey:%d\n", cover_sx, cover_sy, fdpd_data[i].ul_x, fdpd_data[i].ul_y);
-                            // printf("1 ex:%d ey:%d 2 ex:%d ey:%d\n", cover_ex, cover_ey, fdpd_data[i].br_x, fdpd_data[i].br_y);
+                            // dp("1 sx:%d sy:%d 2 sx:%d ey:%d\n", cover_sx, cover_sy, fdpd_data[i].ul_x, fdpd_data[i].ul_y);
+                            // dp("1 ex:%d ey:%d 2 ex:%d ey:%d\n", cover_ex, cover_ey, fdpd_data[i].br_x, fdpd_data[i].br_y);
 
                             rect_rAttr.type = OSD_REG_COVER;
                             rect_rAttr.rect.p0.x = cover_sx;
@@ -483,13 +483,13 @@ void *fdpd_thread(void *args)
                         }
                     }
 
-                    // printf("fdpd cnt: %d/%d class : %d track %d confidence : %f \n", i, r->count, class_id, track_id, confidence);
+                    // dp("fdpd cnt: %d/%d class : %d track %d confidence : %f \n", i, r->count, class_id, track_id, confidence);
                 
                     if(class_id == 0 && confidence > 0) {
                         face_num++;
-                        // printf("fdpd cnt: %d/%d class : %d track %d confidence : %f x : %d y : %d\n"
+                        // dp("fdpd cnt: %d/%d class : %d track %d confidence : %f x : %d y : %d\n"
                             // , i, r->count, class_id, track_id, confidence, fdpd_data[i].ul_x, fdpd_data[i].ul_y);
-                        // printf("fr:%d confidence:%f thumbnail_snap:%d\n", fr_state, confidence, thumbnail_snap);
+                        // dp("fr:%d confidence:%f thumbnail_snap:%d\n", fr_state, confidence, thumbnail_snap);
                         // if ((fr_state == 1 && track_id > 0 && confidence > 0.85) &&
                         if ((fr_state == FR_START && confidence > 0.90 && !thumbnail_snap) &&
                             (((fdpd_data[i].ul_x+fdpd_data[i].br_x)/2) > 200) &&
@@ -513,7 +513,7 @@ void *fdpd_thread(void *args)
                             facial_data.br_x = fdpd_data[i].br_x;
                             facial_data.br_y = fdpd_data[i].br_y;
                             face_snap = true;
-                            printf("x:%d, y:%d, confidence:%f\n", facial_data.ul_x, facial_data.ul_y, facial_data.confidence);
+                            dp("x:%d, y:%d, confidence:%f\n", facial_data.ul_x, facial_data.ul_y, facial_data.confidence);
                         }
                     }
                     else { 
@@ -535,9 +535,9 @@ void *fdpd_thread(void *args)
             //         str_p += sprintf(fp_data+str_p, "%s", face[i]);
             //     }
             //     str_p += sprintf(fp_data+str_p, "\n");
-            //     // printf("%s", fp_data);
+            //     // dp("%s", fp_data);
             //     if (write(fd, (void *)fp_data, str_p) != str_p)
-            //        printf("write Len Err!");
+            //        dp("write Len Err!");
             // }
         }
         else {

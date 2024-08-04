@@ -345,9 +345,9 @@ int sensor_bypass[3] = {0, 0, 1};
 
 int sample_change_joint_mode(IMPISPCameraInputMode *dualmode)
 {
-	//printf("before joint_mode = %d\n",mode.joint_mode);
+	//dp("before joint_mode = %d\n",mode.joint_mode);
 	mode.joint_mode = dualmode->joint_mode;
-	//printf("late joint_mode = %d\n",mode.joint_mode);
+	//dp("late joint_mode = %d\n",mode.joint_mode);
 	return 0;
 }
 int sample_system_init()
@@ -651,7 +651,7 @@ static void *get_frame(void *args)
 	}
 
 	for (i = 0; i < NR_FRAMES_TO_SAVE; i++) {
-		printf("IMP_FrameSource_GetFrame(%d) i=%d\n",chnNum,i);
+		dp("IMP_FrameSource_GetFrame(%d) i=%d\n",chnNum,i);
 		ret = IMP_FrameSource_GetFrame(chnNum, &frame);
 		if (ret < 0) {
 			IMP_LOG_ERR(TAG, "IMP_FrameSource_GetFrame(%d) i=%d failed\n", chnNum, i);
@@ -735,7 +735,7 @@ static void *get_frameEx(void *args)
 	}
 
 	for (i = 0; i < NR_FRAMES_TO_SAVE; i++) {
-		printf("IMP_FrameSource_GetFrameEx%d i=%d\n",chnNum,i);
+		dp("IMP_FrameSource_GetFrameEx%d i=%d\n",chnNum,i);
 		ret = IMP_FrameSource_GetFrameEx(chnNum, &frame);
 		if (ret < 0) {
 			IMP_LOG_ERR(TAG, "IMP_FrameSource_GetFrameEx(%d) i=%d failed\n", chnNum, i);
@@ -808,7 +808,7 @@ int sample_framesource_init(int ch)
                 return -1;
     }
 
-    // printf("CH %d Crop EN:%d, x:%d y:%d w:%d h:%d\n",   ch,
+    // dp("CH %d Crop EN:%d, x:%d y:%d w:%d h:%d\n",   ch,
                                                         // imp_chn_attr_check.crop.enable,
                                                         // imp_chn_attr_check.crop.left,
                                                         // imp_chn_attr_check.crop.top,
@@ -883,7 +883,7 @@ int sample_encoder_init(int ch)
             IMP_LOG_ERR(TAG, "IMP_FrameSource_GetI2dAttr(%d) error !\n", chn[i].index);
             return -1;
         }
-        // printf("ch:%d en:%d rotate en:%d ratate:%d\n", chn[i].index, sti2dattr.i2d_enable, sti2dattr.rotate_enable, sti2dattr.rotate_angle);
+        // dp("ch:%d en:%d rotate en:%d ratate:%d\n", chn[i].index, sti2dattr.i2d_enable, sti2dattr.rotate_enable, sti2dattr.rotate_angle);
 
         // if (ch == 3) {
 	    //     // memset(&sti2dattr,0x0,sizeof(IMPFSI2DAttr));
@@ -921,8 +921,8 @@ int sample_encoder_init(int ch)
 			uTargetBitRate = BITRATE_720P_Kbs * ratio;
 		else
 			uTargetBitRate = BITRATE_720P_Kbs * ratio;
-		// printf("bitrate:%d.\n", uTargetBitRate);
-		// printf("rcMode:%d.\n", S_RC_METHOD);
+		// dp("bitrate:%d.\n", uTargetBitRate);
+		// dp("rcMode:%d.\n", S_RC_METHOD);
         ret = IMP_Encoder_SetDefaultParam(&channel_attr, 
         									chn[i].payloadType, 
         									S_RC_METHOD,
@@ -938,7 +938,7 @@ int sample_encoder_init(int ch)
             IMP_LOG_ERR(TAG, "IMP_Encoder_SetDefaultParam(%d) error !\n", chnNum);
             return -1;
         }
-        // printf("GOP Length:%d\n", imp_chn_attr_tmp->outFrmRateNum/imp_chn_attr_tmp->outFrmRateDen);
+        // dp("GOP Length:%d\n", imp_chn_attr_tmp->outFrmRateNum/imp_chn_attr_tmp->outFrmRateDen);
 #ifdef LOW_BITSTREAM
 		IMPEncoderRcAttr *rcAttr = &channel_attr.rcAttr;
 		uTargetBitRate /= 2;
@@ -1018,7 +1018,7 @@ int sample_encoder_init(int ch)
 		IMPEncoderChnAttr test_attr;
 
 		ret = IMP_Encoder_GetChnAttr(chnNum, &test_attr);
-		// printf("[enc] w:%d h:%d \n", test_attr.encAttr.uWidth, test_attr.encAttr.uHeight);
+		// dp("[enc] w:%d h:%d \n", test_attr.encAttr.uWidth, test_attr.encAttr.uHeight);
 	}
 	return 0;
 }
@@ -1129,7 +1129,7 @@ IMPRgnHandle *sample_osd_init_pip(int grpNum, int video_w, int video_h, int vide
 	rAttrPip.fmt = PIX_FMT_NV12;
 	rAttrPip.data.picData.pData = NULL;
 
-	printf("################ p0.x, p0.y, p1.x, p1.y: (%d %d %d %d).\n", rAttrPip.rect.p0.x, rAttrPip.rect.p0.y,rAttrPip.rect.p1.x,rAttrPip.rect.p1.y);
+	dp("################ p0.x, p0.y, p1.x, p1.y: (%d %d %d %d).\n", rAttrPip.rect.p0.x, rAttrPip.rect.p0.y,rAttrPip.rect.p1.x,rAttrPip.rect.p1.y);
 
 	ret = IMP_OSD_SetRgnAttr(rHanderPip, &rAttrPip);
 	if (ret < 0) {
@@ -1339,9 +1339,9 @@ IMPRgnHandle *sample_osd_init(int grpNum)
 	logo_param.inputParam.input_channel = 4;
 	logo_param.outputParam.output_width = 200;
 	logo_param.outputParam.output_height = 200;
-printf("[%s][%d]\n",__func__,__LINE__);
+dp("[%s][%d]\n",__func__,__LINE__);
 	IMP_OSD_ResizeRGB_Pic(logodata_100x100_bgra, logodata_200x200_bgra, false, &logo_param);
-printf("[%s][%d]\n",__func__,__LINE__);
+dp("[%s][%d]\n",__func__,__LINE__);
 
 #endif
 
@@ -1992,7 +1992,7 @@ static int save_stream(int fd, IMPEncoderStream *stream)
 				}
 			}
 		}
-		// printf("nr_pack:%d/%d len:%d\n", i, nr_pack, pack->length);
+		// dp("nr_pack:%d/%d len:%d\n", i, nr_pack, pack->length);
 	}
 
   //IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u end----------\n", stream->packCount, stream->seq);
@@ -2007,16 +2007,16 @@ static int save_stream1(int fd, IMPEncoderStream *stream, int ch)
 	static int old_cnt = -1;
 
 	if (old_cnt != rec_cnt) {
-		printf("1 new file!\n");
+		dp("1 new file!\n");
 		old_cnt = rec_cnt;
 		start_flag = false;
 	}
 
 	if (!start_flag) {
-		// printf("1 nr_pack:%d\n", nr_pack);
+		// dp("1 nr_pack:%d\n", nr_pack);
 		if ((nr_pack > 1)) {
 			if (stream->pack[nr_pack-1].sliceType == IMP_ENC_SLICE_I) {
-				printf("1 Save Start:%d %d\n", nr_pack, stream->pack[nr_pack-1].sliceType);
+				dp("1 Save Start:%d %d\n", nr_pack, stream->pack[nr_pack-1].sliceType);
 				start_flag = true;
 			}
 			else {
@@ -2056,9 +2056,9 @@ static int save_stream1(int fd, IMPEncoderStream *stream, int ch)
 			
 		}
 		total[ch] += pack->length;
-		// printf("nr_pack:%d/%d len:%d type:%d\n", i, nr_pack, pack->length, pack->sliceType);
+		// dp("nr_pack:%d/%d len:%d type:%d\n", i, nr_pack, pack->length, pack->sliceType);
 	}
-	// printf("nr_pack:%d frame[%d]:%d\n", nr_pack, ch, total[ch]);
+	// dp("nr_pack:%d frame[%d]:%d\n", nr_pack, ch, total[ch]);
 
   //IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u end----------\n", stream->packCount, stream->seq);
 	return 0;
@@ -2071,16 +2071,16 @@ static int save_stream2(int fd, IMPEncoderStream *stream, int ch)
 	static int old_cnt = -1;
 
 	if (old_cnt != rec_cnt) {
-		printf("2 new file!\n");
+		dp("2 new file!\n");
 		old_cnt = rec_cnt;
 		start_flag = false;
 	}
 
 	if (!start_flag) {
-		// printf("2 nr_pack:%d\n", nr_pack);
+		// dp("2 nr_pack:%d\n", nr_pack);
 		if ((nr_pack > 1)) {
 			if (stream->pack[nr_pack-1].sliceType == IMP_ENC_SLICE_I) {
-				printf("2 Save Start:%d %d\n", nr_pack, stream->pack[nr_pack-1].sliceType);
+				dp("2 Save Start:%d %d\n", nr_pack, stream->pack[nr_pack-1].sliceType);
 				start_flag = true;
 			}
 			else {
@@ -2119,7 +2119,7 @@ static int save_stream2(int fd, IMPEncoderStream *stream, int ch)
 			
 		}
 		total[ch] += pack->length;
-		// printf("nr_pack:%d/%d len:%d\n", i, nr_pack, pack->length);
+		// dp("nr_pack:%d/%d len:%d\n", i, nr_pack, pack->length);
 	}
 
   //IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u end----------\n", stream->packCount, stream->seq);
@@ -2133,16 +2133,16 @@ static int save_stream3(int fd, IMPEncoderStream *stream, int ch)
 	static int old_cnt = -1;
 
 	if (old_cnt != rec_cnt) {
-		// printf("3 new file!\n");
+		// dp("3 new file!\n");
 		old_cnt = rec_cnt;
 		start_flag = false;
 	}
 
 	if (!start_flag) {
-		// printf("3 nr_pack:%d\n", nr_pack);
+		// dp("3 nr_pack:%d\n", nr_pack);
 		if ((nr_pack > 1)) {
 			if (stream->pack[nr_pack-1].sliceType == IMP_ENC_SLICE_I) {
-				printf("3 Save Start:%d %d\n", nr_pack, stream->pack[nr_pack-1].sliceType);
+				dp("3 Save Start:%d %d\n", nr_pack, stream->pack[nr_pack-1].sliceType);
 				start_flag = true;
 			}
 			else {
@@ -2181,7 +2181,7 @@ static int save_stream3(int fd, IMPEncoderStream *stream, int ch)
 			
 		}
 		total[ch] += pack->length;
-		// printf("nr_pack:%d/%d len:%d\n", i, nr_pack, pack->length);
+		// dp("nr_pack:%d/%d len:%d\n", i, nr_pack, pack->length);
 	}
 
   //IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u end----------\n", stream->packCount, stream->seq);
@@ -2195,16 +2195,16 @@ static int save_stream4(int fd, IMPEncoderStream *stream, int ch)
 	static int old_cnt = -1;
 
 	if (old_cnt != rec_cnt) {
-		printf("2 new file!\n");
+		dp("2 new file!\n");
 		old_cnt = rec_cnt;
 		start_flag = false;
 	}
 
 	if (!start_flag) {
-		// printf("4 nr_pack:%d\n", nr_pack);
+		// dp("4 nr_pack:%d\n", nr_pack);
 		if ((nr_pack > 1)) {
 			if (stream->pack[nr_pack-1].sliceType == IMP_ENC_SLICE_I) {
-				printf("4 Save Start:%d %d\n", nr_pack, stream->pack[nr_pack-1].sliceType);
+				dp("4 Save Start:%d %d\n", nr_pack, stream->pack[nr_pack-1].sliceType);
 				start_flag = true;
 			}
 			else {
@@ -2243,7 +2243,7 @@ static int save_stream4(int fd, IMPEncoderStream *stream, int ch)
 			
 		}
 		total[ch] += pack->length;
-		// printf("nr_pack:%d/%d len:%d\n", i, nr_pack, pack->length);
+		// dp("nr_pack:%d/%d len:%d\n", i, nr_pack, pack->length);
 	}
 
   //IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u end----------\n", stream->packCount, stream->seq);
@@ -2281,12 +2281,12 @@ static int save_stream4(int fd, IMPEncoderStream *stream, int ch)
 // 			}
 // 		}
 // 		total[ch] += pack->length;
-// 		// printf("E:nr_pack:%d/%d len:%d\n", i, nr_pack, pack->length);
+// 		// dp("E:nr_pack:%d/%d len:%d\n", i, nr_pack, pack->length);
 // 	}
 	
 //   //IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u end----------\n", stream->packCount, stream->seq);
 // 	if (nr_pack > 1) {
-// 		printf("Total Len : %d\n", total[ch]);
+// 		dp("Total Len : %d\n", total[ch]);
 // 		return 1;
 // 	}
 
@@ -2301,7 +2301,7 @@ int Send_Frame_Main_UDP(IMPEncoderStream *stream) {
 	
 	// if (nr_pack > 1) {
 	// 	VM_Cir_Buff.GIndex = VM_Cir_Buff.WIndex;
-	// 	// printf("Video Main GIndex:%d\n", VM_Cir_Buff.GIndex);
+	// 	// dp("Video Main GIndex:%d\n", VM_Cir_Buff.GIndex);
 	// }
 	// for(i = 0; i < nr_pack; i++) {
 	// 	IMPEncoderPack *pack = &stream->pack[i];
@@ -2319,7 +2319,7 @@ int Send_Frame_Main_UDP(IMPEncoderStream *stream) {
 	// 			}
 	// 		}
 	// 		else {
-	// 			printf("VM Cir Buff Overflow!!\n");
+	// 			dp("VM Cir Buff Overflow!!\n");
 	// 		}
 	// 		pthread_mutex_unlock(&buffMutex_vm);
 	// 	}
@@ -2333,10 +2333,10 @@ int Send_Frame_Main_UDP(IMPEncoderStream *stream) {
 	
 	
 	if (!start_flag) {
-		// printf("m nr_pack:%d\n", nr_pack);
+		// dp("m nr_pack:%d\n", nr_pack);
 		if ((nr_pack > 1)) {
 			if (stream->pack[nr_pack-1].sliceType == IMP_ENC_SLICE_I) {
-				printf("m Stream Start:%d %d\n", nr_pack, stream->pack[nr_pack-1].sliceType);
+				dp("m Stream Start:%d %d\n", nr_pack, stream->pack[nr_pack-1].sliceType);
 				start_flag = true;
 				VM_Frame_Buff.len[VM_Frame_Buff.index] = 1;
 				VM_Frame_Buff.index = (VM_Frame_Buff.index+1)%20;
@@ -2355,10 +2355,10 @@ int Send_Frame_Main_UDP(IMPEncoderStream *stream) {
 		}
 	}
 
-	// printf("nr_pack:%d\n", nr_pack);
+	// dp("nr_pack:%d\n", nr_pack);
 
 	if(VM_Frame_Buff.cnt >= 20){
-		printf("VM Frame Buffer Full!\n");
+		dp("VM Frame Buffer Full!\n");
 		return -1;
 	}
 	
@@ -2370,13 +2370,13 @@ int Send_Frame_Main_UDP(IMPEncoderStream *stream) {
 			memcpy(VM_Frame_Buff.tx[VM_Frame_Buff.index]+len, (void *)(stream->virAddr + pack->offset), pack->length);
 			len += pack->length;
 		}
-		// printf("[%d/%d]fram time:%lld seq:%d \n", i+1, nr_pack, pack->timestamp, stream->seq);
+		// dp("[%d/%d]fram time:%lld seq:%d \n", i+1, nr_pack, pack->timestamp, stream->seq);
 		VM_Frame_Buff.ftime[VM_Frame_Buff.index] = pack->timestamp;
 		// if (pack->sliceType == IMP_ENC_SLICE_I)
-			// printf("Main I Frame Find!!\n");
+			// dp("Main I Frame Find!!\n");
 		// if (stream->pack[nr_pack-1].sliceType == IMP_ENC_SLICE_I) {
 		// test = stream->virAddr + pack->offset;
-			// printf("pack[%d/%d] 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x \n", i+1, nr_pack, test[0], test[1], test[2], test[3], test[4]);
+			// dp("pack[%d/%d] 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x \n", i+1, nr_pack, test[0], test[1], test[2], test[3], test[4]);
 		// }
 	}
 	VM_Frame_Buff.len[VM_Frame_Buff.index] = len;
@@ -2386,7 +2386,7 @@ int Send_Frame_Main_UDP(IMPEncoderStream *stream) {
 
 	// if (stream->pack[nr_pack-1].sliceType == IMP_ENC_SLICE_I) {
 	// 	if (old_ftime > 0) {
-	// 		printf("I Frame Time : %lld\n", stream->pack[0].timestamp-old_ftime);
+	// 		dp("I Frame Time : %lld\n", stream->pack[0].timestamp-old_ftime);
 	// 		old_ftime = stream->pack[0].timestamp;
 	// 	}
 	// 	else {
@@ -2394,18 +2394,18 @@ int Send_Frame_Main_UDP(IMPEncoderStream *stream) {
 	// 	}
 	// }
 	
-	// 	printf("I Frame Len : %d time : %d\n", len, VM_Frame_Buff.ftime[VM_Frame_Buff.index]);
+	// 	dp("I Frame Len : %d time : %d\n", len, VM_Frame_Buff.ftime[VM_Frame_Buff.index]);
 	// }
 
 	// if (stream->pack[nr_pack-1].sliceType == IMP_ENC_SLICE_I) {
-	// 	printf("t frame len:%d\n", tlen);
+	// 	dp("t frame len:%d\n", tlen);
 	// 	tlen = len;
 	// }
 	// else {
 	// 	tlen += len;
 	// }
 
-	// printf("V1:%d\n", len);
+	// dp("V1:%d\n", len);
 
 	return 0;
 }	
@@ -2418,7 +2418,7 @@ int Send_Frame_Box_UDP(IMPEncoderStream *stream) {
 	
 	// if (nr_pack > 1) {
 	// 	VB_Cir_Buff.GIndex = VB_Cir_Buff.WIndex;
-	// 	// printf("Video Box GIndex:%d\n", VB_Cir_Buff.GIndex);
+	// 	// dp("Video Box GIndex:%d\n", VB_Cir_Buff.GIndex);
 	// }
 	// for(i = 0; i < nr_pack; i++) {
 	// 	IMPEncoderPack *pack = &stream->pack[i];
@@ -2436,7 +2436,7 @@ int Send_Frame_Box_UDP(IMPEncoderStream *stream) {
 	// 			}
 	// 		}
 	// 		else {
-	// 			printf("VB Cir Buff Overflow!!\n");
+	// 			dp("VB Cir Buff Overflow!!\n");
 	// 		}
 	// 		pthread_mutex_unlock(&buffMutex_vb);
 	// 	}
@@ -2447,10 +2447,10 @@ int Send_Frame_Box_UDP(IMPEncoderStream *stream) {
 	static bool start_flag = false;
 	
 	if (!start_flag) {
-		// printf("b nr_pack:%d\n", nr_pack);
+		// dp("b nr_pack:%d\n", nr_pack);
 		if ((nr_pack > 1)) {
 			if (stream->pack[nr_pack-1].sliceType == IMP_ENC_SLICE_I) {
-				printf("b Stream Start:%d %d\n", nr_pack, stream->pack[nr_pack-1].sliceType);
+				dp("b Stream Start:%d %d\n", nr_pack, stream->pack[nr_pack-1].sliceType);
 				start_flag = true;
 				VB_Frame_Buff.len[VB_Frame_Buff.index] = 1;
 				VB_Frame_Buff.index = (VB_Frame_Buff.index+1)%20;
@@ -2470,7 +2470,7 @@ int Send_Frame_Box_UDP(IMPEncoderStream *stream) {
 	}
 
 	if(VB_Frame_Buff.cnt >= 20){
-		printf("VB Frame Buffer Full!\n");
+		dp("VB Frame Buffer Full!\n");
 		return -1;
 	}
 	pthread_mutex_lock(&buffMutex_vb);
@@ -2483,7 +2483,7 @@ int Send_Frame_Box_UDP(IMPEncoderStream *stream) {
 		}
 		VB_Frame_Buff.ftime[VB_Frame_Buff.index] = pack->timestamp;
 		// if (pack->sliceType == IMP_ENC_SLICE_I)
-			// printf("Box I Frame Find!!\n");
+			// dp("Box I Frame Find!!\n");
 	}
 	VB_Frame_Buff.len[VB_Frame_Buff.index] = len;
 	VB_Frame_Buff.index = (VB_Frame_Buff.index+1)%20;
@@ -2556,7 +2556,7 @@ static void *get_video_stream(void *args)
 #ifdef USE_ROI
 	IMPEncoderRoiAttr roiAttr;
 	IMP_Encoder_GetChnRoiAttr(0, &roiAttr);
-	//printf("index=%d, enable=%d, x=%d, y=%d, w=%d, h=%d\n", roiAttr.index, roiAttr.enable, roiAttr.RoiParam.iPosX, roiAttr.RoiParam.iPosY, roiAttr.RoiParam.iWidth, roiAttr.RoiParam.iHeight);
+	//dp("index=%d, enable=%d, x=%d, y=%d, w=%d, h=%d\n", roiAttr.index, roiAttr.enable, roiAttr.RoiParam.iPosX, roiAttr.RoiParam.iPosY, roiAttr.RoiParam.iWidth, roiAttr.RoiParam.iHeight);
 	roiAttr.index = 0;
 	roiAttr.enable = 1;
 	roiAttr.RoiParam.iPosX = 448;
@@ -2610,13 +2610,13 @@ static void *get_video_stream(void *args)
 // 			if(!first_time[chnNum]){
 // 				statime_sp[chnNum] = now;
 // 				first_time[chnNum] = 1;
-// 				printf("ch%d Change Mode, repeatedly.\n", chnNum);
+// 				dp("ch%d Change Mode, repeatedly.\n", chnNum);
 // 			}
 // 			if(((int)(now - statime_sp[chnNum]) / 1000) >= FRM_BIT_RATE_TIME){
 // 				double fps = (double)frmrate_sp[chnNum] / ((double)(now - statime_sp[chnNum]) / 1000);
 // 				double kbr = (double)bitrate_sp[chnNum] * 8 / (double)(now - statime_sp[chnNum]);
 
-// 				printf("streamNum[%d]:FPS: %0.2f,Bitrate: %0.2f(kbps)\n", chnNum, fps, kbr);
+// 				dp("streamNum[%d]:FPS: %0.2f,Bitrate: %0.2f(kbps)\n", chnNum, fps, kbr);
 // 				//fflush(stdout);
 
 // 				frmrate_sp[chnNum] = 0;
@@ -2719,7 +2719,7 @@ static void *get_video_stream_user(void *args)
 		ret = IMP_Encoder_PollingStream(chnNum, 500);
 		if (ret < 0 && stream_state == 1) {
 			IMP_LOG_ERR(TAG, "IMP_Encoder_PollingStream(%d) timeout\n", chnNum);
-			printf("[Enc%d] Polling Error\n", chnNum);
+			dp("[Enc%d] Polling Error\n", chnNum);
 			polling_err_cnt++;
 			continue;
 		}
@@ -2739,7 +2739,7 @@ static void *get_video_stream_user(void *args)
 		}
 
 		if (clip_rec_state >= REC_START && clip_rec_state <= REC_STOP) {
-			// printf("state:%d 0_s:%d 3_s%d\n", clip_rec_state, clip_0_s, clip_3_s);
+			// dp("state:%d 0_s:%d 3_s%d\n", clip_rec_state, clip_0_s, clip_3_s);
 			if (!clip_0_s && chnNum == 0) {
 				sprintf(stream_path, "%s/stream-%d.%s", STREAM_FILE_PATH_PREFIX, chnNum,
 				(encType == IMP_ENC_TYPE_AVC) ? "h264" : ((encType == IMP_ENC_TYPE_HEVC) ? "h265" : "jpeg"));
@@ -2782,18 +2782,18 @@ static void *get_video_stream_user(void *args)
 			}
 			else if (clip_rec_state == REC_STOP) {
 				if (!clip_0_e && chnNum == 0) {
-					printf("CLIP CH:%d Close\n", chnNum);
+					dp("CLIP CH:%d Close\n", chnNum);
 					close(clip_fd);
 					clip_0_e = true;
 				}
 				if (!clip_3_e && chnNum == 3) {
-					printf("CLIP CH:%d Close\n", chnNum);
+					dp("CLIP CH:%d Close\n", chnNum);
 					close(clip_fd);
 					clip_3_e = true;
 				}
 
 				if (clip_rec_state == REC_STOP && clip_0_e && clip_3_e){
-					printf("clip rec state:%d\n", clip_rec_state);
+					dp("clip rec state:%d\n", clip_rec_state);
 					clip_rec_state = REC_WAIT;
 				}
 			}
@@ -2801,13 +2801,14 @@ static void *get_video_stream_user(void *args)
 		
 
 		if (bell_rec_state >= REC_START && bell_rec_state <= REC_STOP) {
-			// printf("state:%d 0_s:%d 3_s%d\n", bell_rec_state, bell_0_s, bell_3_s);
+			// dp("state:%d 0_s:%d 3_s%d\n", bell_rec_state, bell_0_s, bell_3_s);
 			if (!bell_0_s && chnNum == 0) {
 				sprintf(stream_path, "%s/bell-%d.%s", STREAM_FILE_PATH_PREFIX, chnNum,
 				(encType == IMP_ENC_TYPE_AVC) ? "h264" : ((encType == IMP_ENC_TYPE_HEVC) ? "h265" : "jpeg"));
 				clip_fd = open(stream_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
 				if (clip_fd < 0) {
 					IMP_LOG_ERR(TAG, "failed: %s\n", strerror(errno));
+					dp("Open Fail!:%s\n", stream_path);
 					return ((void *)-1);
 				}
 				bell_0_s = true;
@@ -2819,6 +2820,7 @@ static void *get_video_stream_user(void *args)
 				clip_fd = open(stream_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
 				if (clip_fd < 0) {
 					IMP_LOG_ERR(TAG, "failed: %s\n", strerror(errno));
+					dp("Open Fail!:%s\n", stream_path);
 					return ((void *)-1);
 				}
 				bell_3_s = true;
@@ -2844,18 +2846,18 @@ static void *get_video_stream_user(void *args)
 			}
 			else if (bell_rec_state == REC_STOP) {
 				if (!bell_0_e && chnNum == 0) {
-					printf("CLIP CH:%d Close\n", chnNum);
+					dp("BELL CH:%d Close\n", chnNum);
 					close(clip_fd);
 					bell_0_e = true;
 				}
 				if (!bell_3_e && chnNum == 3) {
-					printf("CLIP CH:%d Close\n", chnNum);
+					dp("BELL CH:%d Close\n", chnNum);
 					close(clip_fd);
 					bell_3_e = true;
 				}
 
 				if (bell_rec_state == REC_STOP && bell_0_e && bell_3_e){
-					printf("clip rec state:%d\n", bell_rec_state);
+					dp("clip rec state:%d\n", bell_rec_state);
 					bell_rec_state = REC_WAIT;
 				}
 			}
@@ -2870,7 +2872,7 @@ static void *get_video_stream_user(void *args)
 					IMP_LOG_ERR(TAG, "rec file open failed: %s\n", strerror(errno));
 					return ((void *)-1);
 				}
-				printf("File Make : %s\n", stream_path);
+				dp("File Make : %s\n", stream_path);
 				if (chnNum == 0) {
 					rec_0_e = false;
 				}
@@ -2898,12 +2900,12 @@ static void *get_video_stream_user(void *args)
 			}	
 			else if (streaming_rec_state == REC_STOP) {
 				if (!rec_0_e && chnNum == 0){
-					printf("REC CH:%d Close\n", chnNum);
+					dp("REC CH:%d Close\n", chnNum);
 					close(rec_fd);
 					rec_0_e = true;
 				}
 				if (!rec_3_e && chnNum == 3){
-					printf("REC CH:%d Close\n", chnNum);
+					dp("REC CH:%d Close\n", chnNum);
 					close(rec_fd);
 					rec_3_e = true;
 				}
@@ -2927,263 +2929,263 @@ static void *get_video_stream_user(void *args)
 	return ((void *)0);
 }
 
-static void *get_video_stream_user3(void *args)
-{
-	int val, chnNum, ret;
-	char stream_path[64];
-	IMPEncoderEncType encType;
-	int clip_fd = -1;
-	// bool saveend = false;
-	// bool rec_start = false;
-	int rec_fd = -1;
-	// bool rec_first = false;
-	int rec_old_cnt = 0;
+// static void *get_video_stream_user3(void *args)
+// {
+// 	int val, chnNum, ret;
+// 	char stream_path[64];
+// 	IMPEncoderEncType encType;
+// 	int clip_fd = -1;
+// 	// bool saveend = false;
+// 	// bool rec_start = false;
+// 	int rec_fd = -1;
+// 	// bool rec_first = false;
+// 	int rec_old_cnt = 0;
 
 	
 
-	val = (int)args;
-	chnNum = val & 0xffff;
-	encType = (val >> 16) & 0xffff;
+// 	val = (int)args;
+// 	chnNum = val & 0xffff;
+// 	encType = (val >> 16) & 0xffff;
 
-	if (Mosaic_En) {
-		while(!fdpd_En) ;
-	}
+// 	if (Mosaic_En) {
+// 		while(!fdpd_En) ;
+// 	}
 
-	ret = IMP_Encoder_StartRecvPic(chnNum);
-	if (ret < 0) {
-		IMP_LOG_ERR(TAG, "IMP_Encoder_StartRecvPic(%d) failed\n", chnNum);
-		return ((void *)-1);
-	}
+// 	ret = IMP_Encoder_StartRecvPic(chnNum);
+// 	if (ret < 0) {
+// 		IMP_LOG_ERR(TAG, "IMP_Encoder_StartRecvPic(%d) failed\n", chnNum);
+// 		return ((void *)-1);
+// 	}
 
-	IMP_Encoder_SetFisheyeEnableStatus(chnNum, 1);
-	// // if (chnNum == 1 || chnNum == 4) { // Original Rec
-	// if (chnNum == 0 || chnNum == 3) {	// Mosaic Added
-	// 	sprintf(stream_path, "%s/stream-%d.%s", STREAM_FILE_PATH_PREFIX, chnNum,
-	// 		(encType == IMP_ENC_TYPE_AVC) ? "h264" : ((encType == IMP_ENC_TYPE_HEVC) ? "h265" : "jpeg"));
-	// 	IMP_LOG_DBG(TAG, "Video ChnNum=%d Open Stream file %s ", chnNum, stream_path);
+// 	IMP_Encoder_SetFisheyeEnableStatus(chnNum, 1);
+// 	// // if (chnNum == 1 || chnNum == 4) { // Original Rec
+// 	// if (chnNum == 0 || chnNum == 3) {	// Mosaic Added
+// 	// 	sprintf(stream_path, "%s/stream-%d.%s", STREAM_FILE_PATH_PREFIX, chnNum,
+// 	// 		(encType == IMP_ENC_TYPE_AVC) ? "h264" : ((encType == IMP_ENC_TYPE_HEVC) ? "h265" : "jpeg"));
+// 	// 	IMP_LOG_DBG(TAG, "Video ChnNum=%d Open Stream file %s ", chnNum, stream_path);
 	
-	// 	clip_fd = open(stream_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
-	// 	if (clip_fd < 0) {
-	// 		IMP_LOG_ERR(TAG, "failed: %s\n", strerror(errno));
-	// 		return ((void *)-1);
-	// 	}
-	// 	IMP_LOG_DBG(TAG, "OK\n");
-	// }
+// 	// 	clip_fd = open(stream_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
+// 	// 	if (clip_fd < 0) {
+// 	// 		IMP_LOG_ERR(TAG, "failed: %s\n", strerror(errno));
+// 	// 		return ((void *)-1);
+// 	// 	}
+// 	// 	IMP_LOG_DBG(TAG, "OK\n");
+// 	// }
 
-	usleep(100*1000);
+// 	usleep(100*1000);
 	
-	do {
+// 	do {
 		
-		ret = IMP_Encoder_PollingStream(chnNum, 500);
-		if (ret < 0 && stream_state == 1) {
-			IMP_LOG_ERR(TAG, "IMP_Encoder_PollingStream(%d) timeout\n", chnNum);
-			printf("[Enc%d] Polling Error\n", chnNum);
-			polling_err_cnt++;
-			continue;
-		}
+// 		ret = IMP_Encoder_PollingStream(chnNum, 500);
+// 		if (ret < 0 && stream_state == 1) {
+// 			IMP_LOG_ERR(TAG, "IMP_Encoder_PollingStream(%d) timeout\n", chnNum);
+// 			dp("[Enc%d] Polling Error\n", chnNum);
+// 			polling_err_cnt++;
+// 			continue;
+// 		}
 
-		IMPEncoderStream stream;
-		/* Get H264 or H265 Stream */
-		ret = IMP_Encoder_GetStream(chnNum, &stream, 0);
+// 		IMPEncoderStream stream;
+// 		/* Get H264 or H265 Stream */
+// 		ret = IMP_Encoder_GetStream(chnNum, &stream, 0);
 
-		if (ret < 0) {
-			IMP_LOG_ERR(TAG, "IMP_Encoder_GetStream(%d) failed\n", chnNum);
-			return ((void *)-1);
-		}
+// 		if (ret < 0) {
+// 			IMP_LOG_ERR(TAG, "IMP_Encoder_GetStream(%d) failed\n", chnNum);
+// 			return ((void *)-1);
+// 		}
 
-		if (stream_state == 1) {
-			if (chnNum == 0) Send_Frame_Main_UDP(&stream);
-			else if (chnNum == 3) Send_Frame_Box_UDP(&stream);
-		}
+// 		if (stream_state == 1) {
+// 			if (chnNum == 0) Send_Frame_Main_UDP(&stream);
+// 			else if (chnNum == 3) Send_Frame_Box_UDP(&stream);
+// 		}
 
-		if (clip_rec_state >= REC_START && clip_rec_state <= REC_STOP) {
-			// printf("state:%d 0_s:%d 3_s%d\n", clip_rec_state, clip_0_s, clip_3_s);
-			if (!clip_0_s && chnNum == 0) {
-				sprintf(stream_path, "%s/stream-%d.%s", STREAM_FILE_PATH_PREFIX, chnNum,
-				(encType == IMP_ENC_TYPE_AVC) ? "h264" : ((encType == IMP_ENC_TYPE_HEVC) ? "h265" : "jpeg"));
-				clip_fd = open(stream_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
-				if (clip_fd < 0) {
-					IMP_LOG_ERR(TAG, "failed: %s\n", strerror(errno));
-					return ((void *)-1);
-				}
-				clip_0_s = true;
-				clip_0_e = false;
-			}
-			if (!clip_3_s && chnNum == 3) {
-				sprintf(stream_path, "%s/stream-%d.%s", STREAM_FILE_PATH_PREFIX, chnNum,
-				(encType == IMP_ENC_TYPE_AVC) ? "h264" : ((encType == IMP_ENC_TYPE_HEVC) ? "h265" : "jpeg"));
-				clip_fd = open(stream_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
-				if (clip_fd < 0) {
-					IMP_LOG_ERR(TAG, "failed: %s\n", strerror(errno));
-					return ((void *)-1);
-				}
-				clip_3_s = true;
-				clip_3_e = false;
-			}
+// 		if (clip_rec_state >= REC_START && clip_rec_state <= REC_STOP) {
+// 			// dp("state:%d 0_s:%d 3_s%d\n", clip_rec_state, clip_0_s, clip_3_s);
+// 			if (!clip_0_s && chnNum == 0) {
+// 				sprintf(stream_path, "%s/stream-%d.%s", STREAM_FILE_PATH_PREFIX, chnNum,
+// 				(encType == IMP_ENC_TYPE_AVC) ? "h264" : ((encType == IMP_ENC_TYPE_HEVC) ? "h265" : "jpeg"));
+// 				clip_fd = open(stream_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
+// 				if (clip_fd < 0) {
+// 					IMP_LOG_ERR(TAG, "failed: %s\n", strerror(errno));
+// 					return ((void *)-1);
+// 				}
+// 				clip_0_s = true;
+// 				clip_0_e = false;
+// 			}
+// 			if (!clip_3_s && chnNum == 3) {
+// 				sprintf(stream_path, "%s/stream-%d.%s", STREAM_FILE_PATH_PREFIX, chnNum,
+// 				(encType == IMP_ENC_TYPE_AVC) ? "h264" : ((encType == IMP_ENC_TYPE_HEVC) ? "h265" : "jpeg"));
+// 				clip_fd = open(stream_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
+// 				if (clip_fd < 0) {
+// 					IMP_LOG_ERR(TAG, "failed: %s\n", strerror(errno));
+// 					return ((void *)-1);
+// 				}
+// 				clip_3_s = true;
+// 				clip_3_e = false;
+// 			}
 
-			if (clip_rec_state == REC_START && clip_0_s &&clip_3_s) 
-					clip_rec_state = REC_ING;
+// 			if (clip_rec_state == REC_START && clip_0_s &&clip_3_s) 
+// 					clip_rec_state = REC_ING;
 			
-			if (clip_rec_state == REC_START || clip_rec_state == REC_ING) {
-				if (chnNum == 0) {
-					ret = save_stream1(clip_fd, &stream, chnNum);
-					if (ret < 0) {
-						IMP_LOG_ERR(TAG, "Clip Save Err : %d!\n", chnNum);
-					}
-				}
-				if (chnNum == 3) {
-					ret = save_stream2(clip_fd, &stream, chnNum);
-					if (ret < 0) {
-						IMP_LOG_ERR(TAG, "Clip Save Err : %d!\n", chnNum);
-					}
-				}
-			}
-			else if (clip_rec_state == REC_STOP) {
-				if (!clip_0_e && chnNum == 0) {
-					printf("CLIP CH:%d Close\n", chnNum);
-					close(clip_fd);
-					clip_0_e = true;
-				}
-				if (!clip_3_e && chnNum == 3) {
-					printf("CLIP CH:%d Close\n", chnNum);
-					close(clip_fd);
-					clip_3_e = true;
-				}
+// 			if (clip_rec_state == REC_START || clip_rec_state == REC_ING) {
+// 				if (chnNum == 0) {
+// 					ret = save_stream1(clip_fd, &stream, chnNum);
+// 					if (ret < 0) {
+// 						IMP_LOG_ERR(TAG, "Clip Save Err : %d!\n", chnNum);
+// 					}
+// 				}
+// 				if (chnNum == 3) {
+// 					ret = save_stream2(clip_fd, &stream, chnNum);
+// 					if (ret < 0) {
+// 						IMP_LOG_ERR(TAG, "Clip Save Err : %d!\n", chnNum);
+// 					}
+// 				}
+// 			}
+// 			else if (clip_rec_state == REC_STOP) {
+// 				if (!clip_0_e && chnNum == 0) {
+// 					dp("CLIP CH:%d Close\n", chnNum);
+// 					close(clip_fd);
+// 					clip_0_e = true;
+// 				}
+// 				if (!clip_3_e && chnNum == 3) {
+// 					dp("CLIP CH:%d Close\n", chnNum);
+// 					close(clip_fd);
+// 					clip_3_e = true;
+// 				}
 
-				if (clip_rec_state == REC_STOP && clip_0_e && clip_3_e){
-					printf("clip rec state:%d\n", clip_rec_state);
-					clip_rec_state = REC_WAIT;
-				}
-			}
-		}
+// 				if (clip_rec_state == REC_STOP && clip_0_e && clip_3_e){
+// 					dp("clip rec state:%d\n", clip_rec_state);
+// 					clip_rec_state = REC_WAIT;
+// 				}
+// 			}
+// 		}
 		
 
-		if (bell_rec_state >= REC_START && bell_rec_state <= REC_STOP) {
-			// printf("state:%d 0_s:%d 3_s%d\n", bell_rec_state, bell_0_s, bell_3_s);
-			if (!bell_0_s && chnNum == 0) {
-				sprintf(stream_path, "%s/bell-%d.%s", STREAM_FILE_PATH_PREFIX, chnNum,
-				(encType == IMP_ENC_TYPE_AVC) ? "h264" : ((encType == IMP_ENC_TYPE_HEVC) ? "h265" : "jpeg"));
-				clip_fd = open(stream_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
-				if (clip_fd < 0) {
-					IMP_LOG_ERR(TAG, "failed: %s\n", strerror(errno));
-					return ((void *)-1);
-				}
-				bell_0_s = true;
-				bell_0_e = false;
-			}
-			if (!bell_3_s && chnNum == 3) {
-				sprintf(stream_path, "%s/bell-%d.%s", STREAM_FILE_PATH_PREFIX, chnNum,
-				(encType == IMP_ENC_TYPE_AVC) ? "h264" : ((encType == IMP_ENC_TYPE_HEVC) ? "h265" : "jpeg"));
-				clip_fd = open(stream_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
-				if (clip_fd < 0) {
-					IMP_LOG_ERR(TAG, "failed: %s\n", strerror(errno));
-					return ((void *)-1);
-				}
-				bell_3_s = true;
-				bell_3_e = false;
-			}
+// 		if (bell_rec_state >= REC_START && bell_rec_state <= REC_STOP) {
+// 			// dp("state:%d 0_s:%d 3_s%d\n", bell_rec_state, bell_0_s, bell_3_s);
+// 			if (!bell_0_s && chnNum == 0) {
+// 				sprintf(stream_path, "%s/bell-%d.%s", STREAM_FILE_PATH_PREFIX, chnNum,
+// 				(encType == IMP_ENC_TYPE_AVC) ? "h264" : ((encType == IMP_ENC_TYPE_HEVC) ? "h265" : "jpeg"));
+// 				clip_fd = open(stream_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
+// 				if (clip_fd < 0) {
+// 					IMP_LOG_ERR(TAG, "failed: %s\n", strerror(errno));
+// 					return ((void *)-1);
+// 				}
+// 				bell_0_s = true;
+// 				bell_0_e = false;
+// 			}
+// 			if (!bell_3_s && chnNum == 3) {
+// 				sprintf(stream_path, "%s/bell-%d.%s", STREAM_FILE_PATH_PREFIX, chnNum,
+// 				(encType == IMP_ENC_TYPE_AVC) ? "h264" : ((encType == IMP_ENC_TYPE_HEVC) ? "h265" : "jpeg"));
+// 				clip_fd = open(stream_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
+// 				if (clip_fd < 0) {
+// 					IMP_LOG_ERR(TAG, "failed: %s\n", strerror(errno));
+// 					return ((void *)-1);
+// 				}
+// 				bell_3_s = true;
+// 				bell_3_e = false;
+// 			}
 
-			if (bell_rec_state == REC_START && bell_0_s &&bell_3_s) 
-					bell_rec_state = REC_ING;
+// 			if (bell_rec_state == REC_START && bell_0_s &&bell_3_s) 
+// 					bell_rec_state = REC_ING;
 			
-			if (bell_rec_state == REC_START || bell_rec_state == REC_ING) {
-				if (chnNum == 0) {
-					ret = save_stream3(clip_fd, &stream, chnNum);
-					if (ret < 0) {
-						IMP_LOG_ERR(TAG, "Clip Save Err : %d!\n", chnNum);
-					}
-				}
-				if (chnNum == 3) {
-					ret = save_stream4(clip_fd, &stream, chnNum);
-					if (ret < 0) {
-						IMP_LOG_ERR(TAG, "Clip Save Err : %d!\n", chnNum);
-					}
-				}
-			}
-			else if (bell_rec_state == REC_STOP) {
-				if (!bell_0_e && chnNum == 0) {
-					printf("CLIP CH:%d Close\n", chnNum);
-					close(clip_fd);
-					bell_0_e = true;
-				}
-				if (!bell_3_e && chnNum == 3) {
-					printf("CLIP CH:%d Close\n", chnNum);
-					close(clip_fd);
-					bell_3_e = true;
-				}
+// 			if (bell_rec_state == REC_START || bell_rec_state == REC_ING) {
+// 				if (chnNum == 0) {
+// 					ret = save_stream3(clip_fd, &stream, chnNum);
+// 					if (ret < 0) {
+// 						IMP_LOG_ERR(TAG, "Clip Save Err : %d!\n", chnNum);
+// 					}
+// 				}
+// 				if (chnNum == 3) {
+// 					ret = save_stream4(clip_fd, &stream, chnNum);
+// 					if (ret < 0) {
+// 						IMP_LOG_ERR(TAG, "Clip Save Err : %d!\n", chnNum);
+// 					}
+// 				}
+// 			}
+// 			else if (bell_rec_state == REC_STOP) {
+// 				if (!bell_0_e && chnNum == 0) {
+// 					dp("CLIP CH:%d Close\n", chnNum);
+// 					close(clip_fd);
+// 					bell_0_e = true;
+// 				}
+// 				if (!bell_3_e && chnNum == 3) {
+// 					dp("CLIP CH:%d Close\n", chnNum);
+// 					close(clip_fd);
+// 					bell_3_e = true;
+// 				}
 
-				if (bell_rec_state == REC_STOP && bell_0_e && bell_3_e){
-					printf("clip rec state:%d\n", bell_rec_state);
-					bell_rec_state = REC_WAIT;
-				}
-			}
-		}
+// 				if (bell_rec_state == REC_STOP && bell_0_e && bell_3_e){
+// 					dp("clip rec state:%d\n", bell_rec_state);
+// 					bell_rec_state = REC_WAIT;
+// 				}
+// 			}
+// 		}
 		
-		if (streaming_rec_state >= REC_START && streaming_rec_state <= REC_STOP) {
-			if (rec_old_cnt != rec_cnt) {
-				sprintf(stream_path, "%s/rec-%d-%d.%s", STREAM_FILE_PATH_PREFIX, chnNum, rec_cnt,
-						(encType == IMP_ENC_TYPE_AVC) ? "h264" : ((encType == IMP_ENC_TYPE_HEVC) ? "h265" : "jpeg"));
-				rec_fd = open(stream_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
-				if (rec_fd < 0) {
-					IMP_LOG_ERR(TAG, "rec file open failed: %s\n", strerror(errno));
-					return ((void *)-1);
-				}
-				printf("File Make : %s\n", stream_path);
-				if (chnNum == 0) {
-					rec_0_e = false;
-				}
-				else if (chnNum == 3) {
-					rec_3_e = false;
-				}
-				rec_old_cnt = rec_cnt;
-				if (streaming_rec_state == REC_START)
-					streaming_rec_state = REC_ING;
-			}
+// 		if (streaming_rec_state >= REC_START && streaming_rec_state <= REC_STOP) {
+// 			if (rec_old_cnt != rec_cnt) {
+// 				sprintf(stream_path, "%s/rec-%d-%d.%s", STREAM_FILE_PATH_PREFIX, chnNum, rec_cnt,
+// 						(encType == IMP_ENC_TYPE_AVC) ? "h264" : ((encType == IMP_ENC_TYPE_HEVC) ? "h265" : "jpeg"));
+// 				rec_fd = open(stream_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
+// 				if (rec_fd < 0) {
+// 					IMP_LOG_ERR(TAG, "rec file open failed: %s\n", strerror(errno));
+// 					return ((void *)-1);
+// 				}
+// 				dp("File Make : %s\n", stream_path);
+// 				if (chnNum == 0) {
+// 					rec_0_e = false;
+// 				}
+// 				else if (chnNum == 3) {
+// 					rec_3_e = false;
+// 				}
+// 				rec_old_cnt = rec_cnt;
+// 				if (streaming_rec_state == REC_START)
+// 					streaming_rec_state = REC_ING;
+// 			}
 
-			if (streaming_rec_state == REC_START || streaming_rec_state == REC_ING) {
-				if (chnNum == 0) {
-					ret = save_stream1(rec_fd, &stream, chnNum);
-					if (ret < 0) {
-						IMP_LOG_ERR(TAG, "Clip Save Err : %d!\n", chnNum);
-					}
-				}
-				if (chnNum == 3) {
-					ret = save_stream2(rec_fd, &stream, chnNum);
-					if (ret < 0) {
-						IMP_LOG_ERR(TAG, "Clip Save Err : %d!\n", chnNum);
-					}
-				}
-			}	
-			else if (streaming_rec_state == REC_STOP) {
-				if (!rec_0_e && chnNum == 0){
-					printf("REC CH:%d Close\n", chnNum);
-					close(rec_fd);
-					rec_0_e = true;
-				}
-				if (!rec_3_e && chnNum == 3){
-					printf("REC CH:%d Close\n", chnNum);
-					close(rec_fd);
-					rec_3_e = true;
-				}
+// 			if (streaming_rec_state == REC_START || streaming_rec_state == REC_ING) {
+// 				if (chnNum == 0) {
+// 					ret = save_stream1(rec_fd, &stream, chnNum);
+// 					if (ret < 0) {
+// 						IMP_LOG_ERR(TAG, "Clip Save Err : %d!\n", chnNum);
+// 					}
+// 				}
+// 				if (chnNum == 3) {
+// 					ret = save_stream2(rec_fd, &stream, chnNum);
+// 					if (ret < 0) {
+// 						IMP_LOG_ERR(TAG, "Clip Save Err : %d!\n", chnNum);
+// 					}
+// 				}
+// 			}	
+// 			else if (streaming_rec_state == REC_STOP) {
+// 				if (!rec_0_e && chnNum == 0){
+// 					dp("REC CH:%d Close\n", chnNum);
+// 					close(rec_fd);
+// 					rec_0_e = true;
+// 				}
+// 				if (!rec_3_e && chnNum == 3){
+// 					dp("REC CH:%d Close\n", chnNum);
+// 					close(rec_fd);
+// 					rec_3_e = true;
+// 				}
 
-				if (streaming_rec_state == REC_STOP && rec_0_e && rec_3_e)
-					streaming_rec_state = REC_WAIT;
-			}
-	    }
-    	IMP_Encoder_ReleaseStream(chnNum, &stream);
-  	} while(!bStrem);
+// 				if (streaming_rec_state == REC_STOP && rec_0_e && rec_3_e)
+// 					streaming_rec_state = REC_WAIT;
+// 			}
+// 	    }
+//     	IMP_Encoder_ReleaseStream(chnNum, &stream);
+//   	} while(!bStrem);
 
-  	// if(!saveend) close(clip_fd);
-  	// if(clip_fd>0) close(rec_fd);
+//   	// if(!saveend) close(clip_fd);
+//   	// if(clip_fd>0) close(rec_fd);
 
-	ret = IMP_Encoder_StopRecvPic(chnNum);
-	if (ret < 0) {
-		IMP_LOG_ERR(TAG, "IMP_Encoder_StopRecvPic(%d) failed\n", chnNum);
-		return ((void *)-1);
-	}
+// 	ret = IMP_Encoder_StopRecvPic(chnNum);
+// 	if (ret < 0) {
+// 		IMP_LOG_ERR(TAG, "IMP_Encoder_StopRecvPic(%d) failed\n", chnNum);
+// 		return ((void *)-1);
+// 	}
 
-	return ((void *)0);
-}
+// 	return ((void *)0);
+// }
 
 int sample_get_video_stream()
 {
@@ -3230,10 +3232,10 @@ int sample_get_video_stream_user()
 	for (i = 0; i < FS_CHN_NUM; i++) {
 		if (i == CH0_INDEX || i == CH3_INDEX) {
             int arg = (((chn[i].payloadType >> 24) << 16) | chn[i].index);
-            if (i == CH0_INDEX)
+            // if (i == CH0_INDEX)
 				ret = pthread_create(&strem_tid[i], NULL, get_video_stream_user, (void *)arg);
-			else
-				ret = pthread_create(&strem_tid[i], NULL, get_video_stream_user3, (void *)arg);
+			// else
+				// ret = pthread_create(&strem_tid[i], NULL, get_video_stream_user3, (void *)arg);
 			if (ret < 0) {
 				IMP_LOG_ERR(TAG, "Create ChnNum%d get_video_stream failed\n", (chn[i].payloadType == IMP_ENC_PROFILE_JPEG) ? (4 + chn[i].index) : chn[i].index);
 			}
@@ -3290,7 +3292,7 @@ static void *sample_get_jpeg_snap(void *args)
 	val_p = (int*)args;
 	chnNum = *val_p;
 
-	printf("[%s] chnNum : %d\n", __func__, chnNum);
+	dp("[%s] chnNum : %d\n", __func__, chnNum);
 
 	ret = IMP_Encoder_StartRecvPic(chnNum);
 	if (ret < 0) {
@@ -3303,7 +3305,7 @@ static void *sample_get_jpeg_snap(void *args)
 		ret = IMP_Encoder_PollingStream(chnNum, 10000);
 		if (ret < 0 && stream_state == 1) {
 			IMP_LOG_ERR(TAG, "Polling stream timeout\n");
-			printf("[snap] %d Polling Error\n", chnNum);
+			dp("[snap] %d Polling Error\n", chnNum);
 			polling_err_cnt++;
 			continue;
 		}
@@ -3316,31 +3318,31 @@ static void *sample_get_jpeg_snap(void *args)
 			return (void*)-1;
 		}
 
-		// printf("snap Shot Thread %d!!\n", chnNum);
+		// dp("snap Shot Thread %d!!\n", chnNum);
 
 		if (main_snap && chnNum == 2) {
 			memset(snap_path, 0, 64);
 			if (main_snap) {
 				sprintf(snap_path, "%s/main%d.jpg",SNAP_FILE_PATH_PREFIX, main_cnt);
 				main_cnt++;
-				printf("Main JPG Start!\n");
+				dp("Main JPG Start!\n");
 			}
 
 			IMP_LOG_ERR(TAG, "Open Snap file %s ", snap_path);
 			int snap_fd = open(snap_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
 			if (snap_fd < 0) {
 				IMP_LOG_ERR(TAG, "failed: %s\n", strerror(errno));
-				printf("open\n");
+				dp("open\n");
 				return (void*)-1;
 			}
 
 			ret = save_stream(snap_fd, &stream);
 			if (ret < 0) {
-				printf("save Error!\n");
+				dp("save Error!\n");
 			}
 
 			close(snap_fd);
-			printf("%s END!\n", snap_path);
+			dp("%s END!\n", snap_path);
 			main_snap = false;
 			// mv_cap(0, main_cnt-1);
 		}
@@ -3350,24 +3352,24 @@ static void *sample_get_jpeg_snap(void *args)
 			if(box_snap) {
 				sprintf(snap_path, "%s/box%d.jpg",SNAP_FILE_PATH_PREFIX, box_cnt);
 				box_cnt++;
-				printf("Box JPG Start!\n");
+				dp("Box JPG Start!\n");
 			}
 
 			IMP_LOG_ERR(TAG, "Open Snap file %s ", snap_path);
 			int snap_fd = open(snap_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
 			if (snap_fd < 0) {
 				IMP_LOG_ERR(TAG, "failed: %s\n", strerror(errno));
-				printf("open\n");
+				dp("open\n");
 				return (void*)-1;
 			}
 
 			ret = save_stream(snap_fd, &stream);
 			if (ret < 0) {
-				printf("save Error!\n");
+				dp("save Error!\n");
 			}
 
 			close(snap_fd);
-			printf("%s END!\n", snap_path);
+			dp("%s END!\n", snap_path);
 			box_snap = false;
 			// mv_cap(1, box_cnt-1);
 		}
@@ -3382,13 +3384,13 @@ static void *sample_get_jpeg_snap(void *args)
 			int snap_fd = open(snap_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
 			if (snap_fd < 0) {
 				IMP_LOG_ERR(TAG, "failed: %s\n", strerror(errno));
-				printf("open\n");
+				dp("open\n");
 				return (void*)-1;
 			}
 
 			ret = save_stream(snap_fd, &stream);
 			if (ret < 0) {
-				printf("save Error!\n");
+				dp("save Error!\n");
 			}
 
 			if (thumbnail_snap) {
@@ -3418,13 +3420,13 @@ static void *sample_get_jpeg_snap(void *args)
 			int snap_fd = open(snap_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
 			if (snap_fd < 0) {
 				IMP_LOG_ERR(TAG, "failed: %s\n", strerror(errno));
-				printf("open\n");
+				dp("open\n");
 				return (void*)-1;
 			}
 
 			ret = save_stream(snap_fd, &stream);
 			if (ret < 0) {
-				printf("save Error!\n");
+				dp("save Error!\n");
 			}
 
 			close(snap_fd);
@@ -3441,13 +3443,13 @@ static void *sample_get_jpeg_snap(void *args)
 			int snap_fd = open(snap_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
 			if (snap_fd < 0) {
 				IMP_LOG_ERR(TAG, "failed: %s\n", strerror(errno));
-				printf("open\n");
+				dp("open\n");
 				return (void*)-1;
 			}
 
 			ret = save_stream(snap_fd, &stream);
 			if (ret < 0) {
-				printf("save Error!\n");
+				dp("save Error!\n");
 			}
 
 			close(snap_fd);
@@ -3463,13 +3465,13 @@ static void *sample_get_jpeg_snap(void *args)
 			int snap_fd = open(snap_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
 			if (snap_fd < 0) {
 				IMP_LOG_ERR(TAG, "failed: %s\n", strerror(errno));
-				printf("open\n");
+				dp("open\n");
 				return (void*)-1;
 			}
 
 			ret = save_stream(snap_fd, &stream);
 			if (ret < 0) {
-				printf("save Error!\n");
+				dp("save Error!\n");
 			}
 
 			close(snap_fd);
@@ -3482,12 +3484,12 @@ static void *sample_get_jpeg_snap(void *args)
 		// 	if (main_snap) {
 		// 		sprintf(snap_path, "%s/main%d.jpg",SNAP_FILE_PATH_PREFIX, main_cnt);
 		// 		main_cnt++;
-		// 		printf("Main JPG Start!\n");
+		// 		dp("Main JPG Start!\n");
 		// 	}
 		// 	else if(box_snap) {
 		// 		sprintf(snap_path, "%s/box%d.jpg",SNAP_FILE_PATH_PREFIX, box_cnt);
 		// 		box_cnt++;
-		// 		printf("Box JPG Start!\n");
+		// 		dp("Box JPG Start!\n");
 		// 	}
 		// 	else if(thumbnail_snap) {
 		// 		sprintf(snap_path, "%s/thumbnail.jpg",SNAP_FILE_PATH_PREFIX);
@@ -3499,13 +3501,13 @@ static void *sample_get_jpeg_snap(void *args)
 		// 	int snap_fd = open(snap_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
 		// 	if (snap_fd < 0) {
 		// 		IMP_LOG_ERR(TAG, "failed: %s\n", strerror(errno));
-		// 		printf("open\n");
+		// 		dp("open\n");
 		// 		return (void*)-1;
 		// 	}
 
 		// 	ret = save_stream(snap_fd, &stream);
 		// 	if (ret < 0) {
-		// 		printf("save Error!\n");
+		// 		dp("save Error!\n");
 		// 	}
 
 		// 	if (thumbnail_snap) {
@@ -3535,7 +3537,7 @@ static void *sample_get_jpeg_snap(void *args)
 		// 	}
 
 		// 	if (chnNum == 5){
-		// 		printf("BOX END!\n");
+		// 		dp("BOX END!\n");
 		// 		box_snap = false;
 		// 	}
 			
@@ -3844,21 +3846,21 @@ void *sample_soft_photosensitive_ctrl(IMPVI_NUM vinum, void *p)
 		//Get exposure AE information
 		int ret = IMP_ISP_Tuning_GetAeExprInfo(vinum, &ExpInfo);
 		if (ret ==0) {
-			printf("u32ExposureTime: %d\n", ExpInfo.ExposureValue);
-			printf("u32AnalogGain: %d\n",	ExpInfo.AeAGain);
-			printf("u32DGain: %d\n",	ExpInfo.AeDGain);
+			dp("u32ExposureTime: %d\n", ExpInfo.ExposureValue);
+			dp("u32AnalogGain: %d\n",	ExpInfo.AeAGain);
+			dp("u32DGain: %d\n",	ExpInfo.AeDGain);
 		} else {
 			return NULL;
 		}
 		iso_buf = ExpInfo.ExposureValue;
-		printf(" iso buf ==%f\n",iso_buf);
+		dp(" iso buf ==%f\n",iso_buf);
 		ret = IMP_ISP_Tuning_GetAwbGlobalStatistics(vinum, &wb);
 		if (ret == 0) {
 			gr_gain =wb.statis_gol_gain.rgain;
 			gb_gain =wb.statis_gol_gain.bgain;
-			// printf("gb_gain: %f\n", gb_gain);
-			// printf("gr_gain: %f\n", gr_gain);
-			// printf("gr_gain_record: %f\n", gr_gain_record);
+			// dp("gb_gain: %f\n", gb_gain);
+			// dp("gr_gain: %f\n", gr_gain);
+			// dp("gr_gain_record: %f\n", gr_gain_record);
 		} else {
 			return NULL;
 		}
@@ -3866,11 +3868,11 @@ void *sample_soft_photosensitive_ctrl(IMPVI_NUM vinum, void *p)
 		//If the average brightness is less than 20, switches to night vision mode
 		if (iso_buf >1900000) {
 			night_count++;
-			printf("night_count==%d\n",night_count);
+			dp("night_count==%d\n",night_count);
 			if (night_count>5) {
 				IMP_ISP_Tuning_GetISPRunningMode(vinum, &pmode);
 				if (pmode!=IMPISP_RUNNING_MODE_NIGHT) {
-					printf("### entry night mode ###\n");
+					dp("### entry night mode ###\n");
 					IMPISPRunningMode mode = IMPISP_RUNNING_MODE_NIGHT;
 					IMP_ISP_Tuning_SetISPRunningMode(vinum, &mode);
 					sample_SetIRCUT(0);
@@ -3890,8 +3892,8 @@ void *sample_soft_photosensitive_ctrl(IMPVI_NUM vinum, void *p)
 					usleep(300000);
 					gb_gain_record = gb_gain_buf;
 					//gr_gain_record = gr_gain_buf;
-					// printf("gb_gain == %f,iso_buf=%f",gb_gain,iso_buf);
-					// printf("gr_gain_record == %f\n ",gr_gain_record);
+					// dp("gb_gain == %f,iso_buf=%f",gb_gain,iso_buf);
+					// dp("gr_gain_record == %f\n ",gr_gain_record);
 				}
 			}
 		} else {
@@ -3904,10 +3906,10 @@ void *sample_soft_photosensitive_ctrl(IMPVI_NUM vinum, void *p)
 			} else {
 				day_count=0;
 			}
-			// printf("gr_gain_record == %f gr_gain =%f line=%d\n",gr_gain_record,gr_gain,__LINE__);
-			// printf("day_count == %d\n",day_count);
+			// dp("gr_gain_record == %f gr_gain =%f line=%d\n",gr_gain_record,gr_gain,__LINE__);
+			// dp("day_count == %d\n",day_count);
 			if (day_count>3) {
-				printf("### entry day mode ###\n");
+				dp("### entry day mode ###\n");
 				IMP_ISP_Tuning_GetISPRunningMode(vinum, &pmode);
 				if (pmode!=IMPISP_RUNNING_MODE_DAY) {
 					IMPISPRunningMode mode = IMPISP_RUNNING_MODE_DAY;
@@ -3953,7 +3955,7 @@ int sample_framesource_i2dopr(int ch)
 void *getframeex(void *arg)
 {
 	int chanNum = (int)arg;
-	printf("channNum:%d\n",chanNum);
+	dp("channNum:%d\n",chanNum);
 	int i = 0,ret = 0;
 	int fd;
 	char framefilename[64];
@@ -3983,7 +3985,7 @@ void *getframeex(void *arg)
 			IMP_LOG_ERR(TAG, "IMP_FrameSource_ReleaseFrameEx failed\n");
 			return NULL;
 		}
-		printf("IMP_FrameSource_ReleaseFrameEx%d succeed\n",chanNum);
+		dp("IMP_FrameSource_ReleaseFrameEx%d succeed\n",chanNum);
 	}
 
 	return "succeed";

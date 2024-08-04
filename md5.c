@@ -217,9 +217,9 @@ void Decode(uint32_t *output, const unsigned char *input, unsigned int len) {
 
 void PrintMD5(unsigned char digest[16]) {
     for (int i = 0; i < 16; i++) {
-        printf("%02x", digest[i]);
+        dp("%02x", digest[i]);
     }
-    printf("\n");
+    dp("\n");
 }
 
 int main(int argc, char *argv[]) {

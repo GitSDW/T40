@@ -72,7 +72,7 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
     // cv::Rect roi(borderSize, height/4, width - 2 * borderSize, height*3/4 - borderSize);
     // img1 = img1(roi);
     // img2 = img2(roi);
-    // printf("box3\n");
+    // dp("box3\n");
     cerr << "find try! : " << endl;
     try {
         cv::Mat gray1, gray2;
@@ -121,7 +121,7 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
         // cv::threshold(gray1, bin_img1, thhold, 255, cv::THRESH_BINARY);
         // cv::threshold(gray2, bin_img2, thhold, 255, cv::THRESH_BINARY);
 
-        // printf("box1\n");
+        // dp("box1\n");
         // cv_buf = (sample_gettimeus() - cv_time)/1000;
         // cv_time = sample_gettimeus();
         cerr << "find gray!" << endl;
@@ -138,7 +138,7 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
 
         // imwrite("/tmp/mnt/sdcard/bin.jpg", bin_img);
 
-        // printf("box2\n");
+        // dp("box2\n");
         // cv_buf = (sample_gettimeus() - cv_time)/1000;
         // cv_time = sample_gettimeus();
         cerr << "find contours!" << endl;
@@ -171,13 +171,13 @@ int package_find(char *imgpath1, char *imgpath2, int thhold) {
                 // cv::rectangle(img2, boundingRect, cv::Scalar(0, 255, 0), 2);
             }
         }
-        // printf("box count:%d\n", ); 
+        // dp("box count:%d\n", ); 
     } catch (Exception& e) {
         box_cnt = 0xFF;
-        printf("Too Many Box Count! Changed Camera Position!\n");
+        dp("Too Many Box Count! Changed Camera Position!\n");
     }
     // cv::rectangle(img2, boundingRect2, cv::Scalar(0, 255, 0), 2);
-    // printf("box4\n");
+    // dp("box4\n");
 
     cerr << "find end! : " << endl;
 
@@ -269,7 +269,7 @@ int package_sistic(char *imgpath1, char *imgpath2) {
 
     vector<DMatch> goodMatches;
     for (const DMatch& match : matches) {
-        // printf("distance:%f %f\n", match.distance, minDist);
+        // dp("distance:%f %f\n", match.distance, minDist);
         if (match.distance < 3 * minDist) {
             goodMatches.push_back(match);
         }
@@ -581,7 +581,7 @@ int calculateSimilarity2(char *imgpath1, char *imgpath2, Simil_t2* sim_t) {
 
 // 	int option;
 //     if (argc != 7) {
-//         printf("Usage: %s -b <before.jpg> -a <after.jpg> -t <threshold value>\n", argv[0]);
+//         dp("Usage: %s -b <before.jpg> -a <after.jpg> -t <threshold value>\n", argv[0]);
 //         return -1;
 //     }
 // 	while((option = getopt(argc, argv, "b:a:t:")) != -1) {
@@ -596,27 +596,27 @@ int calculateSimilarity2(char *imgpath1, char *imgpath2, Simil_t2* sim_t) {
 // 				threshold = stoi(optarg);
 // 				break;
 // 			default:
-// 				printf("Usage: %s -b <before.jpg> -a <after.jpg> -t <threshold value>", argv[0]);
+// 				dp("Usage: %s -b <before.jpg> -a <after.jpg> -t <threshold value>", argv[0]);
 // 				return -1;
 // 		}
 // 	}
 
 // 	ret = package_sistic(before_img, after_img);
 // 	if(ret < 0) {
-// 		printf("Package Sistci Fail!\n");
+// 		dp("Package Sistci Fail!\n");
 // 		return ret;
 // 	}
 
 // 	ret = package_find(after_img, threshold);
 // 	if(ret < 0) {
-// 		printf("Package Find Fail!\n");
+// 		dp("Package Find Fail!\n");
 // 		return ret;
 // 	}
 //     else {
-//         printf("Box Count : %d\n", ret);
+//         dp("Box Count : %d\n", ret);
 //         if (ret == 0) {
 //             sim = calculateSimilarity(after_img);
-//             // printf("similarity:%f %\n", sim);
+//             // dp("similarity:%f %\n", sim);
 //             std::cout << "Similarity:" << sim << "\n" << std::ends;
 //         }
 //     }
@@ -722,7 +722,7 @@ int calculateSimilarity2(char *imgpath1, char *imgpath2, Simil_t2* sim_t) {
 //     cv::String imagePath = "/dev/shm/thumbnail.jpg";
 //     cv::Mat originalImage = cv::imread(imagePath);
 
-//     printf("Thumbnail file load!\n");
+//     dp("Thumbnail file load!\n");
 
 //     // 모자이크 처리할 좌표 및 크기 설정
 //     // int x = 100, y = 100, width = 120, height = 120;
@@ -730,12 +730,12 @@ int calculateSimilarity2(char *imgpath1, char *imgpath2, Simil_t2* sim_t) {
 
 //     // 모자이크 처리 및 크기 조절
 //     cv::Mat processedImage = originalImage.clone();
-//     printf("Thumbnail make clone!\n");
+//     dp("Thumbnail make clone!\n");
 //     // for(i=0;i<10;i++) {
 //     //     if(cont.flag[i]){
 //     //         w = ((cont.ex[i]/150)+1)*150;
 //     //         h = ((cont.ey[i]/150)+1)*150;
-//     //         printf("thum:%d %d %d %d\n", cont.x[i], cont.y[i], w, h);
+//     //         dp("thum:%d %d %d %d\n", cont.x[i], cont.y[i], w, h);
 
 //     //         mosaic(processedImage, cont.x[i], cont.y[i], w, h, mosaicSize);
 
@@ -838,7 +838,7 @@ int facecrop_make(Fdpd_Data_t cont) {
     //     if (y+500 > 1080) y = 1080-500-1;
     // }
 
-    printf("cx:%d cy:%d size:%d x:%d y:%d\n", cx, cy, size, x, y);
+    dp("cx:%d cy:%d size:%d x:%d y:%d\n", cx, cy, size, x, y);
     try {
         // 이미지 로드
         Mat image = imread(inputImagePath);
@@ -1037,7 +1037,7 @@ int test_box_al(void)
         img_array.push_back(erode);
     
     // }
-    printf("image loaded!\n");
+    dp("image loaded!\n");
 
 
 

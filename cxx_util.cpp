@@ -15,7 +15,9 @@ using namespace std;
 int scanf_cmd(void)
 {
     int buf;
-    std::cout << "Insert Commend : ";
+    #if DeBug
+        std::cout << "Insert Commend : ";
+    #endif
     std::scanf("%d", &buf);
 
     return buf;

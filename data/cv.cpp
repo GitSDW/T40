@@ -54,23 +54,23 @@ int SPI_Transfer(const uint8_t *TxBuf, uint8_t *RxBuf, uint32_t len)
     {
         #if SPI_DEBUG
         int i;
-        printf("nsend spi message Succeed\n");
-        printf("nSPI Send [Len:%d]: \n", len);
+        dp("nsend spi message Succeed\n");
+        dp("nSPI Send [Len:%d]: \n", len);
         for (i = 0; i < len; i++)
         {
         if (i % 8 == 0)
-        printf("nt\n");
-        printf("0x%02X \n", TxBuf[i]);
+        dp("nt\n");
+        dp("0x%02X \n", TxBuf[i]);
         }
-        printf("n");
-        printf("SPI Receive [len:%d]:\n", len);
+        dp("n");
+        dp("SPI Receive [len:%d]:\n", len);
         for (i = 0; i < len; i++)
         {
         if (i % 8 == 0)
-        printf("nt\n");
-        printf("0x%02X \n", RxBuf[i]);
+        dp("nt\n");
+        dp("0x%02X \n", RxBuf[i]);
         }
-        printf("\n");
+        dp("\n");
         #endif
     }
     return ret;
@@ -96,14 +96,14 @@ int SPI_Write(uint8_t *TxBuf, uint32_t len)
     {
         #if SPI_DEBUG
         int i;
-        printf("SPI Write [Len:%d]: \n", len);
+        dp("SPI Write [Len:%d]: \n", len);
         for (i = 0; i < len; i++)
         {
             if (i % 8 == 0)
-            printf("\n\t");
-            printf("0x%02X \n", TxBuf[i]);
+            dp("\n\t");
+            dp("0x%02X \n", TxBuf[i]);
         }
-        printf("\n");
+        dp("\n");
         #endif
     }
     return ret;
@@ -124,19 +124,19 @@ int SPI_Read(uint8_t *RxBuf, int len)
     int fd = g_SPI_Fd;
     ret = read(fd, RxBuf, len);
     if (ret < 0)
-        printf("SPI Read error\n");
+        dp("SPI Read error\n");
     else
     {
         #if SPI_DEBUG
         int i;
-        printf("SPI Read [len:%d]:\n", len);
+        dp("SPI Read [len:%d]:\n", len);
         for (i = 0; i < len; i++)
         {
             if (i % 8 == 0)
-            printf("\n\t");
-            printf("0x%02X \n", RxBuf[i]);
+            dp("\n\t");
+            dp("0x%02X \n", RxBuf[i]);
         }
-        printf("\n");
+        dp("\n");
         #endif
     }
     return ret;
@@ -160,7 +160,7 @@ int SPI_Open(void)
     if (fd < 0)
         pabort("can't open device\n");
     else
-        printf("SPI - Open Succeed. Start Init SPI...\n");
+        dp("SPI - Open Succeed. Start Init SPI...\n");
     g_SPI_Fd = fd;
     /*
     * spi mode
@@ -189,9 +189,9 @@ int SPI_Open(void)
     ret = ioctl(fd, SPI_IOC_RD_MAX_SPEED_HZ, &speed);
     if (ret == -1)
         pabort("can't get max speed hz\n");
-    printf("spi mode: %d\n", mode);
-    printf("bits per word: %d\n", bits);
-    printf("max speed: %d KHz (%d MHz)\n", speed / 1000, speed / 1000 / 1000);
+    dp("spi mode: %d\n", mode);
+    dp("bits per word: %d\n", bits);
+    dp("max speed: %d KHz (%d MHz)\n", speed / 1000, speed / 1000 / 1000);
     return ret;
 }
 
@@ -230,7 +230,7 @@ int SPI_LookBackTest(void)
     bzero(rx, sizeof(rx));
     for (i = 0; i < BufSize; i++)
         tx[i] = i%0x100;
-    printf("nSPI - LookBack Mode Test...\n");
+    dp("nSPI - LookBack Mode Test...\n");
     ret = SPI_Transfer(tx, rx, BufSize);
     // ret = SPI_Write(tx, BufSize);
     if (ret > 1)
@@ -238,24 +238,24 @@ int SPI_LookBackTest(void)
         ret = memcmp(tx, rx, BufSize);
         if (ret != 0)
         {
-            printf("tx:\n");
+            dp("tx:\n");
             for (i = 0; i < BufSize; i++)
             {
-                printf("%03d ", tx[i]);
-                if (i%20 == 0) printf("\n");
+                dp("%03d ", tx[i]);
+                if (i%20 == 0) dp("\n");
             }
-            printf("\n");
-            printf("rx:\n");
+            dp("\n");
+            dp("rx:\n");
             for (i = 0; i < BufSize; i++)
             {
-                printf("%03d ", rx[i]);
-                if (i%20 == 0) printf("\n");
+                dp("%03d ", rx[i]);
+                if (i%20 == 0) dp("\n");
             }
-        printf("\n");
+        dp("\n");
         perror("LookBack Mode Test error\n");
         }
         else
-            printf("SPI - LookBack Mode OK\n");
+            dp("SPI - LookBack Mode OK\n");
     }
     free(tx);
     free(rx);
@@ -275,44 +275,44 @@ int SPI_RWTEST(uint8_t mode, uint32_t len)
 
     exdata++;
     if (mode == 1) {
-        // printf("SPI - Write Test...\n");
+        // dp("SPI - Write Test...\n");
         tx = (uint8_t*)malloc((size_t)BufSize);
         for (i = 0; i < BufSize; i++)
             tx[i] = exdata & 0xFF;
         ret = SPI_Write(tx, BufSize);
         if (ret > 1) {
-            // printf("tx:\n");
+            // dp("tx:\n");
             // for (i = 0; i < BufSize; i++)
             // {
-            //     printf("%03d ", tx[i]);
-            //     if (i%20 == 0) printf("\n");
+            //     dp("%03d ", tx[i]);
+            //     if (i%20 == 0) dp("\n");
             // }
-            // printf("\n");
+            // dp("\n");
         }
         else {
-            printf("Fails Send SPI\n");
+            dp("Fails Send SPI\n");
         }
-        printf("Tx : %d len : %d\n", exdata, BufSize);
+        dp("Tx : %d len : %d\n", exdata, BufSize);
         free(tx);
     }
     else if (mode == 2) {
-        printf("SPI - Read Test...\n");
+        dp("SPI - Read Test...\n");
          rx = (uint8_t*)malloc((size_t)BufSize);
         bzero(rx, sizeof(rx));
         ret = SPI_Read(rx, BufSize);
         if (ret > 1) {
-            printf("rx:\n");
+            dp("rx:\n");
             for (i = 0; i < BufSize; i++)
             {
-                printf("%03d ", rx[i]);
-                if (i%20 == 0) printf("\n");
+                dp("%03d ", rx[i]);
+                if (i%20 == 0) dp("\n");
             }
-            printf("\n");
+            dp("\n");
         }
         free(rx);
     }
     else {
-        printf("Mode Error!!");
+        dp("Mode Error!!");
         return 0;
     }
     
@@ -329,7 +329,7 @@ int SPI_RWTEST2(uint8_t mode, uint8_t *buff, uint32_t len)
 
     exdata++;
     if (mode == 1) {
-        // printf("SPI - Write Test...\n");
+        // dp("SPI - Write Test...\n");
         tx = (uint8_t*)malloc((size_t)BufSize);
         // for (i = 0; i < BufSize; i++)
             // tx[i] = exdata & 0xFF;
@@ -337,39 +337,39 @@ int SPI_RWTEST2(uint8_t mode, uint8_t *buff, uint32_t len)
         memcpy(tx, buff, BufSize);
         ret = SPI_Write(tx, BufSize);
         if (ret > 1) {
-            // printf("tx:\n");
+            // dp("tx:\n");
             // for (i = 0; i < BufSize; i++)
             // {
-            //     printf("%03d ", tx[i]);
-            //     if (i%20 == 0) printf("\n");
+            //     dp("%03d ", tx[i]);
+            //     if (i%20 == 0) dp("\n");
             // }
-            // printf("\n");
+            // dp("\n");
         }
         else {
-            printf("Fails Send SPI\n");
+            dp("Fails Send SPI\n");
         }
-        // printf("Tx: STX:0x%02x CMD:0x%02x%02x LEN:0x%02x%02x len:%d\n", 
+        // dp("Tx: STX:0x%02x CMD:0x%02x%02x LEN:0x%02x%02x len:%d\n", 
                           // tx[0],    tx[1],tx[2],  tx[3],tx[4],   BufSize);
         free(tx);
     }
     else if (mode == 2) {
-        printf("SPI - Read Test...\n");
+        dp("SPI - Read Test...\n");
          rx = (uint8_t*)malloc((size_t)BufSize);
         bzero(rx, sizeof(rx));
         ret = SPI_Read(rx, BufSize);
         if (ret > 1) {
-            printf("rx:\n");
+            dp("rx:\n");
             for (i = 0; i < BufSize; i++)
             {
-                printf("%03d ", rx[i]);
-                if (i%20 == 0) printf("\n");
+                dp("%03d ", rx[i]);
+                if (i%20 == 0) dp("\n");
             }
-            printf("\n");
+            dp("\n");
         }
         free(rx);
     }
     else {
-        printf("Mode Error!!");
+        dp("Mode Error!!");
         return 0;
     }
     
@@ -490,40 +490,40 @@ get_malloc_maxsize(int nbits, int verbose)
     void *buf;
     size_t i;
 
-    if (verbose) printf("Step-I)\n");
+    if (verbose) dp("Step-I)\n");
     for (i=nbits; i <= sizeof(size_t)*8; i++) {
         size = (((1 << (i-1)) - 1) << 1) | 0x1; 
-        if (verbose) printf("\ttesting size:0x%08X(%d-bits) ... ", size, i);
+        if (verbose) dp("\ttesting size:0x%08X(%d-bits) ... ", size, i);
 
         if ((buf=malloc((size_t) size)) == NULL) {
-            if (verbose) printf(" fail!\n");
+            if (verbose) dp(" fail!\n");
             next_size = size;
             break;
         }
-        if (verbose) printf(" o.k.\n");
+        if (verbose) dp(" o.k.\n");
         free(buf);
         prev_size = size;
     }
 
     if (!prev_size) {
         if (verbose)
-            printf(" step-I) The limit size of malloc() is less than 1(MiB)\n");
+            dp(" step-I) The limit size of malloc() is less than 1(MiB)\n");
         return 0;
     }
-    if (verbose) printf("The valid malloc size=%u\n\n", prev_size); 
+    if (verbose) dp("The valid malloc size=%u\n\n", prev_size); 
 
-    if (verbose) printf("Step-II)\n");
+    if (verbose) dp("Step-II)\n");
     while (prev_size+1 < next_size) {
         size = prev_size + ((next_size - prev_size) >> 1);
-        if (verbose) printf("\ttesting size:%u ...", size);
+        if (verbose) dp("\ttesting size:%u ...", size);
 
         if ((buf=malloc((size_t) size)) == NULL) {
             next_size = size;
-            if (verbose) printf(" fail!\n");
+            if (verbose) dp(" fail!\n");
         } else {
             prev_size = size;
             free(buf);
-            if (verbose) printf(" o.k.\n");
+            if (verbose) dp(" o.k.\n");
         }
     }
     return prev_size;
@@ -560,7 +560,7 @@ get_malloc_maxsize(int nbits, int verbose)
 //     {
 //         #if SPI_DEBUG
 //         int i;
-//         printf("nsend spi message Succeed\n");
+//         dp("nsend spi message Succeed\n");
 //         #endif
 //     }
 //     return ret;
@@ -699,7 +699,7 @@ int main(int argc, char **argv)
                 if (i + 1 < argc) {
                     clk = std::stod(argv[i + 1]);
                     speed = clk * 100 * 1024;
-                    printf("speed option set : %d\n", speed);
+                    dp("speed option set : %d\n", speed);
                     continue;
                 }
                 else {
@@ -712,15 +712,15 @@ int main(int argc, char **argv)
                     filenum = std::stod(argv[i + 1]);
                     if (filenum == 2) {
                         fd = open(file2, O_RDONLY);
-                        printf("File Num set : %s\n", file2);
+                        dp("File Num set : %s\n", file2);
                     }
                     else if (filenum == 3) {
                         fd = open(file3, O_RDONLY);
-                        printf("File Num set : %s\n", file3);
+                        dp("File Num set : %s\n", file3);
                     }
                     else if (filenum == 1) {
                         fd = open(file1, O_RDONLY);
-                        printf("File Num set : %s\n", file1);
+                        dp("File Num set : %s\n", file1);
                     }
                     else {
                         std::cerr << "Error: -n option file number 1~3 value." << std::ends;
@@ -746,22 +746,22 @@ int main(int argc, char **argv)
     Spi_Ptl_Attr.len = 1;
     Make_Spi_Packet(&Spi_Ptl_Attr);
     SPI_RWTEST2(SPI_TEST_WMODE, tx_buf, SPI_SEND_LENGTH); // data start
-    printf("File Send Start\n");
+    dp("File Send Start\n");
     if (delay > 0)
             usleep(delay * 1000);
     while(!bExit)
     {
         // MI_U32 u32Select = 0xff;
-        // printf("select 1: Motion Detection. /tmp/before.jpg /tmp/after.jpg\n");
-        // printf("select 2: package Detection. /customer/before.jpg /customer/after.jpg\n");
-        // printf("select 3: mallock Test.\n");
-        // printf("select 12: exit\n");
+        // dp("select 1: Motion Detection. /tmp/before.jpg /tmp/after.jpg\n");
+        // dp("select 2: package Detection. /customer/before.jpg /customer/after.jpg\n");
+        // dp("select 3: mallock Test.\n");
+        // dp("select 12: exit\n");
         // scanf("%d", &u32Select);
         // ST_Flush();
         // if(u32Select == 1)
         // {
         //     motion = motion_detecte();
-        //     printf("Difference Pixel : %d\n", motion);
+        //     dp("Difference Pixel : %d\n", motion);
         // }
         // else if(u32Select == 2)
         // {
@@ -771,9 +771,9 @@ int main(int argc, char **argv)
         // {
         //     maxsize = get_malloc_maxsize(20, verbose); // start at 20MB
         //     if (!maxsize) {
-        //         printf("The limit size of malloc() is less than 1(MiB)\n");
+        //         dp("The limit size of malloc() is less than 1(MiB)\n");
         //     } else {
-        //         printf("The limit size of malloc() : %u(0x%08X)\n", maxsize, maxsize); 
+        //         dp("The limit size of malloc() : %u(0x%08X)\n", maxsize, maxsize); 
         //     }
         // }
         // else if(u32Select == 4)
@@ -782,9 +782,9 @@ int main(int argc, char **argv)
         // SPI_RWTEST(SPI_TEST_WMODE, len);
         memset(rd_buf, 0, FILE_READ_LENGTH);
         ret = read(fd, rd_buf, FILE_READ_LENGTH);
-        // printf("ret:%d\n", ret);
+        // dp("ret:%d\n", ret);
         if (ret < 0){
-            printf("Read Fail.!\n");
+            dp("Read Fail.!\n");
             return 1;
         }
         else if (ret == 0){
@@ -796,7 +796,7 @@ int main(int argc, char **argv)
             Spi_Ptl_Attr.len = 1;
             Make_Spi_Packet(&Spi_Ptl_Attr);
             SPI_RWTEST2(SPI_TEST_WMODE, tx_buf, SPI_SEND_LENGTH); // data end
-            printf("File Read End!!\n");
+            dp("File Read End!!\n");
             return 0;
         }   
         else {
@@ -806,7 +806,7 @@ int main(int argc, char **argv)
             Spi_Ptl_Attr.minor = REC_CLIP_F;
             Spi_Ptl_Attr.len = ret;
             Make_Spi_Packet(&Spi_Ptl_Attr);
-            // printf("STX:0x%02x CMD:0x%02x%02x LEN:0x%02x%02x ETX:0x%02x\n", 
+            // dp("STX:0x%02x CMD:0x%02x%02x LEN:0x%02x%02x ETX:0x%02x\n", 
                         // tx_buf[0], tx_buf[1], tx_buf[2], tx_buf[3], tx_buf[4], tx_buf[1032]);
             SPI_RWTEST2(SPI_TEST_WMODE, tx_buf, SPI_SEND_LENGTH); // data send
         }

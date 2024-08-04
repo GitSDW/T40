@@ -13,11 +13,19 @@ extern "C" {
 #ifndef __PHILL_REQ__
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"8"
-	#define CAHR_VER	"g"
+	#define CAHR_VER	"j"
 #else
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"9"	
-	#define CAHR_VER	"r"
+	#define CAHR_VER	"s"
+#endif
+
+#define DeBug 			1
+
+#if DeBug
+	#define		dp(...)	printf(__VA_ARGS__)
+#else
+	#define  	dp(...)
 #endif
 
 typedef struct CIRCULAR_BUFF
@@ -92,6 +100,7 @@ int move_det_xs, move_det_ys, move_det_xe, move_det_ye;
 #define ROAMING_PER_TIME 			35000000	// 60 * 1000 * 1000 usec
 #define THUMBNAIL_TIME 				1000000
 #define FACE_FIND_END_TIME 			5000000
+#define BELL_START_TIME				8000000
 #define BELL_TIME_MIN				15000000
 #define CLIP_CLOSE_TIME  			1500000
 #define LIVE_MESSAGE_TIME  			10000000	// 10 * 1000 * 1000 usec
@@ -307,6 +316,7 @@ bool rfile_flag[10];
 bool mem_full_flag;
 bool av_off_flag;
 bool send_retry_flag;
+bool bell_rerecode_flag;
 
 
 extern int bExit;

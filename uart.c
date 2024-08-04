@@ -42,10 +42,10 @@ bool ack_flag = false;
 //      * 获取串口设备描述符
 //      * Get serial device descriptor
 //      * */    
-//     printf("This is tty/usart demo.\n");
+//     dp("This is tty/usart demo.\n");
 //     fd = open(path, O_RDWR);
 //     if (fd < 0) {
-//         printf("Fail to Open %s device\n", path);
+//         dp("Fail to Open %s device\n", path);
 //         return -1;
 //     }
 //     struct termios opt;
@@ -129,7 +129,7 @@ bool ack_flag = false;
 //      **/    
 //     tcsetattr(fd, TCSANOW, &opt);
 
-//     printf("Device %s is set to %d bps,databits %d,stopbits %d,parity %c\n",path,baudrate,databits,stopbits,parity);
+//     dp("Device %s is set to %d bps,databits %d,stopbits %d,parity %c\n",path,baudrate,databits,stopbits,parity);
 //     return 0;
 // }
 
@@ -202,6 +202,11 @@ int uart_init(void) {
 const int uart_send(int fd,uint8_t *send_buf,int data_len)
 {
     int len = 0;
+    // dp("UART:");
+    // for(int i=0; i<data_len; i++) {
+    //     dp("0x%02x ", send_buf[i]);
+    // }
+    // dp("\n");
     len = write(fd,send_buf,data_len);
     if(len == data_len){
         return len;
@@ -316,13 +321,13 @@ int Make_Packet_uart(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t major,
     case SETTING:
         switch(minor) {
             case SET_FILE_START:
-                // printf("Start Pck Make!\n");
+                // dp("Start Pck Make!\n");
                 break;
             case SET_FILE_SEND:
-                // printf("Start Pck Make!\n");
+                // dp("Start Pck Make!\n");
                 break;
             case SET_FILE_END:
-                // printf("Start Pck Make!\n");
+                // dp("Start Pck Make!\n");
                 break;
         }
         break;
@@ -356,13 +361,13 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
     major = rbuff[index+1];
     minor = rbuff[index+2];
     if (rbuff[index] != 0x02) {
-        // printf("S\n");
+        // dp("S\n");
         bad_cnt++;
     }
     
     buf_8 = major&0x80;
     if (buf_8 == 0) {
-        // printf("M\n");
+        // dp("M\n");
         bad_cnt++;
     } 
 
@@ -376,7 +381,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
 
     len = rbuff[index+3]*256 + rbuff[index+4];
 
-    printf("PKT Len : %d\n", len);
+    dp("PKT Len : %d\n", len);
 
     ack_flag = false;
 
@@ -394,23 +399,27 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             else if (settings.bell_type == 1) effect_file = "/tmp/mnt/sdcard/effects/bell2.wav";
             else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/bell3.wav";
             else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/bell4.wav";
-            printf("play : %s\n", effect_file);
+            dp("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
             // clip_cause_t.Major = CLIP_CAUSE_BOX;
             // clip_cause_t.Minor = CLIP_BOX_OCCUR;
             // bell_rec_state = REC_START;
+            if (stream_state == 1) {
+                printf("Bell Stream : %d\n", stream_state);
+                break;
+            }
             
             ack_len = 0;
             // ack_flag = true;
-            // printf("av_off : %d\n", av_off_flag);
+            // dp("av_off : %d\n", av_off_flag);
             if (av_off_flag) {
                 if (bl_state == BSS_WAIT) {
                     bell_flag = true;
                     bell_call_flag = false;
-                    bell_rec_state = REC_START;
+                    // bell_rec_state = REC_START;
                 }
             }
-            else {
+            else if (bell_rerecode_flag) {
                 rec_enable_ack();
             }
         break;
@@ -424,12 +433,12 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             // ack_flag = true;
         break;
         case UREC_RETRY:
-            printf("File Send Retry!!\n");
+            dp("File Send Retry!!\n");
             send_retry_flag = true;
         break;
         case  UREC_FACE:
             if (rbuff[index+9] == 1) {
-                printf("Streaming Rec Face Detection!\n");
+                dp("Streaming Rec Face Detection!\n");
                 clip_cause_t.Major = CLIP_CAUSE_FACE;
                 clip_cause_t.Minor = CLIP_FACE_DET; 
             }
@@ -438,6 +447,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         break;
         case UREC_STREAM:
             if (boot_mode == 1) {
+                Set_Vol(100,25,spk_vol_buf,spk_gain_buf);
                 stream_state = 1;
                 rec_streaming_state = REC_START;
                 bell_stream_flag = true;
@@ -445,7 +455,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                     bell_call_flag = true;
                 }
                 ack_len = 0;
-                printf("Stream start!\n");
+                dp("Stream start!\n");
                 file_21_flag = false;
                 // ack_flag = true;
             }
@@ -477,7 +487,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 effect_file = "/tmp/mnt/sdcard/effects/dev_takeoff.wav";
             else if (rbuff[index+9] == 1)
                 effect_file = "/tmp/mnt/sdcard/effects/dev_takeon.wav";
-            printf("play : %s\n", effect_file);
+            dp("play : %s\n", effect_file);
             Set_Vol(100,25,(10 * 1) + 55,15);
             ao_file_play_thread(effect_file);
 
@@ -499,7 +509,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             // netwrok_busy = true;
 
             snprintf(TimeStamp.date, 13, "%s\n", (char*)&rbuff[index+9+1]);
-            printf("1Set Busy : %d Date : %s\n", netwrok_busy, TimeStamp.date);
+            dp("1Set Busy : %d Date : %s\n", netwrok_busy, TimeStamp.date);
             ack_len = 0;
             // ack_flag = true;
         break;
@@ -516,13 +526,13 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 // ack_flag = true;
             }
 
-            printf("Light %d\n", value_buf);
+            dp("Light %d\n", value_buf);
         break;
         case USTREAM_REC_S:
             if (boot_mode == 0x00 || boot_mode == 0x03) {
                 break;
             }
-            printf("Streaming Rec Start!\n");
+            dp("Streaming Rec Start!\n");
 
             if (rec_on) {
                 ack_len = 1;
@@ -545,7 +555,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 rec_on = true;
                 stream_tag[rec_cnt] = CLIP_CAUSE_STREM;
                 rec_cnt++;
-                printf("Rec Start : %d\n", rec_cnt);
+                dp("Rec Start : %d\n", rec_cnt);
                 ack_len = 1;
                 ack_data[0] = 1;
                 // ack_flag = true;
@@ -560,9 +570,9 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 rec_end = true;
             }
             else {
-            printf("Streaming Rec End!\n");
+            dp("Streaming Rec End!\n");
                 rec_time_e = sample_gettimeus()-rec_time_s;
-                printf("Rec Filecnt : %d Time : %lld total : %lld\n", rec_cnt, rec_time_e, rec_total);
+                dp("Rec Filecnt : %d Time : %lld total : %lld\n", rec_cnt, rec_time_e, rec_total);
                 rec_each_time[rec_cnt-1] = rec_time_e;
                 rec_total += rec_time_e;
                 streaming_rec_state = REC_STOP;
@@ -584,7 +594,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             if (boot_mode == 0x00 || boot_mode == 0x03) {
                 break;
             }
-            printf("Streaming Bell Call Start!\n");
+            dp("Streaming Bell Call Start!\n");
             if (rec_on) {
                 ack_len = 1;
                 ack_data[0] = 2;
@@ -598,6 +608,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             }
             else {
                 amp_on();
+                Set_Vol(100,25,spk_vol_buf,spk_gain_buf);
                 rec_time_s = sample_gettimeus();
                 // if (boot_mode == 0x01) {
                 //     Rec_type = STRM_REC;
@@ -610,7 +621,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                     rec_on = true;
                     stream_tag[rec_cnt] = CLIP_CAUSE_BELL;
                     rec_cnt++;
-                    printf("Bell Start : %d\n", rec_cnt);
+                    dp("Bell Start : %d\n", rec_cnt);
                 }
                 ack_len = 1;
                 ack_data[0] = 1;
@@ -634,7 +645,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             // ack_flag = true;
         break;
         case USTREAM_BLE_LT:
-            printf("Ble Light Set!\n");
+            dp("Ble Light Set!\n");
             gpio_LED_dimming(rbuff[index+9]);
             ack_len = 0;
             // ack_flag = true;
@@ -644,7 +655,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             else                        netwrok_busy = false;
 
             snprintf(TimeStamp.date, 13, "%s\n", (char*)&rbuff[index+9+1]);
-            printf("Set Busy : %d Date : %s\n", netwrok_busy, TimeStamp.date);
+            dp("Set Busy : %d Date : %s\n", netwrok_busy, TimeStamp.date);
             ack_len = 0;
             // ack_flag = true;
         break;
@@ -658,7 +669,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 else                        value_buf = 0;
                 settings.SF.bits.led = value_buf;
                 Setting_Save();
-                printf("Auto LED Setting Saved! %d\n", settings.SF.bits.led);
+                dp("Auto LED Setting Saved! %d\n", settings.SF.bits.led);
                 system("sync");
                 ack_len = 0;
                 // ack_flag = true;
@@ -670,7 +681,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 value_buf = rbuff[index+9];
                 settings.bell_type = value_buf;
                 Setting_Save();
-                printf("Bell Type Setting Saved! %d\n", settings.bell_type);
+                dp("Bell Type Setting Saved! %d\n", settings.bell_type);
                 system("sync");
                 ack_len = 0;
                 // ack_flag = true;
@@ -679,7 +690,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 else if (settings.bell_type == 1) effect_file = "/tmp/mnt/sdcard/effects/bell2.wav";
                 else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/bell3.wav";
                 else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/bell4.wav";
-                printf("play : %s\n", effect_file);
+                dp("play : %s\n", effect_file);
                 ao_file_play_thread(effect_file);
                 cmd_end_flag = true;
 
@@ -691,7 +702,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 value_buf = rbuff[index+9];
                 settings.spk_vol = value_buf;
                 Setting_Save();
-                printf("Speaker Vol Setting Saved! %d\n", settings.spk_vol);
+                dp("Speaker Vol Setting Saved! %d\n", settings.spk_vol);
                 system("sync");
                 ack_len = 0;
                 // ack_flag = true;
@@ -704,7 +715,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 else                        value_buf = 0;
                 settings.SF.bits.backlight = value_buf;
                 Setting_Save();
-                printf("Back Light Setting Saved! %d\n", settings.SF.bits.backlight);
+                dp("Back Light Setting Saved! %d\n", settings.SF.bits.backlight);
                 system("sync");
                 ack_len = 0;
                 // ack_flag = true;
@@ -717,7 +728,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 else                        value_buf = 0;
                 settings.SF.bits.flicker = value_buf;
                 Setting_Save();
-                printf("Flicker Setting Saved! %d\n", settings.SF.bits.flicker);
+                dp("Flicker Setting Saved! %d\n", settings.SF.bits.flicker);
                 system("sync");
                 ack_len = 0;
                 // ack_flag = true;
@@ -729,7 +740,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 value_buf = rbuff[index+9];
                 settings.move_sensitivty = value_buf;
                 Setting_Save();
-                printf("Move Sensitivity Setting Saved! %d\n", settings.move_sensitivty);
+                dp("Move Sensitivity Setting Saved! %d\n", settings.move_sensitivty);
                 system("sync");
                 ack_len = 0;
                 // ack_flag = true;
@@ -742,7 +753,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 else                        value_buf = 0;
                 settings.SF.bits.move_ex = value_buf;
                 Setting_Save();
-                printf("Move Ex On/Off Setting Saved! %d\n", settings.SF.bits.move_ex);
+                dp("Move Ex On/Off Setting Saved! %d\n", settings.SF.bits.move_ex);
                 system("sync");
                 ack_len = 0;
                 // ack_flag = true;
@@ -755,7 +766,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 else                        value_buf = 0;
                 settings.SF.bits.per_face = value_buf;
                 Setting_Save();
-                printf("Face Mosaic Setting Saved! %d\n", settings.SF.bits.per_face);
+                dp("Face Mosaic Setting Saved! %d\n", settings.SF.bits.per_face);
                 system("sync");
                 ack_len = 0;
                 // ack_flag = true;
@@ -768,7 +779,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 else                        value_buf = 0;
                 settings.SF.bits.door_g = value_buf;
                 Setting_Save();
-                printf("Door Grid On/Off Setting Saved! %d\n", settings.SF.bits.door_g);
+                dp("Door Grid On/Off Setting Saved! %d\n", settings.SF.bits.door_g);
                 system("sync");
                 ack_len = 0;
                 // ack_flag = true;
@@ -781,7 +792,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 else                        value_buf = 0;
                 settings.SF.bits.user_g = value_buf;
                 Setting_Save();
-                printf("User Grid On/Off Setting Saved! %d\n", settings.SF.bits.user_g);
+                dp("User Grid On/Off Setting Saved! %d\n", settings.SF.bits.user_g);
                 system("sync");
                 ack_len = 0;
                 // ack_flag = true;
@@ -828,7 +839,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             else                        netwrok_busy = false;
 
             snprintf(TimeStamp.date, 13, "%s\n", (char*)&rbuff[index+9+1]);
-            printf("Set Busy : %d Date : %s\n", netwrok_busy, TimeStamp.date);
+            dp("Set Busy : %d Date : %s\n", netwrok_busy, TimeStamp.date);
             ack_len = 0;
             // ack_flag = true;
         break;
@@ -841,7 +852,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             Setting_Reinit();
             Set_Vol(100,25,(10 * 1) + 55,15);
             effect_file = "/tmp/mnt/sdcard/effects/factory.wav";
-            printf("play : %s\n", effect_file);
+            dp("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
             
             ack_len = 0;
@@ -849,12 +860,12 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             cmd_end_flag = true;
         break;
         case SET_BLE_LT:
-            printf("Ble Light Set!\n");
+            dp("Ble Light Set!\n");
             gpio_LED_dimming(rbuff[index+9]);
             if (rbuff[index+9] != 0) {
                 Set_Vol(100,25,(10 * 1) + 55,15);
                 effect_file = "/tmp/mnt/sdcard/effects/dev_start.wav";
-                printf("play : %s\n", effect_file);
+                dp("play : %s\n", effect_file);
                 ao_file_play_thread(effect_file);
             }
             ack_len = 0;
@@ -872,7 +883,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             // ack_flag = true;
             Set_Vol(100,25,(10 * 1) + 55,15);
             effect_file = "/tmp/mnt/sdcard/effects/dev_start.wav";
-            printf("play : %s\n", effect_file);
+            dp("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
             
             cmd_end_flag = true;
@@ -882,7 +893,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             // ack_flag = true;
             Set_Vol(100,25,(10 * 1) + 55,15);
             effect_file = "/tmp/mnt/sdcard/effects/dev_end.wav";
-            printf("play : %s\n", effect_file);
+            dp("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
             
             sleep(5);
@@ -893,7 +904,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             // ack_flag = true;
 
             effect_file = "/tmp/mnt/sdcard/effects/factory.wav";
-            printf("play : %s\n", effect_file);
+            dp("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
             // sleep(5);
             // cmd_end_flag = true;
@@ -923,7 +934,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             else if (rbuff[index+9] == 19) effect_file = "/tmp/mnt/sdcard/effects/batt19.wav";
             else if (rbuff[index+9] == 20) effect_file = "/tmp/mnt/sdcard/effects/batt20.wav";
             else effect_file = "/tmp/mnt/sdcard/effects/batt01.wav";
-            printf("play : %s\n", effect_file);
+            dp("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
             sleep(5);
             cmd_end_flag = true;
@@ -954,8 +965,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             settings.move_sensitivty = rbuff[index+9+SA_MOVE_SENSI];
             settings.SF.bits.backlight = rbuff[index+9+SA_BACKLIGHT];
 
-            printf("led:%d belltype:%d spkvol:%d facemosaic:%d\n", settings.SF.bits.led, settings.bell_type, settings.spk_vol, settings.SF.bits.per_face);
-            printf("door:%d user:%d moveex:%d flicker:%d sensi:%d backlight:%d\n", settings.SF.bits.door_g, settings.SF.bits.user_g, settings.SF.bits.move_ex, settings.SF.bits.flicker,
+            dp("led:%d belltype:%d spkvol:%d facemosaic:%d\n", settings.SF.bits.led, settings.bell_type, settings.spk_vol, settings.SF.bits.per_face);
+            dp("door:%d user:%d moveex:%d flicker:%d sensi:%d backlight:%d\n", settings.SF.bits.door_g, settings.SF.bits.user_g, settings.SF.bits.move_ex, settings.SF.bits.flicker,
                                                                                     settings.move_sensitivty, settings.SF.bits.backlight);
 
 
@@ -965,17 +976,17 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             settings.move_ex_s_y = (rbuff[index+9+SA_MOVE_EX_S_Y]*0x100)+(rbuff[index+9+SA_MOVE_EX_S_Y+1]);
             settings.move_ex_e_x = (rbuff[index+9+SA_MOVE_EX_E_X]*0x100)+(rbuff[index+9+SA_MOVE_EX_E_X+1]);
             settings.move_ex_e_y = (rbuff[index+9+SA_MOVE_EX_E_Y]*0x100)+(rbuff[index+9+SA_MOVE_EX_E_Y+1]);
-            printf("doorgrid:");
+            dp("doorgrid:");
             for(int k=0; k<27; k++) {
-                printf("0x%02x ", settings.door_grid[k]);
+                dp("0x%02x ", settings.door_grid[k]);
             }
-            printf("\n");
-            printf("usergrid:");
+            dp("\n");
+            dp("usergrid:");
             for(int k=0; k<27; k++) {
-                printf("0x%02x ", settings.user_grid[k]);
+                dp("0x%02x ", settings.user_grid[k]);
             }
-            printf("\n");
-            printf("moveexarea: \n     start X : %d Y : %d\n     end : X : %d Y : %d\n", settings.move_ex_s_x, settings.move_ex_s_y, settings.move_ex_e_x, settings.move_ex_e_y);
+            dp("\n");
+            dp("moveexarea: \n     start X : %d Y : %d\n     end : X : %d Y : %d\n", settings.move_ex_s_x, settings.move_ex_s_y, settings.move_ex_e_x, settings.move_ex_e_y);
 
 
             Setting_Save();
@@ -995,7 +1006,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         uart_tx = malloc(ack_len+10);
         res = Make_Uart_Ack(uart_tx, ack_len, ack_data, ack_major, ack_minor);
         uart_send(fd_uart, uart_tx, res);
-        printf("Ack Major:0x%02x Minor0x%02x\n", uart_tx[1], uart_tx[2]);
+        dp("Ack Major:0x%02x Minor0x%02x\n", uart_tx[1], uart_tx[2]);
         ack_flag = false;
         free(uart_tx);
     }
@@ -1028,8 +1039,8 @@ int device_star(uint8_t major) {
 
     uart_send(fd_uart, uart_tx, 10);
     
-    printf("Device Start Major:0x%02x\n", uart_tx[1]);
-    // printf("%c%c%c%c%c\n",(char) uart_tx[9],(char) uart_tx[10],(char) uart_tx[11],(char) uart_tx[12],(char) uart_tx[13]);
+    dp("Device Start Major:0x%02x\n", uart_tx[1]);
+    // dp("%c%c%c%c%c\n",(char) uart_tx[9],(char) uart_tx[10],(char) uart_tx[11],(char) uart_tx[12],(char) uart_tx[13]);
     
     free(uart_tx);
 
@@ -1059,7 +1070,7 @@ int device_end(uint8_t major) {
 
     uart_send(fd_uart, uart_tx, 10);
     
-    printf("Device End Major:0x%02x\n", uart_tx[1]);
+    dp("Device End Major:0x%02x\n", uart_tx[1]);
     
     free(uart_tx);
 
@@ -1086,7 +1097,7 @@ int device_live(uint8_t major) {
 
     uart_send(fd_uart, uart_tx, 10);
     
-    // printf("L\n");
+    // dp("L\n");
     
     free(uart_tx);
 
@@ -1117,7 +1128,7 @@ int make_file_start(uint8_t major) {
 
     uart_send(fd_uart, uart_tx, 10);
     
-    printf("MFS\n");
+    dp("MFS\n");
     
     free(uart_tx);
 
@@ -1147,7 +1158,7 @@ int face_end(uint8_t major) {
 
     uart_send(fd_uart, uart_tx, 10);
     
-    printf("FE\n");
+    dp("FE\n");
     
     free(uart_tx);
 
@@ -1163,13 +1174,13 @@ int streaming_rec_end(uint8_t cus) {
 
     memset(uart_tx, 0, 10);
     uart_tx[0] = 0x02;
+    uart_tx[1] = 0x02;
     if (cus == CAUSE_MEM)
-        uart_tx[1] = 0x22;
+        uart_tx[2] = 0x22;
     else if (cus == CAUSE_FILE)
-        uart_tx[1] = 0x23;
+        uart_tx[2] = 0x23;
     else
         return -1;
-    uart_tx[2] = 0x22;
     uart_tx[3] = 0;
     uart_tx[4] = 0;
     uart_tx[5] = 0x00;
@@ -1180,7 +1191,7 @@ int streaming_rec_end(uint8_t cus) {
 
     uart_send(fd_uart, uart_tx, 10);
     
-    printf("SRE\n");
+    dp("SRE\n");
     
     free(uart_tx);
 
@@ -1206,7 +1217,7 @@ int door_set_fail(void) {
 
     uart_send(fd_uart, uart_tx, 10);
     
-    printf("DSF\n");
+    dp("DSF\n");
     
     free(uart_tx);
 
@@ -1232,7 +1243,7 @@ int rec_enable_ack(void) {
 
     uart_send(fd_uart, uart_tx, 10);
     
-    printf("REA\n");
+    dp("REA\n");
     
     free(uart_tx);
 
@@ -1266,7 +1277,7 @@ void uart_tx_test (void) {
         uart2_buf[i] = i+1;
     }
 
-    printf("Uart Tx!\n");
+    dp("Uart Tx!\n");
     uart_send(fd_uart,uart2_buf, 0xff);
 }
 
@@ -1287,7 +1298,7 @@ void *uart_thread(void *argc)
     uart_rx = malloc(128);
     cmd_rx = malloc(128);
     
-    // printf("/dev/ttyS2 115200 8 1 N\n"); 
+    // dp("/dev/ttyS2 115200 8 1 N\n"); 
 
     /*
      * 串口初始化函数
@@ -1296,7 +1307,7 @@ void *uart_thread(void *argc)
     // res = uart_init(set_baudrate,set_databits,set_stopbits,set_parity);
     res = uart_init();
     if(res < 0){
-        printf("uart init failed \n");
+        dp("uart init failed \n");
     }
     // uint8_t *uart_tx;
     // uint8_t start_data[10] = {0};
@@ -1315,8 +1326,8 @@ void *uart_thread(void *argc)
     // sprintf((char*)start_data, "%s.%s.%s\n", MAJOR_VER, MINOR_VER, CAHR_VER);
     // res = Make_Packet_uart(uart_tx, start_data, 5, mode, 1);
     // uart_send(fd_uart, uart_tx, res);
-    // printf("Start Major:0x%02x Minor0x%02x\n", uart_tx[1], uart_tx[2]);
-    // printf("Start LEN : 0x%02x%02x\\n", uart_tx[3], uart_tx[4]);
+    // dp("Start Major:0x%02x Minor0x%02x\n", uart_tx[1], uart_tx[2]);
+    // dp("Start LEN : 0x%02x%02x\\n", uart_tx[3], uart_tx[4]);
     // free(uart_tx);
 
     if (boot_mode == 0) mode = DTEST;
@@ -1332,10 +1343,10 @@ void *uart_thread(void *argc)
      */
     do {
         res = read(fd_uart, uart_rx, 512);
-        // printf("res : %d\n", res);
+        // dp("res : %d\n", res);
         if (res > 0) {
            
-            printf("\n");
+            dp("\n");
             if (uart_rx[0] == 0x02) {
                 cmd_state = 1;
                 len = (uart_rx[3] * 0x100) + (uart_rx[4]);
@@ -1345,12 +1356,12 @@ void *uart_thread(void *argc)
                     cmd_state = 2;
                 }
                 len_p = res;
-                // printf("0UART RX: ");
+                // dp("0UART RX: ");
                 // for (int i=0; i<res; i++) {
-                    // printf("0x%02x ", cmd_rx[i]);
+                    // dp("0x%02x ", cmd_rx[i]);
                 // }
-                // printf("\n");
-                // printf("len : %d\n", len);
+                // dp("\n");
+                // dp("len : %d\n", len);
             }
             else if (cmd_state == 1) {
                 if (len_p + res == len + 10) {
@@ -1361,19 +1372,19 @@ void *uart_thread(void *argc)
                     memcpy(&cmd_rx[len_p], uart_rx, res);
                     len_p += res;
                 }
-                // printf("1UART RX: ");
+                // dp("1UART RX: ");
                 // for (int i=0; i<len_p; i++) {
-                    // printf("0x%02x ", cmd_rx[i]);
+                    // dp("0x%02x ", cmd_rx[i]);
                 // }
-                // printf("\n");
+                // dp("\n");
             }
 
             if (cmd_state == 2) {
-                printf("\nUART RX[%d]: ", len);
+                dp("\nUART RX[%d]: ", len);
                 for (int i=0; i<len_p; i++) {
-                    printf("0x%02x ", cmd_rx[i]);
+                    dp("0x%02x ", cmd_rx[i]);
                 }
-                printf("\n");
+                dp("\n");
                 Recv_Uart_Packet_live(cmd_rx);
                 cmd_state = 0;
             }
@@ -1382,12 +1393,12 @@ void *uart_thread(void *argc)
 
     // res = Make_Packet_uart(uart_tx, start_data, 0, mode, SET_STOP);
     // uart_send(fd_uart, uart_tx, res);
-    // printf("Start Major:0x%02x Minor0x%02x\n", uart_tx[1], uart_tx[2]);
+    // dp("Start Major:0x%02x Minor0x%02x\n", uart_tx[1], uart_tx[2]);
 
     free(uart_rx);
 
     close(fd_uart);
-    printf("Uart FD Close\n");
+    dp("Uart FD Close\n");
     return 0;
 }
 
@@ -1399,7 +1410,7 @@ void *device_live_thread(void * argc) {
     int LMS_cnt = 0;
     do {
         if ((!live_flag) && (sample_gettimeus()-live_total > LIVE_MESSAGE_TIME)) {
-            // printf("LMS %d\n", LMS_cnt);
+            // dp("LMS %d\n", LMS_cnt);
             LMS_cnt++;
             live_total = sample_gettimeus();
             live_flag =true;

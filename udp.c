@@ -71,7 +71,7 @@ int init_udp(uint8_t index, uint16_t host) {
 		
 	}
 	else {
-		printf("Udp Setup Index Error!!\n");
+		dp("Udp Setup Index Error!!\n");
 		return -1;
 	}
 	return 0;
@@ -80,7 +80,7 @@ int init_udp(uint8_t index, uint16_t host) {
 void deinit_udp(uint8_t index) {
 	if (index == RECV_INDEX) 		close(send_sock);
 	else if (index == SEND_INDEX) 	close(recv_sock);
-	else printf("Udp Deinit Index Error!!\n");
+	else dp("Udp Deinit Index Error!!\n");
 }
 
 #ifdef __H265__
@@ -261,7 +261,7 @@ void *udp_recv_pthread(void *arg) {
 	
 	test_out_fd = open("/dev/shm/test_out.pcm", O_RDWR | O_CREAT | O_TRUNC, 0777);
 	if (test_out_fd < 0) {
-		printf("test PCM open Out failed\n");
+		dp("test PCM open Out failed\n");
 		return ((void *)-1);
 	}
 
@@ -275,13 +275,13 @@ void *udp_recv_pthread(void *arg) {
 			if (save_pcm == 1) {
 				ret = write(test_out_fd, buf, ret);
 				if (ret < 0) {
-					printf("Test PCM Save Out Fail!\n");
+					dp("Test PCM Save Out Fail!\n");
 					return NULL;
 				}
 			}
 			len = ret;
 			if(len > 0){
-				// printf("UDP Recv Len : %d\n", len);
+				// dp("UDP Recv Len : %d\n", len);
 				// pthread_mutex_lock(&buffMutex_ao);
 				if (AO_Cir_Buff.RIndex != AO_Cir_Buff.WIndex) {
 					buff_space = (AO_Cir_Buff.RIndex - AO_Cir_Buff.WIndex - 1 + A_BUFF_SIZE) % (500*1024);
@@ -296,16 +296,16 @@ void *udp_recv_pthread(void *arg) {
 							AO_Cir_Buff.RIndex = (AO_Cir_Buff.RIndex+1) % (500*1024);
 						}
 					}
-					// printf("[CIR_BUFF Audio Out]buff_space:%d WIndex:%d RIndex%d\n", buff_space, AO_Cir_Buff.WIndex, AO_Cir_Buff.RIndex);
+					// dp("[CIR_BUFF Audio Out]buff_space:%d WIndex:%d RIndex%d\n", buff_space, AO_Cir_Buff.WIndex, AO_Cir_Buff.RIndex);
 				}
 				else {
-					printf("AO Cir Buff Overflow!1\n");
+					dp("AO Cir Buff Overflow!1\n");
 				}
 				// pthread_mutex_unlock(&buffMutex_ao);
 			}
 		}
 	}while(!bStrem);
-	printf("[UDP] AO Thread END!\n");
+	dp("[UDP] AO Thread END!\n");
 	deinit_udp(RECV_INDEX);
 	
 
@@ -326,7 +326,7 @@ void *udp_send_pthread(void *arg) {
 	int test_fd=0;
 	test_fd = open("/dev/shm/test_in.pcm", O_RDWR | O_CREAT | O_TRUNC, 0777);
 	if (test_fd < 0) {
-		printf("test PCM open In failed\n");
+		dp("test PCM open In failed\n");
 		return ((void *)-1);
 	}
 
@@ -344,7 +344,7 @@ void *udp_send_pthread(void *arg) {
 				udp_vm_send(VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize);
 			#endif
 				framesize -= datasize;
-				// printf("cnt:%d, total:%d, dsize:%d\n", i, framesize, datasize);
+				// dp("cnt:%d, total:%d, dsize:%d\n", i, framesize, datasize);
 				pthread_mutex_unlock(&buffMutex_vm);
 				// usleep(1*1000);
 			}
@@ -362,7 +362,7 @@ void *udp_send_pthread(void *arg) {
 				datasize = (framesize > V_SEND_SIZE) ? V_SEND_SIZE : framesize;
 				udp_vb_send(VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize);
 				framesize -= datasize;
-				// printf("cnt:%d, total:%d, dsize:%d\n", i, framesize, datasize);
+				// dp("cnt:%d, total:%d, dsize:%d\n", i, framesize, datasize);
 				pthread_mutex_unlock(&buffMutex_vm);
 				usleep(1*1000);
 			}
@@ -381,7 +381,7 @@ void *udp_send_pthread(void *arg) {
 				udp_vb_send(VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*i), datasize);
 			#endif
 				framesize -= datasize;
-				// printf("cnt:%d, total:%d, dsize:%d\n", i, framesize, datasize);
+				// dp("cnt:%d, total:%d, dsize:%d\n", i, framesize, datasize);
 				pthread_mutex_unlock(&buffMutex_vm);
 				// usleep(1*1000);
 			}
@@ -401,13 +401,13 @@ void *udp_send_pthread(void *arg) {
 				AI_Cir_Buff.RIndex = (AI_Cir_Buff.RIndex+1) % (500*1024);
 			}
 
-			// printf("[CIR_BUFF_AI]datasize:%d WIndex:%d RIndex%d\n", datasize, AI_Cir_Buff.WIndex, AI_Cir_Buff.RIndex);
+			// dp("[CIR_BUFF_AI]datasize:%d WIndex:%d RIndex%d\n", datasize, AI_Cir_Buff.WIndex, AI_Cir_Buff.RIndex);
 			udp_ai_send(buf, datasize);
 
 			if (save_pcm == 1) {
 				ret = write(test_fd, buf, datasize);
 				if (ret < 0) {
-					printf("Test PCM In Save Fail!\n");
+					dp("Test PCM In Save Fail!\n");
 					return NULL;
 				}
 			}
@@ -424,7 +424,7 @@ void *udp_send_pthread(void *arg) {
 
 	// close(mfd);
 	// close(bfd);
-	printf("[UDP] AI Thread END!\n");
+	dp("[UDP] AI Thread END!\n");
 	deinit_udp(SEND_INDEX);
 	pthread_exit(0);
 }

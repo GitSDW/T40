@@ -7,7 +7,7 @@ int package_detecte(void)
     br = access("/customer/before.jpg", R_OK);
     ar = access("/customer/after.jpg", R_OK);
     if ((br < 0) || (ar < 0)) {
-        printf("[%s]Err br:%d ar:%d\n", __FUNCTION__, br, ar);
+        dp("[%s]Err br:%d ar:%d\n", __FUNCTION__, br, ar);
         return -1;
     }
 
@@ -74,7 +74,7 @@ int package_detecte(void)
 
     cv::imwrite("/customer/result.jpg", img2);
 
-    printf("Box Count : %d\n", box_cnt);
+    dp("Box Count : %d\n", box_cnt);
 
     return 0;
     

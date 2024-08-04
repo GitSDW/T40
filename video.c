@@ -53,7 +53,7 @@ static int osd_show(void)
 	// }
 
 	// for (i=0; i<27; i++) {
-	// 	printf("grid[%d]:0x%02x\n", i, settings.user_grid[i]);
+	// 	dp("grid[%d]:0x%02x\n", i, settings.user_grid[i]);
 	// }
 
 
@@ -63,13 +63,13 @@ static int osd_show(void)
 			if (settings.door_grid[i/8]&(0x01 << (7-(i%8)))) {
 			// if (grid_cover_flag[i] == true){
 				IMP_OSD_GetRgnAttr(prHander[2+RECT_INDEX+MOSAIC_INDEX+i], &cover_rAttr);
-				// printf("grid[%d] x:%d y:%d \n", i, cover_rAttr.mosaicAttr.x, cover_rAttr.mosaicAttr.y);
+				// dp("grid[%d] x:%d y:%d \n", i, cover_rAttr.mosaicAttr.x, cover_rAttr.mosaicAttr.y);
 				ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+MOSAIC_INDEX+i], mosdgrp, 1);
 				if (ret != 0) {
 					IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
 					return -1;
 				}
-				// printf("grid %d On!\n", i);
+				// dp("grid %d On!\n", i);
 			}
 		}
 	}
@@ -79,13 +79,13 @@ static int osd_show(void)
 			if (settings.user_grid[i/8]&(0x01 << (7-(i%8)))) {
 			// if (grid_cover_flag[i] == true){
 				IMP_OSD_GetRgnAttr(prHander[2+RECT_INDEX+MOSAIC_INDEX+i], &cover_rAttr);
-				// printf("grid[%d] x:%d y:%d \n", i, cover_rAttr.mosaicAttr.x, cover_rAttr.mosaicAttr.y);
+				// dp("grid[%d] x:%d y:%d \n", i, cover_rAttr.mosaicAttr.x, cover_rAttr.mosaicAttr.y);
 				ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+MOSAIC_INDEX+i], mosdgrp, 1);
 				if (ret != 0) {
 					IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
 					return -1;
 				}
-				// printf("grid %d On!\n", i);
+				// dp("grid %d On!\n", i);
 			}
 		}
 	}
@@ -98,28 +98,28 @@ int osd_grid_show(int selnum)
 	int ret;
 
 	if(selnum < 0 || selnum >= GRID_COVER_INDEX)
-		printf("Invalid Grid Index : %d\n", selnum);
+		dp("Invalid Grid Index : %d\n", selnum);
 
 	IMPOSDRgnAttr cover_rAttr;
 	if (grid_cover_flag[selnum] == true){
 		IMP_OSD_GetRgnAttr(prHander[2+RECT_INDEX+MOSAIC_INDEX+selnum], &cover_rAttr);
-		printf("grid[%d] x:%d y:%d \n", selnum, cover_rAttr.mosaicAttr.x , cover_rAttr.mosaicAttr.y);
+		dp("grid[%d] x:%d y:%d \n", selnum, cover_rAttr.mosaicAttr.x , cover_rAttr.mosaicAttr.y);
 		ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+MOSAIC_INDEX+selnum], mosdgrp, 1);
 		if (ret != 0) {
 			IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
 			return -1;
 		}
-		printf("grid %d On!\n", selnum);
+		dp("grid %d On!\n", selnum);
 	}
 	else {
 		IMP_OSD_GetRgnAttr(prHander[2+RECT_INDEX+MOSAIC_INDEX+selnum], &cover_rAttr);
-		printf("grid[%d] x:%d y:%d \n", selnum, cover_rAttr.mosaicAttr.x , cover_rAttr.mosaicAttr.y);
+		dp("grid[%d] x:%d y:%d \n", selnum, cover_rAttr.mosaicAttr.x , cover_rAttr.mosaicAttr.y);
 		ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+MOSAIC_INDEX+selnum], mosdgrp, 0);
 		if (ret != 0) {
 			IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
 			return -1;
 		}
-		printf("grid %d Off!\n", selnum);
+		dp("grid %d Off!\n", selnum);
 	}
 
 	return 0;
@@ -130,23 +130,23 @@ int isd_crop(int x, int y, int w, int h, int cam) {
 	int ret = -1;
 
 	if (x < 0 || x > 1920) {
-		printf("x range invaild!\n");
+		dp("x range invaild!\n");
 		return -1;
 	}
 	if (y < 0 || y > 1080) {
-		printf("y range invaild!\n");
+		dp("y range invaild!\n");
 		return -1;
 	}
 	if (x+w < 0 || x+w > 1920) {
-		printf("w range invaild!\n");
+		dp("w range invaild!\n");
 		return -1;
 	}
 	if (y+h < 0 || y+h > 1080) {
-		printf("h range invaild!\n");
+		dp("h range invaild!\n");
 		return -1;
 	}
 	if (cam < 0 || cam > 1) {
-		printf("Cam selecte error!\n");
+		dp("Cam selecte error!\n");
 		return -1;
 	}
 
@@ -182,27 +182,27 @@ int isd_distortion(int cx, int cy, int w, int h, int streng, int cam) {
 	int ret = -1;
 
 	if (cx < 0 || cx > 1920) {
-		printf("x range invaild!\n");
+		dp("x range invaild!\n");
 		return -1;
 	}
 	if (cy < 0 || cy > 1080) {
-		printf("y range invaild!\n");
+		dp("y range invaild!\n");
 		return -1;
 	}
 	// if (cx-(w/2) < 0 || cx+(w/2) > 1920) {
-	// 	printf("w range invaild! %d %d\n", cx-(w/2), cx+(w/2));
+	// 	dp("w range invaild! %d %d\n", cx-(w/2), cx+(w/2));
 	// 	return -1;
 	// }
 	// if (cy-(h/2) < 0 || cy+(h/2) > 1080) {
-	// 	printf("h range invaild!\n");
+	// 	dp("h range invaild!\n");
 	// 	return -1;
 	// }
 	if (streng < 0 || streng > 255) {
-		printf("strength range invaild [0~255]!\n");
+		dp("strength range invaild [0~255]!\n");
 		return -1;
 	}
 	if (cam < 0 || cam > 1) {
-		printf("Cam selecte error!\n");
+		dp("Cam selecte error!\n");
 		return -1;
 	}
 	
@@ -239,10 +239,10 @@ int isp_filcker_get (void) {
 	// flickerAttr.freq = freq;
 	// flickerAttr.mode = mode;
 	IMP_ISP_Tuning_GetAntiFlickerAttr(IMPVI_MAIN, &flickerAttr);
-	printf("flicker main mode : %d freq : %d\n", flickerAttr.mode, flickerAttr.freq);
+	dp("flicker main mode : %d freq : %d\n", flickerAttr.mode, flickerAttr.freq);
 	memset(&flickerAttr, 0, sizeof(IMPISPAntiflickerAttr));
 	IMP_ISP_Tuning_GetAntiFlickerAttr(IMPVI_MAIN+1, &flickerAttr);
-	printf("flicker box mode : %d freq : %d\n", flickerAttr.mode, flickerAttr.freq);
+	dp("flicker box mode : %d freq : %d\n", flickerAttr.mode, flickerAttr.freq);
 
 	return 0;
 }
@@ -252,10 +252,10 @@ uint32_t init_igtime = 0;
 uint32_t isp_integration_time(int getset, uint32_t value) {
 	IMPISPAEExprInfo expose_inf;
 	IMP_ISP_Tuning_GetAeExprInfo(IMPVI_MAIN, &expose_inf);
-	printf("Expose mode:%d Value:%d\n", expose_inf.AeMode, expose_inf.ExposureValue);
-	printf("igtime:%d again:%d dgain:%d idgain%d totaldb:%d\n", expose_inf.AeIntegrationTime, expose_inf.AeAGain, expose_inf.AeDGain, expose_inf.AeIspDGain, expose_inf.TotalGainDb);
-	printf("igmode:%d amode:%d dmode:%d\n", expose_inf.AeIntegrationTimeMode, expose_inf.AeAGainManualMode, expose_inf.AeDGainManualMode);
-	printf("tgain:%d tgainshort:%d \n", expose_inf.TotalGainDb, expose_inf.TotalGainDbShort);
+	dp("Expose mode:%d Value:%d\n", expose_inf.AeMode, expose_inf.ExposureValue);
+	dp("igtime:%d again:%d dgain:%d idgain%d totaldb:%d\n", expose_inf.AeIntegrationTime, expose_inf.AeAGain, expose_inf.AeDGain, expose_inf.AeIspDGain, expose_inf.TotalGainDb);
+	dp("igmode:%d amode:%d dmode:%d\n", expose_inf.AeIntegrationTimeMode, expose_inf.AeAGainManualMode, expose_inf.AeDGainManualMode);
+	dp("tgain:%d tgainshort:%d \n", expose_inf.TotalGainDb, expose_inf.TotalGainDbShort);
 
 	if (getset > 0) {
 		if (value == 0) {
@@ -283,8 +283,8 @@ uint32_t isp_integration_time(int getset, uint32_t value) {
 	IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN, &expose_inf);
 	}
 	else {
-		printf("min : %d %d %d\n", expose_inf.AeMinIntegrationTime, expose_inf.AeMinAGain, expose_inf.AeMinDgain);
-		printf("max : %d %d %d\n", expose_inf.AeMaxIntegrationTime, expose_inf.AeMaxAGain, expose_inf.AeMaxDgain);
+		dp("min : %d %d %d\n", expose_inf.AeMinIntegrationTime, expose_inf.AeMinAGain, expose_inf.AeMinDgain);
+		dp("max : %d %d %d\n", expose_inf.AeMaxIntegrationTime, expose_inf.AeMaxAGain, expose_inf.AeMaxDgain);
 	}
 	return expose_inf.AeMinIntegrationTime;
 }
@@ -312,13 +312,13 @@ uint8_t SceneceSet(int getset, uint8_t val) {
 	IMPISPAEScenceAttr sceneattr;
 
 	IMP_ISP_Tuning_GetAeScenceAttr(IMPVI_MAIN, &sceneattr);
-	printf("Sceneattr get :\n");
-	printf("	HLC EN:%d HLC ST:%d\n", sceneattr.AeBLCEn, sceneattr.AeBLCStrength);
-	printf("	BLC EN:%d BLC ST:%d\n", sceneattr.AeHLCEn, sceneattr.AeHLCStrength);
-	printf("	TAR EN:%d TAR CP:%d\n", sceneattr.AeTargetCompEn, sceneattr.AeTargetComp);
-	printf("	STA EN:%d STA Ev:%d\n", sceneattr.AeStartEn ,sceneattr.AeStartEv);
-	printf("	luma  :%d lm sce:%d\n", sceneattr.luma ,sceneattr.luma_scence);
-	printf("	stable:%d target:%d aemean:%d\n", sceneattr.stable , sceneattr.target , sceneattr.ae_mean);
+	dp("Sceneattr get :\n");
+	dp("	HLC EN:%d HLC ST:%d\n", sceneattr.AeBLCEn, sceneattr.AeBLCStrength);
+	dp("	BLC EN:%d BLC ST:%d\n", sceneattr.AeHLCEn, sceneattr.AeHLCStrength);
+	dp("	TAR EN:%d TAR CP:%d\n", sceneattr.AeTargetCompEn, sceneattr.AeTargetComp);
+	dp("	STA EN:%d STA Ev:%d\n", sceneattr.AeStartEn ,sceneattr.AeStartEv);
+	dp("	luma  :%d lm sce:%d\n", sceneattr.luma ,sceneattr.luma_scence);
+	dp("	stable:%d target:%d aemean:%d\n", sceneattr.stable , sceneattr.target , sceneattr.ae_mean);
 	if (getset == 10) {
 		if (val == 0) {
 			sceneattr.AeBLCEn = TISP_AE_SCENCE_GLOBAL_ENABLE;
@@ -349,7 +349,7 @@ uint8_t SceneceSet(int getset, uint8_t val) {
 	}
 
 	if (getset > 0) {
-		printf("Sceneattr set : BackLight EN:%d Backlight Str:%d\n", sceneattr.AeBLCEn, sceneattr.AeBLCStrength);
+		dp("Sceneattr set : BackLight EN:%d Backlight Str:%d\n", sceneattr.AeBLCEn, sceneattr.AeBLCStrength);
 		IMP_ISP_Tuning_SetAeScenceAttr(IMPVI_MAIN, &sceneattr);
 	}
 	return val;
@@ -366,8 +366,8 @@ uint8_t BLC_User(void) {
 	IMP_ISP_Tuning_GetAeExprInfo(IMPVI_MAIN, &expose_inf);
 
 	ae_mean = sceneattr.ae_mean;
-	// printf("Sceneattr get aemean:%d\n", sceneattr.ae_mean);
-	// printf("aeintergrationtime : %d\n", expose_inf.AeIntegrationTime);
+	// dp("Sceneattr get aemean:%d\n", sceneattr.ae_mean);
+	// dp("aeintergrationtime : %d\n", expose_inf.AeIntegrationTime);
 
 	if (expose_inf.AeMode == IMPISP_TUNING_OPS_TYPE_AUTO) {
 		AeIntegrationTime = expose_inf.AeIntegrationTime;
@@ -396,7 +396,7 @@ uint8_t BLC_User(void) {
 		IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN, &expose_inf);
 		IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN+1, &expose_inf);
 		
-		printf("Set Value : %d\n", AeIntegrationTime);
+		dp("Set Value : %d\n", AeIntegrationTime);
 	}
 	else if (ae_mean < 30 && auto_flag) {
 		expose_inf.AeMode = IMPISP_TUNING_OPS_TYPE_AUTO;
@@ -404,7 +404,7 @@ uint8_t BLC_User(void) {
 		expose_inf.AeIntegrationTime = AeIntegrationTime = 120;
 		IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN, &expose_inf);
 		IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN+1, &expose_inf);
-		printf("Auto Set! : %d\n", ae_mean);
+		dp("Auto Set! : %d\n", ae_mean);
 	}
 
 	return AeIntegrationTime;
@@ -422,9 +422,9 @@ uint8_t cam_mean(void) {
 	IMP_ISP_Tuning_GetAeScenceAttr(IMPVI_MAIN+1, &sceneattr);
 
 	ae_mean2 = sceneattr.ae_mean;
-	// printf("Sceneattr get aemean:%d\n", sceneattr.ae_mean);
+	// dp("Sceneattr get aemean:%d\n", sceneattr.ae_mean);
 
-	printf("[mean]cam1:%d cam2:%d\n", ae_mean1, ae_mean2);
+	dp("[mean]cam1:%d cam2:%d\n", ae_mean1, ae_mean2);
 
 	return 1;
 }
@@ -433,22 +433,22 @@ int Set_Target_Bit(uint32_t targetbit) {
 	IMPEncoderAttrRcMode encecmode;
 
 	IMP_Encoder_GetChnAttrRcMode(CH0_INDEX, &encecmode);
-	printf("Before uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
+	dp("Before uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
 	encecmode.attrCbr.uTargetBitRate = targetbit;
 	IMP_Encoder_SetChnAttrRcMode(CH0_INDEX, &encecmode);
 
 	IMP_Encoder_GetChnAttrRcMode(CH0_INDEX, &encecmode);
-	printf("After uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
+	dp("After uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
 
-	// printf("enc rc mode:%d\n", encecmode.rcMode);
-	// printf("enc rc CBR uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
-	// printf("enc rc CBR iInitialQP:%d\n", encecmode.attrCbr.iInitialQP);
-	// printf("enc rc CBR iMinQP:%d\n", encecmode.attrCbr.iMinQP);
-	// printf("enc rc CBR iMaxQP:%d\n", encecmode.attrCbr.iMaxQP);
-	// printf("enc rc CBR iIPDelta:%d\n", encecmode.attrCbr.iIPDelta);
-	// printf("enc rc CBR iPBDelta:%d\n", encecmode.attrCbr.iPBDelta);
-	// printf("enc rc CBR eRcOptions:%d\n", encecmode.attrCbr.eRcOptions);
-	// printf("enc rc CBR uMaxPictureSize:%d\n", encecmode.attrCbr.uMaxPictureSize);
+	// dp("enc rc mode:%d\n", encecmode.rcMode);
+	// dp("enc rc CBR uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
+	// dp("enc rc CBR iInitialQP:%d\n", encecmode.attrCbr.iInitialQP);
+	// dp("enc rc CBR iMinQP:%d\n", encecmode.attrCbr.iMinQP);
+	// dp("enc rc CBR iMaxQP:%d\n", encecmode.attrCbr.iMaxQP);
+	// dp("enc rc CBR iIPDelta:%d\n", encecmode.attrCbr.iIPDelta);
+	// dp("enc rc CBR iPBDelta:%d\n", encecmode.attrCbr.iPBDelta);
+	// dp("enc rc CBR eRcOptions:%d\n", encecmode.attrCbr.eRcOptions);
+	// dp("enc rc CBR uMaxPictureSize:%d\n", encecmode.attrCbr.uMaxPictureSize);
 
 	return 0;
 }
@@ -457,20 +457,20 @@ int Set_Target_Bit2(uint32_t targetbit) {
 	IMPEncoderAttrRcMode encecmode;
 
 	IMP_Encoder_GetChnAttrRcMode(CH0_INDEX, &encecmode);
-	// printf("Before uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
+	// dp("Before uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
 	encecmode.attrCbr.uTargetBitRate = targetbit;
 	IMP_Encoder_SetChnAttrRcMode(CH0_INDEX, &encecmode);
 	IMP_Encoder_GetChnAttrRcMode(CH0_INDEX, &encecmode);
 
-	// printf("enc rc mode:%d\n", encecmode.rcMode);
-	// printf("enc rc CBR uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
-	// printf("enc rc CBR iInitialQP:%d\n", encecmode.attrCbr.iInitialQP);
-	// printf("enc rc CBR iMinQP:%d\n", encecmode.attrCbr.iMinQP);
-	// printf("enc rc CBR iMaxQP:%d\n", encecmode.attrCbr.iMaxQP);
-	// printf("enc rc CBR iIPDelta:%d\n", encecmode.attrCbr.iIPDelta);
-	// printf("enc rc CBR iPBDelta:%d\n", encecmode.attrCbr.iPBDelta);
-	// printf("enc rc CBR eRcOptions:%d\n", encecmode.attrCbr.eRcOptions);
-	// printf("enc rc CBR uMaxPictureSize:%d\n", encecmode.attrCbr.uMaxPictureSize);
+	// dp("enc rc mode:%d\n", encecmode.rcMode);
+	// dp("enc rc CBR uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
+	// dp("enc rc CBR iInitialQP:%d\n", encecmode.attrCbr.iInitialQP);
+	// dp("enc rc CBR iMinQP:%d\n", encecmode.attrCbr.iMinQP);
+	// dp("enc rc CBR iMaxQP:%d\n", encecmode.attrCbr.iMaxQP);
+	// dp("enc rc CBR iIPDelta:%d\n", encecmode.attrCbr.iIPDelta);
+	// dp("enc rc CBR iPBDelta:%d\n", encecmode.attrCbr.iPBDelta);
+	// dp("enc rc CBR eRcOptions:%d\n", encecmode.attrCbr.eRcOptions);
+	// dp("enc rc CBR uMaxPictureSize:%d\n", encecmode.attrCbr.uMaxPictureSize);
 
 	return 0;
 }
@@ -481,7 +481,7 @@ uint8_t bright_set(uint8_t bright) {
 	IMP_ISP_Tuning_GetBrightness(IMPVI_MAIN, &mbright);
 	IMP_ISP_Tuning_GetBrightness(IMPVI_MAIN+1, &bbright);
 
-	printf("Get Bright : %d %d\n", mbright, bbright);
+	dp("Get Bright : %d %d\n", mbright, bbright);
 
 	if (bright != 0) {
 		mbright = bright;
@@ -490,7 +490,7 @@ uint8_t bright_set(uint8_t bright) {
 		IMP_ISP_Tuning_SetBrightness(IMPVI_MAIN, &mbright);
 		IMP_ISP_Tuning_SetBrightness(IMPVI_MAIN+1, &bbright);
 
-		printf("Set Bright : %d\n", mbright);
+		dp("Set Bright : %d\n", mbright);
 	}
 
 	return mbright;
@@ -505,7 +505,7 @@ int video_init(void) {
 	osdcell.groupID = mosdgrp;
 	osdcell.outputID = 0;
 
-	// printf("HEVC:0x%02x\n", IMP_ENC_PROFILE_AVC_HIGH);
+	// dp("HEVC:0x%02x\n", IMP_ENC_PROFILE_AVC_HIGH);
 
 	/* Step.1 System init */
 	ret = sample_system_init();
@@ -742,7 +742,7 @@ int video_init(void) {
 	// IMPOSDRgnAttr cover_rAttr;
 	// for (int i = 0; i < GRID_COVER_INDEX; i++) {
 	// 	IMP_OSD_GetRgnAttr(prHander[2+RECT_INDEX+MOSAIC_INDEX+i], &cover_rAttr);
-	// 	printf("grid[%d] x:%d y:%d \n", i, cover_rAttr.mosaicAttr.x, cover_rAttr.mosaicAttr.y);
+	// 	dp("grid[%d] x:%d y:%d \n", i, cover_rAttr.mosaicAttr.x, cover_rAttr.mosaicAttr.y);
 	// }
 
 	IMPISPHVFLIP hvf;
@@ -767,14 +767,14 @@ int video_init(void) {
 	IMPISPAntiflickerAttr flickerAttr;
 	memset(&flickerAttr, 0, sizeof(IMPISPAntiflickerAttr));
 	flickerAttr.freq = 80;
-	flickerAttr.mode = IMPISP_ANTIFLICKER_AUTO_MODE;
+	flickerAttr.mode = IMPISP_ANTIFLICKER_NORMAL_MODE;
 	IMP_ISP_Tuning_SetAntiFlickerAttr(IMPVI_MAIN, &flickerAttr);
 	IMP_ISP_Tuning_SetAntiFlickerAttr(IMPVI_MAIN+1, &flickerAttr);
 	///////////////////////////////////////////////////////////////////
 
 	///////////////////////////// LDC ISP /////////////////////////////
 	IMPISPHLDCAttr hldc;
-	hldc.strength = 125;     			/**< Distortion correction intensity [range: 0 to 255, default: 128]*/
+	hldc.strength = 180;     			/**< Distortion correction intensity [range: 0 to 255, default: 128]*/
     hldc.width = 1920;          		/**< Image width */
     hldc.height = 1080;         		/**< Image height */
     hldc.center_w = hldc.width/2;       /**< Image distortion horizontal optical center range:[width/2-120, width/2+120] */
@@ -793,9 +793,9 @@ int video_init(void) {
 	///////////////////////////// Expose Change ///////////////////////
 	IMPISPAEExprInfo expose_inf;
 	IMP_ISP_Tuning_GetAeExprInfo(IMPVI_MAIN, &expose_inf);
-	// printf("Expose mode:%d Value:%d\n", expose_inf.AeMode, expose_inf.ExposureValue);
-	// printf("igtime:%d again:%d dgain:%d idgain:%d\n", expose_inf.AeIntegrationTime, expose_inf.AeAGain, expose_inf.AeDGain, expose_inf.AeIspDGain);
-	// printf("igmode:%d amode:%d dmode:%d\n", expose_inf.AeIntegrationTimeMode, expose_inf.AeAGainManualMode, expose_inf.AeDGainManualMode);
+	// dp("Expose mode:%d Value:%d\n", expose_inf.AeMode, expose_inf.ExposureValue);
+	// dp("igtime:%d again:%d dgain:%d idgain:%d\n", expose_inf.AeIntegrationTime, expose_inf.AeAGain, expose_inf.AeDGain, expose_inf.AeIspDGain);
+	// dp("igmode:%d amode:%d dmode:%d\n", expose_inf.AeIntegrationTimeMode, expose_inf.AeAGainManualMode, expose_inf.AeDGainManualMode);
 
 	ExpVal = expose_inf.ExposureValue;
 
@@ -834,7 +834,7 @@ int video_init(void) {
 
 	// IMP_ISP_Tuning_SetWdrOutputMode(IMPVI_MAIN, &wdroutmode);
 	// IMP_ISP_Tuning_GetWdrOutputMode(IMPVI_MAIN, &wdroutmode);
-	// printf("outputmode:%d\n", wdroutmode);
+	// dp("outputmode:%d\n", wdroutmode);
 
 	// IMPISPWBAttr awbattr;
 
@@ -848,15 +848,15 @@ int video_init(void) {
 
 	// IMP_ISP_Tuning_GetAwbAttr(IMPVI_MAIN, &awbattr);
 
-	// printf("mode:%d ct:%d ", awbattr.mode, awbattr.ct);
-	// printf("r:%d b:%d\n",
+	// dp("mode:%d ct:%d ", awbattr.mode, awbattr.ct);
+	// dp("r:%d b:%d\n",
 	// 				awbattr.gain_val.rgain, awbattr.gain_val.bgain);
 
 	IMPISPAEScenceAttr sceneattr;
 
 	IMP_ISP_Tuning_GetAeScenceAttr(IMPVI_MAIN, &sceneattr);
 
-	// printf("Sceneattr : BackLight EN:%d Backlight Str:%d\n", sceneattr.AeBLCEn, sceneattr.AeBLCStrength);
+	// dp("Sceneattr : BackLight EN:%d Backlight Str:%d\n", sceneattr.AeBLCEn, sceneattr.AeBLCStrength);
 
 	// sceneattr.AeBLCEn = TISP_AE_SCENCE_ROI_ENABLE;
 	// sceneattr.AeBLCStrength = 8;
@@ -868,21 +868,21 @@ int video_init(void) {
 
 	ret = IMP_ISP_Tuning_SetAeScenceAttr(IMPVI_MAIN, &sceneattr);
 	if (ret < 0) {
-		printf("ScenceAttr Set Fail!\n");
+		dp("ScenceAttr Set Fail!\n");
 	}
 
 	// IMPEncoderAttrRcMode encecmode;
 
 	// IMP_Encoder_GetChnAttrRcMode(CH0_INDEX, &encecmode);
-	// printf("enc rc mode:%d\n", encecmode.rcMode);
-	// printf("enc rc CBR uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
-	// printf("enc rc CBR iInitialQP:%d\n", encecmode.attrCbr.iInitialQP);
-	// printf("enc rc CBR iMinQP:%d\n", encecmode.attrCbr.iMinQP);
-	// printf("enc rc CBR iMaxQP:%d\n", encecmode.attrCbr.iMaxQP);
-	// printf("enc rc CBR iIPDelta:%d\n", encecmode.attrCbr.iIPDelta);
-	// printf("enc rc CBR iPBDelta:%d\n", encecmode.attrCbr.iPBDelta);
-	// printf("enc rc CBR eRcOptions:%d\n", encecmode.attrCbr.eRcOptions);
-	// printf("enc rc CBR uMaxPictureSize:%d\n", encecmode.attrCbr.uMaxPictureSize);
+	// dp("enc rc mode:%d\n", encecmode.rcMode);
+	// dp("enc rc CBR uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
+	// dp("enc rc CBR iInitialQP:%d\n", encecmode.attrCbr.iInitialQP);
+	// dp("enc rc CBR iMinQP:%d\n", encecmode.attrCbr.iMinQP);
+	// dp("enc rc CBR iMaxQP:%d\n", encecmode.attrCbr.iMaxQP);
+	// dp("enc rc CBR iIPDelta:%d\n", encecmode.attrCbr.iIPDelta);
+	// dp("enc rc CBR iPBDelta:%d\n", encecmode.attrCbr.iPBDelta);
+	// dp("enc rc CBR eRcOptions:%d\n", encecmode.attrCbr.eRcOptions);
+	// dp("enc rc CBR uMaxPictureSize:%d\n", encecmode.attrCbr.uMaxPictureSize);
 
 
 	// IMP_Encoder_SetChnAttrRcMode(CH0_INDEX, encecmode);
@@ -890,7 +890,7 @@ int video_init(void) {
 	// uint32_t fps_num, fps_den;
 	// IMP_ISP_Tuning_GetSensorFPS(IMPVI_MAIN,&fps_num, &fps_den);
 
-	// printf("1 fps_num:%d fps_den:%d\n", fps_num, fps_den);
+	// dp("1 fps_num:%d fps_den:%d\n", fps_num, fps_den);
 
 	// fps_num = 60;
 	// fps_den = 2;
@@ -898,7 +898,7 @@ int video_init(void) {
 
 	// IMP_ISP_Tuning_GetSensorFPS(IMPVI_MAIN,&fps_num, &fps_den);
 
-	// printf("2 fps_num:%d fps_den:%d\n", fps_num, fps_den);
+	// dp("2 fps_num:%d fps_den:%d\n", fps_num, fps_den);
 
 	// Mosaic_En = settings.SF.bits.per_face;
 
@@ -910,7 +910,7 @@ int video_init(void) {
 	IMP_ISP_Tuning_GetBrightness(IMPVI_MAIN, &mbright);
 	IMP_ISP_Tuning_GetBrightness(IMPVI_MAIN+1, &bbright);
 
-	printf("Main Bright : %d %d\n", mbright, bbright);
+	dp("Main Bright : %d %d\n", mbright, bbright);
 
 	mbright += 20;
 	bbright += 20;
@@ -1152,10 +1152,10 @@ void *get_video_stream_test_thread(void *args)
 			}
 		}
 
-		// printf("size:%d 0:0x%02x 1:0x%02x 899:%02x\n", size, test_buf[0], test_buf[1], test_buf[899]);
+		// dp("size:%d 0:0x%02x 1:0x%02x 899:%02x\n", size, test_buf[0], test_buf[1], test_buf[899]);
 
 		if(VM_Frame_Buff.cnt >= 10){
-			printf("VM Frame Buffer Full!\n");
+			dp("VM Frame Buffer Full!\n");
 			return ((void*) 0);
 		}
 		pthread_mutex_lock(&buffMutex_vm);
@@ -1216,12 +1216,6 @@ extern void func_reboot(void);
 void *OSD_thread(void *args)
 {
 	int ret;
-
-	// int x_cal=0, y_cal=0, w_cal=0, h_cal=0;
-	// int index = 0;
-	int face_mo_cnt = 0;
-	int dis_cnt[10] = {0};
-	bool rect_flag = false;
 
 	int64_t total_time = 0;
 	int64_t oldt_time = 0, BLC_time = 0;//, mean_time = 0;;
@@ -1351,7 +1345,7 @@ void *OSD_thread(void *args)
 		// 				mosaic_rAttr.mosaicAttr.frame_height = FIRST_SENSOR_HEIGHT;
 		// 				mosaic_rAttr.mosaicAttr.mosaic_min_size = 40;
 
-		// 				// printf("mosaic[%d] x:%d y:%d w:%d h:%d\n", j, x_cal, y_cal, w_cal, h_cal);
+		// 				// dp("mosaic[%d] x:%d y:%d w:%d h:%d\n", j, x_cal, y_cal, w_cal, h_cal);
 
 		// 				ret = IMP_OSD_SetRgnAttr(prHander[2+RECT_INDEX+index], &mosaic_rAttr);
 		// 				if (ret != 0) {
@@ -1372,7 +1366,7 @@ void *OSD_thread(void *args)
 
 		// 				fdpd_data[j].flag = false;
 		// 				mosaic_time[index] = sample_gettimeus();
-		// 				// printf("Face Mosaic[%d] En tiem : %lld\n", index, mosaic_time[index]);
+		// 				// dp("Face Mosaic[%d] En tiem : %lld\n", index, mosaic_time[index]);
 		// 			}
 		// 		}
 		// 	}
@@ -1381,7 +1375,7 @@ void *OSD_thread(void *args)
 		// face_mo_cnt = 0;
 		// for (int k=0; k<10; k++) {
 		// 	if (mosaic_time[k] != 0) {
-		// 		// printf("c");
+		// 		// dp("c");
 		// 		face_mo_cnt++;
 		// 	}
 		// }
@@ -1493,7 +1487,7 @@ void *OSD_thread(void *args)
 		// 	face_mo_cnt = 0;
 		// 	for (int k=0; k<10; k++) {
 		// 		if (mosaic_time[k] != 0) {
-		// 			// printf("c");
+		// 			// dp("c");
 		// 			face_mo_cnt++;
 		// 		}
 		// 	}
@@ -1562,7 +1556,7 @@ void *OSD_thread(void *args)
 		if (streaming_rec_state == REC_MP4MAKE || 
 			(clip_rec_state == REC_MP4MAKE && bell_rec_state == REC_MP4MAKE) ||
 			(clip_rec_state == REC_MP4MAKE && bell_rec_state == REC_READY)) {
-			printf("OSD Thread END!\n");
+			dp("OSD Thread END!\n");
 			return ((void*) 0);
 		}
 
@@ -1572,7 +1566,7 @@ void *OSD_thread(void *args)
 		if (total_time/1000000 != oldt_time) {
 			oldt_time = total_time/1000000;
 			if (dot_En) {
-				printf(".\n");
+				dp(".\n");
 			}
 			// isp_integration_time(0, 0);
 			// SceneceSet(0, 0);

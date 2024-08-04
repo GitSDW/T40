@@ -461,7 +461,7 @@ int Init_Audio_Out(void)
 	ao_attr.frmNum = 20;
 	// ao_attr.numPerFrm = 640;
 	ao_attr.numPerFrm = AUDIO_SAMPLE_BUF_SIZE;
-	// printf("sample:%d, numperfrm:%d\n", ao_attr.samplerate, ao_attr.numPerFrm);
+	// dp("sample:%d, numperfrm:%d\n", ao_attr.samplerate, ao_attr.numPerFrm);
 	ao_attr.chnCnt = 1;
 
 	ret = IMP_AO_SetPubAttr(ao_devID, &ao_attr);
@@ -546,7 +546,7 @@ int Init_Audio_Out(void)
 
 	ret = IMP_AO_EnableHpf(&ao_attr);
 	if(ret != 0) {
-		printf("enable audio hpf error.\n");
+		dp("enable audio hpf error.\n");
 		IMP_LOG_INFO(TAG, "enable audio hpf error.\n");
 		return ret;
 	}
@@ -681,7 +681,7 @@ int Get_Vol(void) {
 	}
 	IMP_LOG_INFO(TAG, "Audio Out GetGain    gain : %d\n", aogain);
 
-	printf("ai vol:%d ai gain:%d ao vol:%d ao gain:%d\n", aichnVol, aigain, aochnVol, aogain);
+	dp("ai vol:%d ai gain:%d ao vol:%d ao gain:%d\n", aichnVol, aigain, aochnVol, aogain);
 
 	return 0;
 }
@@ -754,7 +754,7 @@ void * IMP_Audio_Record_AEC_Thread(void *argv)
 				return NULL;
 			}
 
-			// printf("stream.len : %d buf size : %d timestamp : %lld\n", stream.len, AUDIO_SAMPLE_BUF_SIZE, stream.timeStamp);
+			// dp("stream.len : %d buf size : %d timestamp : %lld\n", stream.len, AUDIO_SAMPLE_BUF_SIZE, stream.timeStamp);
 
 
 			if (stream.len > 0){
@@ -780,7 +780,7 @@ void * IMP_Audio_Record_AEC_Thread(void *argv)
 					AI_Cir_Buff.WIndex = (AI_Cir_Buff.WIndex+stream.len);
 				}
 				else {
-					printf("AI Cir Buff Overflow!1\n");
+					dp("AI Cir Buff Overflow!1\n");
 				}
 				pthread_mutex_unlock(&buffMutex_ai);
 			}
@@ -792,7 +792,7 @@ void * IMP_Audio_Record_AEC_Thread(void *argv)
 				return NULL;
 			}
 		#else
-			// printf("frm.len : %d buf size : %d timestamp : %lld\n", frm.len, AUDIO_SAMPLE_BUF_SIZE, frm.timeStamp);
+			// dp("frm.len : %d buf size : %d timestamp : %lld\n", frm.len, AUDIO_SAMPLE_BUF_SIZE, frm.timeStamp);
 
 			if ((frm.len > 0) && (stream_state == 1)) {
 				pthread_mutex_lock(&buffMutex_ai);
@@ -822,10 +822,10 @@ void * IMP_Audio_Record_AEC_Thread(void *argv)
 					memcpy (&AI_Cir_Buff.tx[AI_Cir_Buff.WIndex], buff_u8, frm.len);
 					// ret = write(save_fd, &AI_Cir_Buff.tx[AI_Cir_Buff.WIndex], frm.len);
 					AI_Cir_Buff.WIndex = (AI_Cir_Buff.WIndex+frm.len);// % (500*1024);
-					// printf("[CIR_BUFF Audio In]buff_space:%d WIndex:%d RIndex%d\n", buff_space, AI_Cir_Buff.WIndex, AI_Cir_Buff.RIndex);
+					// dp("[CIR_BUFF Audio In]buff_space:%d WIndex:%d RIndex%d\n", buff_space, AI_Cir_Buff.WIndex, AI_Cir_Buff.RIndex);
 				}
 				else {
-					printf("AI Cir Buff Overflow!1\n");
+					dp("AI Cir Buff Overflow!1\n");
 				}
 				pthread_mutex_unlock(&buffMutex_ai);
 			}
@@ -840,7 +840,7 @@ void * IMP_Audio_Record_AEC_Thread(void *argv)
 
 	}while(!bStrem);
 
-	printf("[Audio] AI Thread END!\n");
+	dp("[Audio] AI Thread END!\n");
 	pthread_exit(0);
 }
 
@@ -884,7 +884,7 @@ void *IMP_Audio_Play_Thread(void *argv)
 		definesize = 320;
 	#endif
 
-	printf("Data Play Size : %d\n", definesize);
+	dp("Data Play Size : %d\n", definesize);
 
 	IMPAudioOChnState play_status;
 	play_status.chnBusyNum = 0;
@@ -905,11 +905,11 @@ void *IMP_Audio_Play_Thread(void *argv)
 		ret = IMP_AO_QueryChnStat(ao_devID, ao_chnID, &play_status);
 		if(ret != 0) {
 			IMP_LOG_ERR(TAG, "IMP_AO_QueryChnStat error\n");
-			printf("AO IMP_AO_QueryChnStat\n");
+			dp("AO IMP_AO_QueryChnStat\n");
 			return NULL;
 		}
 
-		// if (play_status.chnBusyNum) printf("buf busy : %d\n", play_status.chnBusyNum);
+		// if (play_status.chnBusyNum) dp("buf busy : %d\n", play_status.chnBusyNum);
 
 		if (play_status.chnBusyNum < 20) {
 			pthread_mutex_lock(&buffMutex_ao);
@@ -918,10 +918,10 @@ void *IMP_Audio_Play_Thread(void *argv)
 				as_time = sample_gettimeus();
 				datasize = (AO_Cir_Buff.WIndex - AO_Cir_Buff.RIndex + A_BUFF_SIZE) % (500*1024);
 				if (!audio_start_flag) {
-					// printf("DataSize : %d > %d\n", datasize, definesize*20);
+					// dp("DataSize : %d > %d\n", datasize, definesize*20);
 					#ifdef __G726__
 						if (datasize > definesize*50){
-							printf("AO Start!\n");
+							dp("AO Start!\n");
 							audio_start_flag = true;
 							ret = IMP_AO_ClearChnBuf(ao_devID, ao_chnID);
 							if (ret != 0) {
@@ -933,7 +933,7 @@ void *IMP_Audio_Play_Thread(void *argv)
 						datasize = 0;
 					#else
 						if (datasize > definesize*100){
-							printf("AO Start!\n");
+							dp("AO Start!\n");
 							audio_start_flag = true;
 							ret = IMP_AO_ClearChnBuf(ao_devID, ao_chnID);
 							if (ret != 0) {
@@ -948,13 +948,13 @@ void *IMP_Audio_Play_Thread(void *argv)
 				else if (datasize >= definesize) {
 				// if (datasize >= definesize) {
 					// datasize = datasize > AUDIO_SAMPLE_BUF_SIZE) ? AUDIO_SAMPLE_BUF_SIZE : datasize;
-					// printf("[AO] DS:%d WI:%d RI:%d\n", datasize, AO_Cir_Buff.WIndex, AO_Cir_Buff.RIndex);
+					// dp("[AO] DS:%d WI:%d RI:%d\n", datasize, AO_Cir_Buff.WIndex, AO_Cir_Buff.RIndex);
 					datasize = definesize;
 					memset (buf, 0, datasize);
 					memcpy (buf, &AO_Cir_Buff.tx[AO_Cir_Buff.RIndex], datasize);
 					AO_Cir_Buff.RIndex = (AO_Cir_Buff.RIndex+datasize) % (500*1024);
 					if (AO_Cir_Buff.RIndex == AO_Cir_Buff.WIndex) {
-						// printf("Buffer Clear!! : %d\n", datasize);
+						// dp("Buffer Clear!! : %d\n", datasize);
 						AO_Cir_Buff.RIndex = AO_Cir_Buff.WIndex = 0;
 					}
 				}
@@ -964,19 +964,19 @@ void *IMP_Audio_Play_Thread(void *argv)
 					memcpy(buf, &AO_Cir_Buff.tx[AO_Cir_Buff.RIndex], datasize);
 					AO_Cir_Buff.RIndex = AO_Cir_Buff.WIndex = 0;
 					audio_start_flag = false;
-					printf("AO reinit!\n");
+					dp("AO reinit!\n");
 				}
 			}
 			pthread_mutex_unlock(&buffMutex_ao);
 		}
 		else {
-			printf("AO Busy : %d\n", play_status.chnBusyNum);
+			dp("AO Busy : %d\n", play_status.chnBusyNum);
 			continue;
 		}
 
 		if (play_status.chnBusyNum != 0 && asflg)  {
 			if ((sample_gettimeus() - as_time) > 200000){
-				// printf("Audio Dummy Data Set!!\n");
+				// dp("Audio Dummy Data Set!!\n");
 				memset (buf, 0, definesize);
 				datasize = definesize;
 				as_time = sample_gettimeus();
@@ -984,7 +984,7 @@ void *IMP_Audio_Play_Thread(void *argv)
 		}
 
 		if (play_status.chnBusyNum == 0 && asflg) {
-			// printf("Audio Chn Busy Clear!!\n");
+			// dp("Audio Chn Busy Clear!!\n");
 			asflg = false;
 		}
 
@@ -996,7 +996,7 @@ void *IMP_Audio_Play_Thread(void *argv)
 				ret = IMP_ADEC_SendStream(adChn, &stream_in, BLOCK);
 				if(ret != 0) {
 					IMP_LOG_ERR(TAG, "imp audio encode send frame failed\n");
-					printf("ADEC IMP_ADEC_SendStream!\n");
+					dp("ADEC IMP_ADEC_SendStream!\n");
 					return NULL;
 				}
 
@@ -1005,14 +1005,14 @@ void *IMP_Audio_Play_Thread(void *argv)
 				ret = IMP_ADEC_PollingStream(adChn, 10000);
 				if(ret != 0) {
 					IMP_LOG_ERR(TAG, "imp audio encode polling stream failed\n");
-					printf("ADEC IMP_ADEC_PollingStream!\n");
+					dp("ADEC IMP_ADEC_PollingStream!\n");
 					return NULL;
 				}
 
 				ret = IMP_ADEC_GetStream(adChn, &stream_out, BLOCK);
 				if(ret != 0) {
 					IMP_LOG_ERR(TAG, "imp audio decoder get stream failed\n");
-					printf("ADEC IMP_ADEC_GetStream!\n");
+					dp("ADEC IMP_ADEC_GetStream!\n");
 					return NULL;
 				}
 
@@ -1028,18 +1028,18 @@ void *IMP_Audio_Play_Thread(void *argv)
 				frm.len = datasize;
 			#endif
 
-			// printf("AO DS : %d len : %d ChnBusy : %d\n", datasize, frm.len, play_status.chnBusyNum);
+			// dp("AO DS : %d len : %d ChnBusy : %d\n", datasize, frm.len, play_status.chnBusyNum);
 			
 			ret = IMP_AO_SendFrame(ao_devID, ao_chnID, &frm, NOBLOCK);
 			if(ret != 0) {
 				IMP_LOG_ERR(TAG, "send Frame Data error\n");
-				printf("AO IMP_AO_SendFrame\n");
+				dp("AO IMP_AO_SendFrame\n");
 				return NULL;
 			}
 			else {
 				// udp_ao_rolling_dcnt();
 				// usleep(20*1000);
-				// printf("[AO] sindex:%d windex:%d dcnt:%d\n", Audio_Ao_Attr.sindex, Audio_Ao_Attr.windex, Audio_Ao_Attr.dcnt);
+				// dp("[AO] sindex:%d windex:%d dcnt:%d\n", Audio_Ao_Attr.sindex, Audio_Ao_Attr.windex, Audio_Ao_Attr.dcnt);
 				// ret = write(save_fd, buf, datasize);
 				datasize = 0;
 			}
@@ -1062,7 +1062,7 @@ void *IMP_Audio_Play_Thread(void *argv)
 	}while(!bStrem);
 
 	// close(save_fd);
-	printf("[Audio] AO Thread END!\n");
+	dp("[Audio] AO Thread END!\n");
 	free(buf);
 	pthread_exit(0);
 }
@@ -1091,7 +1091,7 @@ void ao_file_play_thread(void *argv)
 	size = fread(buf, 1, 80, play_file);
 	if (size < 80)
 		return;
-	else printf("wav header read!!\n");
+	else dp("wav header read!!\n");
 
 	amp_on();
 
@@ -1131,7 +1131,7 @@ void ao_file_play_thread(void *argv)
 			else {
 				old_busy_cnt++;
 				if (old_busy_cnt%10 == 0) {
-					printf("busynum:%d\n", play_status.chnBusyNum);
+					dp("busynum:%d\n", play_status.chnBusyNum);
 				}
 				if (play_status.chnBusyNum > 18) stop_flag = true;
 				else if (play_status.chnBusyNum > 5) stop_flag = false;
@@ -1144,10 +1144,10 @@ void ao_file_play_thread(void *argv)
 				play_status.chnTotalNum, play_status.chnFreeNum, play_status.chnBusyNum);
 	}while (1);
 
-	printf("[Audio File] Thread End!\n");
+	dp("[Audio File] Thread End!\n");
 	fclose(play_file);
 	free(buf);
-	Set_Vol(100,25,spk_vol_buf,spk_gain_buf);
+	
 	// pthread_exit(0);
 }
 
@@ -1200,7 +1200,7 @@ void ao_file_play_pcm_thread(void *argv)
 				play_status.chnTotalNum, play_status.chnFreeNum, play_status.chnBusyNum);
 	}while (1);
 
-	printf("[Audio File] Thread End!\n");
+	dp("[Audio File] Thread End!\n");
 	fclose(play_file);
 	free(buf);
 	// pthread_exit(0);
@@ -1243,7 +1243,7 @@ void *IMP_Audio_InOut_AEC_Thread(void *argv)
 
 		IMPAudioOChnState play_status;
 
-		// printf("[AO] dcnt:%d size:%d\n", Audio_Ao_Attr.dcnt, AUDIO_SAMPLE_BUF_SIZE);
+		// dp("[AO] dcnt:%d size:%d\n", Audio_Ao_Attr.dcnt, AUDIO_SAMPLE_BUF_SIZE);
 		/* Step 5: send frame data. */
 		ret = IMP_AO_SendFrame(ao_devID, ao_chnID, &frm, NOBLOCK);
 		if(ret != 0) {
@@ -1260,7 +1260,7 @@ void *IMP_Audio_InOut_AEC_Thread(void *argv)
 				play_status.chnTotalNum, play_status.chnFreeNum, play_status.chnBusyNum);
 	}while(1);
 
-	printf("[Audio] AO Thread END!\n");
+	dp("[Audio] AO Thread END!\n");
 	free(buf);
 	pthread_exit(0);
 }
