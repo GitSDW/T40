@@ -1999,12 +1999,19 @@ static int save_stream(int fd, IMPEncoderStream *stream)
 	return 0;
 }
 
+int32_t main_frame_cnt = 0;
+int32_t bott_frame_cnt = 0;
+
 static int save_stream1(int fd, IMPEncoderStream *stream, int ch)
 {
 	int ret, i, nr_pack = stream->packCount;
 	
 	static bool start_flag = false;
 	static int old_cnt = -1;
+	// static int frm_cnt = 0;
+	#ifdef __FRAME_SYNC__
+		static bool frm_sync = false;
+	#endif
 
 	if (old_cnt != rec_cnt) {
 		dp("1 new file!\n");
@@ -2017,6 +2024,7 @@ static int save_stream1(int fd, IMPEncoderStream *stream, int ch)
 		if ((nr_pack > 1)) {
 			if (stream->pack[nr_pack-1].sliceType == IMP_ENC_SLICE_I) {
 				dp("1 Save Start:%d %d\n", nr_pack, stream->pack[nr_pack-1].sliceType);
+				// frm_cnt = 0;
 				start_flag = true;
 			}
 			else {
@@ -2028,6 +2036,29 @@ static int save_stream1(int fd, IMPEncoderStream *stream, int ch)
 		}
 	}
 
+	#ifdef __FRAME_SYNC__
+		if (bott_frame_cnt < (main_frame_cnt-10) && (stream->pack[nr_pack-1].sliceType != IMP_ENC_SLICE_I)) {
+	 		// return 0;
+	 		if (!frm_sync) {
+	 			frm_sync = true;
+	 		}
+	 	}
+	 	if (frm_sync) {
+	 		if (stream->pack[nr_pack-1].sliceType != IMP_ENC_SLICE_I) {
+	 			return 0;
+	 		}
+	 		else {
+	 			frm_sync = false;
+	 		}
+	 	}
+	 	main_frame_cnt++;
+
+	 	
+	 #endif
+
+	if (main_frame_cnt < bott_frame_cnt) {
+ 		frame_ck = main_frame_cnt;
+ 	}
 
   	//IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u start----------\n", stream->packCount, stream->seq);
 	for (i = 0; i < nr_pack; i++) {
@@ -2053,22 +2084,32 @@ static int save_stream1(int fd, IMPEncoderStream *stream, int ch)
 					return -1;
 				}
 			}
-			
+			// frm_cnt++;
 		}
 		total[ch] += pack->length;
+
 		// dp("nr_pack:%d/%d len:%d type:%d\n", i, nr_pack, pack->length, pack->sliceType);
 	}
+	// if (stream->pack[nr_pack-1].sliceType == IMP_ENC_SLICE_I) {
+	// 	dp ("Main Frame Count : %d\n", frm_cnt);
+	// }
 	// dp("nr_pack:%d frame[%d]:%d\n", nr_pack, ch, total[ch]);
 
   //IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u end----------\n", stream->packCount, stream->seq);
 	return 0;
 }
 
+
+
 static int save_stream2(int fd, IMPEncoderStream *stream, int ch)
 {
 	int ret, i, nr_pack = stream->packCount;
 	static bool start_flag = false;
 	static int old_cnt = -1;
+	// static int frm_cnt = 0;
+	#ifdef __FRAME_SYNC__
+		static bool frm_sync = false;
+	#endif
 
 	if (old_cnt != rec_cnt) {
 		dp("2 new file!\n");
@@ -2081,6 +2122,7 @@ static int save_stream2(int fd, IMPEncoderStream *stream, int ch)
 		if ((nr_pack > 1)) {
 			if (stream->pack[nr_pack-1].sliceType == IMP_ENC_SLICE_I) {
 				dp("2 Save Start:%d %d\n", nr_pack, stream->pack[nr_pack-1].sliceType);
+				// frm_cnt = 0;
 				start_flag = true;
 			}
 			else {
@@ -2091,8 +2133,32 @@ static int save_stream2(int fd, IMPEncoderStream *stream, int ch)
 			return 0;
 		}
 	}
- 
-  //IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u start----------\n", stream->packCount, stream->seq);
+
+	#ifdef __FRAME_SYNC__
+	 	if (main_frame_cnt < (bott_frame_cnt-10) && (stream->pack[nr_pack-1].sliceType != IMP_ENC_SLICE_I)) {
+	 		// return 0;
+	 		if (!frm_sync) {
+	 			frm_sync = true;
+	 		}
+	 	}
+	 	if (frm_sync) {
+	 		if (stream->pack[nr_pack-1].sliceType != IMP_ENC_SLICE_I) {
+	 			return 0;
+	 		}
+	 		else {
+	 			frm_sync = false;
+	 		}
+	 	}
+	 	bott_frame_cnt++;
+
+	 	
+	 #endif
+
+	if (bott_frame_cnt < main_frame_cnt) {
+ 		frame_ck = bott_frame_cnt;
+ 	}
+	
+  	//IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u start----------\n", stream->packCount, stream->seq);
 	for (i = 0; i < nr_pack; i++) {
 	//IMP_LOG_DBG(TAG, "[%d]:%10u,%10lld,%10u,%10u,%10u\n", i, stream->pack[i].length, stream->pack[i].timestamp, stream->pack[i].frameEnd, *((uint32_t *)(&stream->pack[i].nalType)), stream->pack[i].sliceType);
 		IMPEncoderPack *pack = &stream->pack[i];
@@ -2116,12 +2182,14 @@ static int save_stream2(int fd, IMPEncoderStream *stream, int ch)
 					return -1;
 				}
 			}
-			
+			// frm_cnt++;
 		}
 		total[ch] += pack->length;
 		// dp("nr_pack:%d/%d len:%d\n", i, nr_pack, pack->length);
 	}
-
+	// if (stream->pack[nr_pack-1].sliceType == IMP_ENC_SLICE_I) {
+	// 	dp ("Bottom Frame Count : %d\n", frm_cnt);
+	// }
   //IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u end----------\n", stream->packCount, stream->seq);
 	return 0;
 }
@@ -2154,6 +2222,7 @@ static int save_stream3(int fd, IMPEncoderStream *stream, int ch)
 		}
 	}
  
+ 	
   //IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u start----------\n", stream->packCount, stream->seq);
 	for (i = 0; i < nr_pack; i++) {
 	//IMP_LOG_DBG(TAG, "[%d]:%10u,%10lld,%10u,%10u,%10u\n", i, stream->pack[i].length, stream->pack[i].timestamp, stream->pack[i].frameEnd, *((uint32_t *)(&stream->pack[i].nalType)), stream->pack[i].sliceType);
@@ -2682,7 +2751,8 @@ static void *get_video_stream_user(void *args)
 	// bool rec_first = false;
 	int rec_old_cnt = 0;
 
-	
+	int mfm_cnt = 0;
+	int bfm_cnt = 0;
 
 	val = (int)args;
 	chnNum = val & 0xffff;
@@ -2731,6 +2801,15 @@ static void *get_video_stream_user(void *args)
 		if (ret < 0) {
 			IMP_LOG_ERR(TAG, "IMP_Encoder_GetStream(%d) failed\n", chnNum);
 			return ((void *)-1);
+		}
+
+		if (chnNum == 0) {
+			mfm_cnt++;
+			// if (mfm_cnt%20 == 0) dp("Main polling : %d\n", mfm_cnt);
+		}
+		else if (chnNum == 3) {
+			bfm_cnt++;
+			// if (bfm_cnt%20 == 0) dp("Bottom polling : %d\n", bfm_cnt);
 		}
 
 		if (stream_state == 1) {
@@ -3822,7 +3901,7 @@ int sample_SetIRCUT(int enable)
 }
 
 static int  g_soft_ps_running = 1;
-void *sample_soft_photosensitive_ctrl(IMPVI_NUM vinum, void *p)
+void *sample_soft_photosensitive_ctrl(void *p)
 {
 	int i = 0;
 	float gb_gain,gr_gain;
@@ -3836,24 +3915,26 @@ void *sample_soft_photosensitive_ctrl(IMPVI_NUM vinum, void *p)
 	float gb_gain_record = 200;
 	//float gr_gain_record = 200;
 	float gb_gain_buf = 200, gr_gain_buf = 200;
+	IMPVI_NUM vinum = 0;
 	IMPISPRunningMode pmode;
 	IMPISPAEExprInfo ExpInfo;
 	IMPISPAWBGlobalStatisInfo wb;
 	IMP_ISP_Tuning_SetISPRunningMode(vinum, IMPISP_RUNNING_MODE_DAY);
+	IMP_ISP_Tuning_SetISPRunningMode(vinum+1, IMPISP_RUNNING_MODE_DAY);
 	sample_SetIRCUT(1);
 
 	while (g_soft_ps_running) {
 		//Get exposure AE information
 		int ret = IMP_ISP_Tuning_GetAeExprInfo(vinum, &ExpInfo);
 		if (ret ==0) {
-			dp("u32ExposureTime: %d\n", ExpInfo.ExposureValue);
-			dp("u32AnalogGain: %d\n",	ExpInfo.AeAGain);
-			dp("u32DGain: %d\n",	ExpInfo.AeDGain);
+			// dp("u32ExposureTime: %d\n", ExpInfo.ExposureValue);
+			// dp("u32AnalogGain: %d\n",	ExpInfo.AeAGain);
+			// dp("u32DGain: %d\n",	ExpInfo.AeDGain);
 		} else {
 			return NULL;
 		}
 		iso_buf = ExpInfo.ExposureValue;
-		dp(" iso buf ==%f\n",iso_buf);
+		// dp(" iso buf ==%f\n",iso_buf);
 		ret = IMP_ISP_Tuning_GetAwbGlobalStatistics(vinum, &wb);
 		if (ret == 0) {
 			gr_gain =wb.statis_gol_gain.rgain;
@@ -3875,6 +3956,7 @@ void *sample_soft_photosensitive_ctrl(IMPVI_NUM vinum, void *p)
 					dp("### entry night mode ###\n");
 					IMPISPRunningMode mode = IMPISP_RUNNING_MODE_NIGHT;
 					IMP_ISP_Tuning_SetISPRunningMode(vinum, &mode);
+					IMP_ISP_Tuning_SetISPRunningMode(vinum+1, &mode);
 					sample_SetIRCUT(0);
 					ircut_status = true;
 				}
@@ -3914,6 +3996,7 @@ void *sample_soft_photosensitive_ctrl(IMPVI_NUM vinum, void *p)
 				if (pmode!=IMPISP_RUNNING_MODE_DAY) {
 					IMPISPRunningMode mode = IMPISP_RUNNING_MODE_DAY;
 					IMP_ISP_Tuning_SetISPRunningMode(vinum, &mode);
+					IMP_ISP_Tuning_SetISPRunningMode(vinum+1, &mode);
 					sample_SetIRCUT(1);
 					ircut_status = false;
 				}

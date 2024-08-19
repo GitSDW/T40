@@ -119,6 +119,16 @@ typedef enum {
 
 typedef enum {
 	TEST_START  	= 0x01,
+	TEST_BRIGHT_VAL	= 0x03,
+	TEST_CLARITY_VAL= 0x0A,
+
+	TEST_BRIGTH		= 0x43,
+	TEST_DIMMING	= 0x45,
+	TEST_BLED		= 0x46,
+	TEST_SPK 		= 0x47,
+	TEST_MIC		= 0x48,
+	TEST_VEDIO		= 0x49,
+	TEST_CLARITY	= 0x4A,
 
 	TEST_STOP  		= 0x7F,
 } MINOR_TEST;

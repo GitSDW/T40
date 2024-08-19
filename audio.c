@@ -894,6 +894,8 @@ void *IMP_Audio_Play_Thread(void *argv)
 	// bool ao_start_f = false;
 	// int64_t ao_start_t = sample_gettimeus();
 
+	amp_on();
+
 	do {
 		if (bExit) break;
 
@@ -901,6 +903,17 @@ void *IMP_Audio_Play_Thread(void *argv)
 		// 	ao_start_f = true;
 		// 	amp_on();
 		// }
+		if (ao_clear_flag) {
+			dp("Clear Flag!!\n");
+			ao_clear_flag = false;
+			ret = IMP_AO_ClearChnBuf(ao_devID, ao_chnID);
+			if (ret != 0) {
+				IMP_LOG_ERR(TAG, "IMP_AO_ClearChnBuf error\n");
+				return NULL;
+			}
+			AO_Cir_Buff.RIndex = AO_Cir_Buff.WIndex = 0;
+			asflg = false;
+		}
 
 		ret = IMP_AO_QueryChnStat(ao_devID, ao_chnID, &play_status);
 		if(ret != 0) {
@@ -928,7 +941,7 @@ void *IMP_Audio_Play_Thread(void *argv)
 								IMP_LOG_ERR(TAG, "IMP_AO_ClearChnBuf error\n");
 								return NULL;
 							}
-							amp_on();
+							
 						}
 						datasize = 0;
 					#else
@@ -940,7 +953,7 @@ void *IMP_Audio_Play_Thread(void *argv)
 								IMP_LOG_ERR(TAG, "IMP_AO_ClearChnBuf error\n");
 								return NULL;
 							}
-							amp_on();
+							// amp_on();
 						}
 						datasize = 0;
 					#endif
@@ -1067,6 +1080,344 @@ void *IMP_Audio_Play_Thread(void *argv)
 	pthread_exit(0);
 }
 
+void *IMP_Audio_Play_Thread_pcm(void *argv)
+{
+	unsigned char *buf = NULL;
+	int ret = -1;
+	int datasize = 0, definesize = 0;
+	// int save_fd = 0;
+    // save_fd = open("/tmp/mnt/sdcard/save_ao.g726", O_RDWR | O_CREAT | O_TRUNC, 0777);
+
+	buf = (unsigned char *)malloc(1024);
+	if (buf == NULL) {
+		IMP_LOG_ERR(TAG, "[ERROR] %s: malloc audio buf error\n", __func__);
+		return NULL;
+	}
+
+	definesize = 320;
+
+	dp("Data Play Size : %d\n", definesize);
+
+	IMPAudioOChnState play_status;
+	play_status.chnBusyNum = 0;
+
+	bool asflg = false;
+	uint64_t as_time = 0;
+	// bool ao_start_f = false;
+	// int64_t ao_start_t = sample_gettimeus();
+
+	do {
+		if (bExit) break;
+
+		// if (!ao_start_f && ((sample_gettimeus()- ao_start_t)>3000000)) {
+		// 	ao_start_f = true;
+		// 	amp_on();
+		// }
+
+		ret = IMP_AO_QueryChnStat(ao_devID, ao_chnID, &play_status);
+		if(ret != 0) {
+			IMP_LOG_ERR(TAG, "IMP_AO_QueryChnStat error\n");
+			dp("AO IMP_AO_QueryChnStat\n");
+			return NULL;
+		}
+
+		// if (play_status.chnBusyNum) dp("buf busy : %d\n", play_status.chnBusyNum);
+
+		if (play_status.chnBusyNum < 20) {
+			pthread_mutex_lock(&buffMutex_ao);
+			if (AO_Cir_Buff.RIndex != AO_Cir_Buff.WIndex) {
+				asflg = true;
+				as_time = sample_gettimeus();
+				datasize = (AO_Cir_Buff.WIndex - AO_Cir_Buff.RIndex + A_BUFF_SIZE) % (500*1024);
+				if (!audio_start_flag) {
+					// dp("DataSize : %d > %d\n", datasize, definesize*20);
+					if (datasize > definesize*100){
+						dp("AO Start!\n");
+						audio_start_flag = true;
+						ret = IMP_AO_ClearChnBuf(ao_devID, ao_chnID);
+						if (ret != 0) {
+							IMP_LOG_ERR(TAG, "IMP_AO_ClearChnBuf error\n");
+							return NULL;
+						}
+						amp_on();
+					}
+					datasize = 0;
+				}
+				else if (datasize >= definesize) {
+				// if (datasize >= definesize) {
+					// datasize = datasize > AUDIO_SAMPLE_BUF_SIZE) ? AUDIO_SAMPLE_BUF_SIZE : datasize;
+					// dp("[AO] DS:%d WI:%d RI:%d\n", datasize, AO_Cir_Buff.WIndex, AO_Cir_Buff.RIndex);
+					datasize = definesize;
+					memset (buf, 0, datasize);
+					memcpy (buf, &AO_Cir_Buff.tx[AO_Cir_Buff.RIndex], datasize);
+					AO_Cir_Buff.RIndex = (AO_Cir_Buff.RIndex+datasize) % (500*1024);
+					if (AO_Cir_Buff.RIndex == AO_Cir_Buff.WIndex) {
+						// dp("Buffer Clear!! : %d\n", datasize);
+						AO_Cir_Buff.RIndex = AO_Cir_Buff.WIndex = 0;
+					}
+				}
+				else if (datasize != 0){
+					datasize = definesize;
+					memset(buf, 0, datasize);
+					memcpy(buf, &AO_Cir_Buff.tx[AO_Cir_Buff.RIndex], datasize);
+					AO_Cir_Buff.RIndex = AO_Cir_Buff.WIndex = 0;
+					audio_start_flag = false;
+					// dp("AO reinit!\n");
+				}
+			}
+			pthread_mutex_unlock(&buffMutex_ao);
+		}
+		else {
+			// dp("AO Busy : %d\n", play_status.chnBusyNum);
+			continue;
+		}
+
+		if (play_status.chnBusyNum != 0 && asflg)  {
+			if ((sample_gettimeus() - as_time) > 200000){
+				// dp("Audio Dummy Data Set!!\n");
+				memset (buf, 0, definesize);
+				datasize = definesize;
+				as_time = sample_gettimeus();
+			}
+		}
+
+		if (play_status.chnBusyNum == 0 && asflg) {
+			// dp("Audio Chn Busy Clear!!\n");
+			asflg = false;
+		}
+
+		if (datasize > 0 && play_status.chnBusyNum < 20) {
+			IMPAudioFrame frm;
+			frm.virAddr = (uint32_t *)buf;
+			frm.len = datasize;
+
+			// dp("AO DS : %d len : %d ChnBusy : %d\n", datasize, frm.len, play_status.chnBusyNum);
+			
+			ret = IMP_AO_SendFrame(ao_devID, ao_chnID, &frm, NOBLOCK);
+			if(ret != 0) {
+				IMP_LOG_ERR(TAG, "send Frame Data error\n");
+				dp("AO IMP_AO_SendFrame\n");
+				return NULL;
+			}
+			else {
+				// udp_ao_rolling_dcnt();
+				// usleep(20*1000);
+				// dp("[AO] sindex:%d windex:%d dcnt:%d\n", Audio_Ao_Attr.sindex, Audio_Ao_Attr.windex, Audio_Ao_Attr.dcnt);
+				// ret = write(save_fd, buf, datasize);
+				datasize = 0;
+			}
+
+			// usleep(10*1000);
+			IMP_LOG_INFO(TAG, "Play: TotalNum %d, FreeNum %d, BusyNum %d\n",
+					play_status.chnTotalNum, play_status.chnFreeNum, play_status.chnBusyNum);
+
+		}
+
+	}while(!bStrem);
+
+	// close(save_fd);
+	dp("[Audio] AO Thread END!\n");
+	free(buf);
+	pthread_exit(0);
+}
+
+void *IMP_Audio_Play_Thread_g726(void *argv)
+{
+	unsigned char *buf = NULL;
+	int ret = -1;
+	int datasize = 0, definesize = 0;
+	// int save_fd = 0;
+    // save_fd = open("/tmp/mnt/sdcard/save_ao.g726", O_RDWR | O_CREAT | O_TRUNC, 0777);
+
+	buf = (unsigned char *)malloc(1024);
+	if (buf == NULL) {
+		IMP_LOG_ERR(TAG, "[ERROR] %s: malloc audio buf error\n", __func__);
+		return NULL;
+	}
+
+	int adChn = 0;
+	IMPAudioDecChnAttr attr;
+	attr.type = Encode_Type;
+	attr.bufSize = 20;
+	attr.mode = ADEC_MODE_STREAM;
+	ret = IMP_ADEC_CreateChn(adChn, &attr);
+	if(ret != 0) {
+		IMP_LOG_ERR(TAG, "imp audio decoder create channel failed\n");
+		return NULL;
+	}
+
+	ret = IMP_ADEC_ClearChnBuf(adChn);
+	if(ret != 0) {
+		IMP_LOG_ERR(TAG, "IMP_ADEC_ClearChnBuf failed\n");
+		return NULL;
+	}
+
+	definesize = AUDIO_SAMPLE_BUF_SIZE/4;
+	
+
+	dp("Data Play Size : %d\n", definesize);
+
+	IMPAudioOChnState play_status;
+	play_status.chnBusyNum = 0;
+
+	bool asflg = false;
+	uint64_t as_time = 0;
+	// bool ao_start_f = false;
+	// int64_t ao_start_t = sample_gettimeus();
+
+	amp_on();
+
+	do {
+		if (bExit) break;
+
+		// if (!ao_start_f && ((sample_gettimeus()- ao_start_t)>3000000)) {
+		// 	ao_start_f = true;
+		// 	amp_on();
+		// }
+
+		ret = IMP_AO_QueryChnStat(ao_devID, ao_chnID, &play_status);
+		if(ret != 0) {
+			IMP_LOG_ERR(TAG, "IMP_AO_QueryChnStat error\n");
+			dp("AO IMP_AO_QueryChnStat\n");
+			return NULL;
+		}
+
+		// if (play_status.chnBusyNum) dp("buf busy : %d\n", play_status.chnBusyNum);
+
+		if (play_status.chnBusyNum < 20) {
+			pthread_mutex_lock(&buffMutex_ao);
+			if (AO_Cir_Buff.RIndex != AO_Cir_Buff.WIndex) {
+				asflg = true;
+				as_time = sample_gettimeus();
+				datasize = (AO_Cir_Buff.WIndex - AO_Cir_Buff.RIndex + A_BUFF_SIZE) % (500*1024);
+				if (!audio_start_flag) {
+					// dp("DataSize : %d > %d\n", datasize, definesize*20);
+					if (datasize > definesize*50){
+						dp("AO Start!\n");
+						audio_start_flag = true;
+						ret = IMP_AO_ClearChnBuf(ao_devID, ao_chnID);
+						if (ret != 0) {
+							IMP_LOG_ERR(TAG, "IMP_AO_ClearChnBuf error\n");
+							return NULL;
+						}
+						amp_on();
+					}
+					datasize = 0;
+				}
+				else if (datasize >= definesize) {
+				// if (datasize >= definesize) {
+					// datasize = datasize > AUDIO_SAMPLE_BUF_SIZE) ? AUDIO_SAMPLE_BUF_SIZE : datasize;
+					// dp("[AO] DS:%d WI:%d RI:%d\n", datasize, AO_Cir_Buff.WIndex, AO_Cir_Buff.RIndex);
+					datasize = definesize;
+					memset (buf, 0, datasize);
+					memcpy (buf, &AO_Cir_Buff.tx[AO_Cir_Buff.RIndex], datasize);
+					AO_Cir_Buff.RIndex = (AO_Cir_Buff.RIndex+datasize) % (500*1024);
+					if (AO_Cir_Buff.RIndex == AO_Cir_Buff.WIndex) {
+						// dp("Buffer Clear!! : %d\n", datasize);
+						AO_Cir_Buff.RIndex = AO_Cir_Buff.WIndex = 0;
+					}
+				}
+				else if (datasize != 0){
+					datasize = definesize;
+					memset(buf, 0, datasize);
+					memcpy(buf, &AO_Cir_Buff.tx[AO_Cir_Buff.RIndex], datasize);
+					AO_Cir_Buff.RIndex = AO_Cir_Buff.WIndex = 0;
+					audio_start_flag = false;
+					dp("AO reinit!\n");
+				}
+			}
+			pthread_mutex_unlock(&buffMutex_ao);
+		}
+		else {
+			dp("AO Busy : %d\n", play_status.chnBusyNum);
+			continue;
+		}
+
+		if (play_status.chnBusyNum != 0 && asflg)  {
+			if ((sample_gettimeus() - as_time) > 200000){
+				// dp("Audio Dummy Data Set!!\n");
+				memset (buf, 0, definesize);
+				datasize = definesize;
+				as_time = sample_gettimeus();
+			}
+		}
+
+		if (play_status.chnBusyNum == 0 && asflg) {
+			// dp("Audio Chn Busy Clear!!\n");
+			asflg = false;
+		}
+
+		if (datasize > 0 && play_status.chnBusyNum < 20) {
+			IMPAudioStream stream_in;
+			stream_in.stream = (uint8_t *)buf;
+			stream_in.len = datasize;
+			ret = IMP_ADEC_SendStream(adChn, &stream_in, BLOCK);
+			if(ret != 0) {
+				IMP_LOG_ERR(TAG, "imp audio encode send frame failed\n");
+				dp("ADEC IMP_ADEC_SendStream!\n");
+				return NULL;
+			}
+
+			/* get audio decoder frame. */
+			IMPAudioStream stream_out;
+			ret = IMP_ADEC_PollingStream(adChn, 10000);
+			if(ret != 0) {
+				IMP_LOG_ERR(TAG, "imp audio encode polling stream failed\n");
+				dp("ADEC IMP_ADEC_PollingStream!\n");
+				return NULL;
+			}
+
+			ret = IMP_ADEC_GetStream(adChn, &stream_out, BLOCK);
+			if(ret != 0) {
+				IMP_LOG_ERR(TAG, "imp audio decoder get stream failed\n");
+				dp("ADEC IMP_ADEC_GetStream!\n");
+				return NULL;
+			}
+
+			
+
+			/* Step 5: send frame data. */
+			IMPAudioFrame frm;
+			frm.virAddr = (uint32_t *)stream_out.stream;
+			frm.len = stream_out.len;
+			
+			// dp("AO DS : %d len : %d ChnBusy : %d\n", datasize, frm.len, play_status.chnBusyNum);
+			
+			ret = IMP_AO_SendFrame(ao_devID, ao_chnID, &frm, NOBLOCK);
+			if(ret != 0) {
+				IMP_LOG_ERR(TAG, "send Frame Data error\n");
+				dp("AO IMP_AO_SendFrame\n");
+				return NULL;
+			}
+			else {
+				// udp_ao_rolling_dcnt();
+				// usleep(20*1000);
+				// dp("[AO] sindex:%d windex:%d dcnt:%d\n", Audio_Ao_Attr.sindex, Audio_Ao_Attr.windex, Audio_Ao_Attr.dcnt);
+				// ret = write(save_fd, buf, datasize);
+				datasize = 0;
+			}
+			
+			/* release stream. */
+			ret = IMP_ADEC_ReleaseStream(adChn, &stream_out);
+			if(ret != 0) {
+				IMP_LOG_ERR(TAG, "imp audio decoder release stream failed\n");
+				return NULL;
+			}
+
+			// usleep(10*1000);
+			IMP_LOG_INFO(TAG, "Play: TotalNum %d, FreeNum %d, BusyNum %d\n",
+					play_status.chnTotalNum, play_status.chnFreeNum, play_status.chnBusyNum);
+
+		}
+
+	}while(!bStrem);
+
+	// close(save_fd);
+	dp("[Audio] AO Thread END!\n");
+	free(buf);
+	pthread_exit(0);
+}
+
 void ao_file_play_thread(void *argv)
 {
 	unsigned char *buf = NULL;
@@ -1144,6 +1495,8 @@ void ao_file_play_thread(void *argv)
 				play_status.chnTotalNum, play_status.chnFreeNum, play_status.chnBusyNum);
 	}while (1);
 
+	Set_Vol(100,25,spk_vol_buf,spk_gain_buf);
+
 	dp("[Audio File] Thread End!\n");
 	fclose(play_file);
 	free(buf);
@@ -1206,19 +1559,28 @@ void ao_file_play_pcm_thread(void *argv)
 	// pthread_exit(0);
 }
 
-void *IMP_Audio_InOut_AEC_Thread(void *argv)
+
+    
+
+void IMP_Audio_Test_In_Thread(void)
 {
 	int ret = -1;
-	unsigned char *buf = NULL;
-	buf = (unsigned char *)malloc(AUDIO_SAMPLE_BUF_SIZE);
-	if (buf == NULL) {
-		IMP_LOG_ERR(TAG, "[ERROR] %s: malloc audio buf error\n", __func__);
-		return NULL;
+	int test_fd = 0;
+	uint8_t *buf_pcm = NULL;
+	int64_t mic_test_time = 0;
+
+	test_fd = open("/dev/shm/mictest.pcm", O_RDWR | O_CREAT | O_TRUNC, 0777);
+
+	buf_pcm = malloc(AUDIO_SAMPLE_BUF_SIZE*2);
+	if(buf_pcm == NULL) {
+		IMP_LOG_ERR(TAG, "malloc audio pcm buf error\n");
+		return;
 	}
 
+	mic_test_time = sample_gettimeus();
 	do {
-		if (bExit) break;
 
+		// dp("Test Audio Record Thread!! %lld\n", );
 		/* step 6. get audio record frame. */
 		ret = IMP_AI_PollingFrame(ai_devID, ai_chnID, 1000);
 		if (ret != 0 ) {
@@ -1228,39 +1590,270 @@ void *IMP_Audio_InOut_AEC_Thread(void *argv)
 		ret = IMP_AI_GetFrame(ai_devID, ai_chnID, &frm, NOBLOCK);
 		if(ret != 0) {
 			IMP_LOG_ERR(TAG, "Audio Get Frame Data error\n");
-			return NULL;
+			return;
 		}
+	
+		// dp("frm.len : %d buf size : %d timestamp : %lld\n", frm.len, AUDIO_SAMPLE_BUF_SIZE, frm.timeStamp);
 
-		/* step 7. Save the recording data to a file. */
-		// fwrite(frm.virAddr, 1, frm.len, record_file);
-		
+		ret = write(test_fd, frm.virAddr, frm.len);
+
 		/* step 8. release the audio record frame. */
 		ret = IMP_AI_ReleaseFrame(ai_devID, ai_chnID, &frm);
 		if(ret != 0) {
 			IMP_LOG_ERR(TAG, "Audio release frame data error\n");
-			return NULL;
+			return;
+		}
+
+		if ((sample_gettimeus() - mic_test_time) > 10000000) {
+			break;
+		}
+
+	}while(!bStrem);
+
+	close(test_fd);
+
+	dp("[MIC_Record] END!\n");
+	// pthread_exit(0);
+
+}
+
+void IMP_Audio_Test_Out_Thread(void)
+{
+	unsigned char *buf = NULL;
+	int size = 0;
+	int ret = -1;
+	int old_chnbusy=0, old_busy_cnt=0;
+	bool stop_flag = false;
+	// int total = 0;
+
+	buf = (unsigned char *)malloc(AUDIO_SAMPLE_BUF_SIZE);
+	if (buf == NULL) {
+		IMP_LOG_ERR(TAG, "[ERROR] %s: malloc audio buf error\n", __func__);
+		return;
+	}
+
+	FILE *play_file = fopen("/dev/shm/mictest.pcm", "rb");
+	if (play_file == NULL) {
+		IMP_LOG_ERR(TAG, "[ERROR] %s: fopen %s failed\n", __func__, "/dev/shm/mictest.pcm");
+		return;
+	}
+
+	amp_on();
+
+	do {
+		if (bExit) break;
+
+		if (!stop_flag) {
+			size = fread(buf, 1, AUDIO_SAMPLE_BUF_SIZE, play_file);
+			// if (size < AUDIO_SAMPLE_BUF_SIZE)
+				// break;
+			if (size == 0)
+				break;
+
+			/* Step 5: send frame data. */
+			IMPAudioFrame frm;
+			frm.virAddr = (uint32_t *)buf;
+			frm.len = size;
+			ret = IMP_AO_SendFrame(ao_devID, ao_chnID, &frm, BLOCK);
+			if (ret != 0) {
+				IMP_LOG_ERR(TAG, "send Frame Data error\n");
+				return;
+			}
 		}
 
 		IMPAudioOChnState play_status;
-
-		// dp("[AO] dcnt:%d size:%d\n", Audio_Ao_Attr.dcnt, AUDIO_SAMPLE_BUF_SIZE);
-		/* Step 5: send frame data. */
-		ret = IMP_AO_SendFrame(ao_devID, ao_chnID, &frm, NOBLOCK);
-		if(ret != 0) {
-			IMP_LOG_ERR(TAG, "send Frame Data error\n");
-			return NULL;
-		}
-
 		ret = IMP_AO_QueryChnStat(ao_devID, ao_chnID, &play_status);
-		if(ret != 0) {
+		if (ret != 0) {
 			IMP_LOG_ERR(TAG, "IMP_AO_QueryChnStat error\n");
-			return NULL;
+			return;
 		}
+
+		if (play_status.chnBusyNum > 0) {
+			if (old_chnbusy != play_status.chnBusyNum) {
+				old_chnbusy = play_status.chnBusyNum;
+				old_busy_cnt = 0;
+			}
+			else {
+				old_busy_cnt++;
+				if (old_busy_cnt%10 == 0) {
+					dp("busynum:%d\n", play_status.chnBusyNum);
+				}
+				if (play_status.chnBusyNum > 18) stop_flag = true;
+				else if (play_status.chnBusyNum > 5) stop_flag = false;
+			}
+		}
+
+		usleep(18*1000);
+
 		IMP_LOG_INFO(TAG, "Play: TotalNum %d, FreeNum %d, BusyNum %d\n",
 				play_status.chnTotalNum, play_status.chnFreeNum, play_status.chnBusyNum);
-	}while(1);
+	}while (1);
 
-	dp("[Audio] AO Thread END!\n");
+	Set_Vol(100,25,spk_vol_buf,spk_gain_buf);
+
+	dp("[Audio File] Thread End!\n");
+	fclose(play_file);
 	free(buf);
-	pthread_exit(0);
+	
+
 }
+
+
+
+void IMP_Audio_Test_InOut_Thread(void)
+{
+	int ret = -1;
+	int64_t mic_test_time = 0;
+
+	// int size = 0;
+	int old_chnbusy=0, old_busy_cnt=0;
+	bool stop_flag = false;
+
+	mic_test_time = sample_gettimeus();
+	do {
+
+		// dp("Test Audio Record Thread!! %lld\n", );
+		/* step 6. get audio record frame. */
+		ret = IMP_AI_PollingFrame(ai_devID, ai_chnID, 1000);
+		if (ret != 0 ) {
+			IMP_LOG_ERR(TAG, "Audio Polling Frame Data error\n");
+		}
+		IMPAudioFrame frm;
+		ret = IMP_AI_GetFrame(ai_devID, ai_chnID, &frm, NOBLOCK);
+		if(ret != 0) {
+			IMP_LOG_ERR(TAG, "Audio Get Frame Data error\n");
+			return;
+		}
+
+		if (!stop_flag) {
+			/* Step 5: send frame data. */
+			ret = IMP_AO_SendFrame(ao_devID, ao_chnID, &frm, BLOCK);
+			if (ret != 0) {
+				IMP_LOG_ERR(TAG, "send Frame Data error\n");
+				return;
+			}
+		}
+
+		IMPAudioOChnState play_status;
+		ret = IMP_AO_QueryChnStat(ao_devID, ao_chnID, &play_status);
+		if (ret != 0) {
+			IMP_LOG_ERR(TAG, "IMP_AO_QueryChnStat error\n");
+			return;
+		}
+
+		if (play_status.chnBusyNum > 0) {
+			if (old_chnbusy != play_status.chnBusyNum) {
+				old_chnbusy = play_status.chnBusyNum;
+				old_busy_cnt = 0;
+			}
+			else {
+				old_busy_cnt++;
+				if (old_busy_cnt%10 == 0) {
+					dp("busynum:%d\n", play_status.chnBusyNum);
+				}
+				if (play_status.chnBusyNum > 18) stop_flag = true;
+				else if (play_status.chnBusyNum > 5) stop_flag = false;
+			}
+		}
+
+		// dp("frm.len : %d buf size : %d timestamp : %lld\n", frm.len, AUDIO_SAMPLE_BUF_SIZE, frm.timeStamp);
+
+		/* step 8. release the audio record frame. */
+		ret = IMP_AI_ReleaseFrame(ai_devID, ai_chnID, &frm);
+		if(ret != 0) {
+			IMP_LOG_ERR(TAG, "Audio release frame data error\n");
+			return;
+		}
+
+		if ((sample_gettimeus() - mic_test_time) > 10000000) {
+			break;
+		}
+
+	}while(!bStrem);
+
+	dp("[MIC_Record] END!\n");
+	// pthread_exit(0);
+
+}
+
+// void IMP_Audio_Test_Out_Thread(void)
+// {
+// 	unsigned char *buf = NULL;
+// 	int size = 0;
+// 	int ret = -1;
+// 	int old_chnbusy=0, old_busy_cnt=0;
+// 	bool stop_flag = false;
+// 	// int total = 0;
+
+// 	buf = (unsigned char *)malloc(AUDIO_SAMPLE_BUF_SIZE);
+// 	if (buf == NULL) {
+// 		IMP_LOG_ERR(TAG, "[ERROR] %s: malloc audio buf error\n", __func__);
+// 		return;
+// 	}
+
+// 	FILE *play_file = fopen("/dev/shm/mictest.pcm", "rb");
+// 	if (play_file == NULL) {
+// 		IMP_LOG_ERR(TAG, "[ERROR] %s: fopen %s failed\n", __func__, "/dev/shm/mictest.pcm");
+// 		return;
+// 	}
+
+// 	amp_on();
+
+// 	do {
+// 		if (bExit) break;
+
+// 		if (!stop_flag) {
+// 			size = fread(buf, 1, AUDIO_SAMPLE_BUF_SIZE, play_file);
+// 			// if (size < AUDIO_SAMPLE_BUF_SIZE)
+// 				// break;
+// 			if (size == 0)
+// 				break;
+
+// 			/* Step 5: send frame data. */
+// 			IMPAudioFrame frm;
+// 			frm.virAddr = (uint32_t *)buf;
+// 			frm.len = size;
+// 			ret = IMP_AO_SendFrame(ao_devID, ao_chnID, &frm, BLOCK);
+// 			if (ret != 0) {
+// 				IMP_LOG_ERR(TAG, "send Frame Data error\n");
+// 				return;
+// 			}
+// 		}
+
+// 		IMPAudioOChnState play_status;
+// 		ret = IMP_AO_QueryChnStat(ao_devID, ao_chnID, &play_status);
+// 		if (ret != 0) {
+// 			IMP_LOG_ERR(TAG, "IMP_AO_QueryChnStat error\n");
+// 			return;
+// 		}
+
+// 		if (play_status.chnBusyNum > 0) {
+// 			if (old_chnbusy != play_status.chnBusyNum) {
+// 				old_chnbusy = play_status.chnBusyNum;
+// 				old_busy_cnt = 0;
+// 			}
+// 			else {
+// 				old_busy_cnt++;
+// 				if (old_busy_cnt%10 == 0) {
+// 					dp("busynum:%d\n", play_status.chnBusyNum);
+// 				}
+// 				if (play_status.chnBusyNum > 18) stop_flag = true;
+// 				else if (play_status.chnBusyNum > 5) stop_flag = false;
+// 			}
+// 		}
+
+// 		usleep(18*1000);
+
+// 		IMP_LOG_INFO(TAG, "Play: TotalNum %d, FreeNum %d, BusyNum %d\n",
+// 				play_status.chnTotalNum, play_status.chnFreeNum, play_status.chnBusyNum);
+// 	}while (1);
+
+// 	Set_Vol(100,25,spk_vol_buf,spk_gain_buf);
+
+// 	dp("[Audio File] Thread End!\n");
+// 	fclose(play_file);
+// 	free(buf);
+	
+
+// }
+

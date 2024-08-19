@@ -244,7 +244,7 @@ int sample_get_video_clip_user();
 int sample_get_snap_stream_user();
 
 int sample_SetIRCUT(int enable);
-void *sample_soft_photosensitive_ctrl(IMPVI_NUM vinum, void *p);
+void *sample_soft_photosensitive_ctrl(void *p);
 int sample_framesource_i2dopr(int ch);
 int sample_framesource_i2dpreinit(void);
 int sample_mainpro_getframeEx(void);

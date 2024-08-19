@@ -17,9 +17,13 @@ int Get_Vol(void);
 
 void *IMP_Audio_Record_AEC_Thread(void *argv);
 void *IMP_Audio_Play_Thread(void *argv);
+void *IMP_Audio_Play_Thread_pcm(void *argv);
+void *IMP_Audio_Play_Thread_g726(void *argv);
 void ao_file_play_thread(void *argv);
 void ao_file_play_pcm_thread(void *argv);
-void *IMP_Audio_InOut_AEC_Thread(void *argv);
+void IMP_Audio_Test_In_Thread(void);
+void IMP_Audio_Test_Out_Thread(void);
+void IMP_Audio_Test_InOut_Thread(void);
 
 #if __cplusplus
 }

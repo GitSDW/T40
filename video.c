@@ -359,7 +359,7 @@ uint8_t BLC_User(void) {
 	IMPISPAEScenceAttr sceneattr;
 	IMPISPAEExprInfo expose_inf;
 	uint32_t ae_mean = 0;
-	static uint32_t AeIntegrationTime = 120;
+	static uint32_t AeIntegrationTime = 0;
 	static bool auto_flag = true;
 
 	IMP_ISP_Tuning_GetAeScenceAttr(IMPVI_MAIN, &sceneattr);
@@ -378,11 +378,8 @@ uint8_t BLC_User(void) {
 	}
 
 	if (ae_mean > 120) {
-		if (ae_mean > 350) {
-			AeIntegrationTime -= 30;
-		}
-		else if (ae_mean > 220){
-			AeIntegrationTime -= 20;
+		if (ae_mean > 220){
+			AeIntegrationTime = AeIntegrationTime/2;
 		}
 		else if (ae_mean > 160){
 			AeIntegrationTime -= 10;
@@ -396,12 +393,12 @@ uint8_t BLC_User(void) {
 		IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN, &expose_inf);
 		IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN+1, &expose_inf);
 		
-		dp("Set Value : %d\n", AeIntegrationTime);
+		dp("Set Value : %d %d\n", AeIntegrationTime, ae_mean);
 	}
 	else if (ae_mean < 30 && auto_flag) {
 		expose_inf.AeMode = IMPISP_TUNING_OPS_TYPE_AUTO;
 		expose_inf.AeIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_AUTO;
-		expose_inf.AeIntegrationTime = AeIntegrationTime = 120;
+		// expose_inf.AeIntegrationTime = AeIntegrationTime = 120;
 		IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN, &expose_inf);
 		IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN+1, &expose_inf);
 		dp("Auto Set! : %d\n", ae_mean);
@@ -494,6 +491,30 @@ uint8_t bright_set(uint8_t bright) {
 	}
 
 	return mbright;
+}
+
+
+uint32_t AeIntegrationTime_1;
+
+uint32_t Get_Brightness(void) {
+	IMPISPAEScenceAttr sceneattr;
+	IMPISPAEExprInfo expose_inf;
+	uint8_t ae_mean = 0;
+	uint32_t expose_val = 0;
+	uint32_t AeIntegrationTime = AeIntegrationTime_1;
+
+	// expose_inf.AeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+	// expose_inf.AeIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+	// expose_inf.AeIntegrationTime = AeIntegrationTime;
+	// IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN, &expose_inf);
+
+	IMP_ISP_Tuning_GetAeExprInfo(IMPVI_MAIN, &expose_inf);
+	expose_val = expose_inf.ExposureValue;
+	dp("Expose Value:%d\n", expose_val);
+	IMP_ISP_Tuning_GetBrightness(IMPVI_MAIN, &ae_mean);
+	dp("mean Value:%d\n", ae_mean);
+
+	return expose_val;
 }
 
 IMPCell osdcell;
@@ -766,7 +787,7 @@ int video_init(void) {
 	///////////////////////// Flicker ISP /////////////////////////////
 	IMPISPAntiflickerAttr flickerAttr;
 	memset(&flickerAttr, 0, sizeof(IMPISPAntiflickerAttr));
-	flickerAttr.freq = 80;
+	flickerAttr.freq = 70;
 	flickerAttr.mode = IMPISP_ANTIFLICKER_NORMAL_MODE;
 	IMP_ISP_Tuning_SetAntiFlickerAttr(IMPVI_MAIN, &flickerAttr);
 	IMP_ISP_Tuning_SetAntiFlickerAttr(IMPVI_MAIN+1, &flickerAttr);
@@ -798,11 +819,15 @@ int video_init(void) {
 	// dp("igmode:%d amode:%d dmode:%d\n", expose_inf.AeIntegrationTimeMode, expose_inf.AeAGainManualMode, expose_inf.AeDGainManualMode);
 
 	ExpVal = expose_inf.ExposureValue;
+	uint32_t AeIntegrationTime_1 = expose_inf.AeIntegrationTime;
+
+	dp("AeIntegrationTime : %d\n", AeIntegrationTime_1);
 
 	if (settings.SF.bits.flicker) {
+		dp("Flicker Mode : On\n");
 		// init_igtime = expose_inf.AeIntegrationTime;
 		expose_inf.AeMinIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
-		expose_inf.AeMinIntegrationTime = 200;
+		expose_inf.AeMinIntegrationTime = 250;
 		// expose_inf.AeMinAGainMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
 		// expose_inf.AeMinAGain = 0;
 		// expose_inf.AeMinDgainMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
@@ -823,6 +848,9 @@ int video_init(void) {
 		// expose_inf.AeIntegrationTime = 90;
 
 		IMP_ISP_Tuning_SetAeExprInfo(IMPVI_MAIN, &expose_inf);
+	}
+	else {
+		dp("Flicker Mode : Off\n");
 	}
 
 
@@ -1218,7 +1246,7 @@ void *OSD_thread(void *args)
 	int ret;
 
 	int64_t total_time = 0;
-	int64_t oldt_time = 0, BLC_time = 0;//, mean_time = 0;;
+	int64_t oldt_time = 0;//, BLC_time = 0;//, mean_time = 0;;
 
 	// int f_cnt=0;
 	
@@ -1542,13 +1570,21 @@ void *OSD_thread(void *args)
 
 		for (int i=0; i<10; i++) {
 			if (mosaic_time[i] != 0){
-				if ((sample_gettimeus()-mosaic_time[i]) > 5000000) {
+				if ((sample_gettimeus()-mosaic_time[i]) > 6000000) {
 					mosaic_time[i] = 0;
-					ret = IMP_OSD_ShowRgn(prHander[2+i], mosdgrp, 0);
-					if (ret != 0) {
-						IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Test Cover error\n");
-						return NULL;
-					}
+					#if 0
+						ret = IMP_OSD_ShowRgn(prHander[2+i], mosdgrp, 0);
+						if (ret != 0) {
+							IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Test Cover error\n");
+							return NULL;
+						}
+					#else
+						ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+i], mosdgrp, 0);
+						if (ret != 0) {
+							IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Test Cover error\n");
+							return NULL;
+						}
+					#endif
 				}
 			}
 		}
@@ -1571,10 +1607,10 @@ void *OSD_thread(void *args)
 			// isp_integration_time(0, 0);
 			// SceneceSet(0, 0);
 		}
-		if (total_time/200000 != BLC_time && settings.SF.bits.backlight) {
-			BLC_time = total_time/200000;
-			BLC_User();
-		}
+		// if (total_time/200000 != BLC_time && settings.SF.bits.backlight) {
+		// 	BLC_time = total_time/200000;
+		// 	BLC_User();
+		// }
 		if (polling_err_cnt > 6) {
 			func_reboot();
 		}

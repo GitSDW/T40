@@ -351,11 +351,11 @@ void *fdpd_thread(void *args)
     int face_num=0, person_num=0, nodet_cnt=0;
     // char framefilename[64];
     // char *fp_data;
-    int face_track[5] = {256};
+    // int face_track[5] = {256};
     int fdpd_en_cnt = 0;
     // int mosaic_cnt[10] = {0};
     int64_t face_cnt_time = 0;
-    IMPOSDRgnAttr rect_rAttr;
+    // IMPOSDRgnAttr rect_rAttr;
 
     
     // sprintf(framefilename, "/dev/shm/faceperson.data");
@@ -394,6 +394,11 @@ void *fdpd_thread(void *args)
             IMP_LOG_ERR(TAG, "IMP_IVS_PollingResult(%d, %d) failed\n", 3, IMP_IVS_DEFAULT_TIMEOUTMS);
             return NULL;
         }
+        // ret = IMP_IVS_PollingResult(3, 200);
+        // if (ret < 0) {
+        //     IMP_LOG_ERR(TAG, "IMP_IVS_PollingResult(%d, %d) failed\n", 3, 200);
+        //     return NULL;
+        // }
         ret = IMP_IVS_GetResult(3, (void **)&result);
         if (ret < 0) {
             IMP_LOG_ERR(TAG, "IMP_IVS_GetResult(%d) failed\n", 3);
@@ -429,91 +434,175 @@ void *fdpd_thread(void *args)
 
                     // dp("confidence:%f\n", confidence);
 
+                    // dp("x:%d, y:%d, w:%d h:%d confidence:%f\n", fdpd_data[i].ul_x, fdpd_data[i].ul_y, (fdpd_data[i].br_x-fdpd_data[i].ul_x), (fdpd_data[i].br_y-fdpd_data[i].ul_y), fdpd_data[i].confidence);
+
                     if (fdpd_data[i].classid == 0 && Mosaic_En) {
-                        #ifdef __PRIVERCE_SIZE_UP__
-                            int cover_w, cover_h;
-                            int cover_sx, cover_sy;
-                            int cover_ex, cover_ey;
+                        #if 0
+                            #ifdef __PRIVERCE_SIZE_UP__
+                                int cover_w, cover_h;
+                                int cover_sx, cover_sy;
+                                int cover_ex, cover_ey;
 
-                            cover_w = (fdpd_data[i].br_x - fdpd_data[i].ul_x)/1;
-                            cover_h = (fdpd_data[i].br_y - fdpd_data[i].ul_y)/2;
-                            if (fdpd_data[i].ul_x > cover_w) cover_sx = fdpd_data[i].ul_x - cover_w;
-                            else cover_sx = 0;
-                            if (fdpd_data[i].ul_y > cover_h) cover_sy = fdpd_data[i].ul_y - cover_h;
-                            else cover_sy = 0;
+                                cover_w = (fdpd_data[i].br_x - fdpd_data[i].ul_x)/1;
+                                cover_h = (fdpd_data[i].br_y - fdpd_data[i].ul_y)/2;
+                                if (fdpd_data[i].ul_x > cover_w) cover_sx = fdpd_data[i].ul_x - cover_w;
+                                else cover_sx = 0;
+                                if (fdpd_data[i].ul_y > cover_h) cover_sy = fdpd_data[i].ul_y - cover_h;
+                                else cover_sy = 0;
 
-                            if (fdpd_data[i].br_x < (1920-cover_w)) cover_ex = fdpd_data[i].br_x + cover_w;
-                            else cover_ex = 1920-1;
-                            if (fdpd_data[i].br_y < (1080-cover_h)) cover_ey = fdpd_data[i].br_y + cover_h;
-                            else cover_ey = 1080-1;
+                                if (fdpd_data[i].br_x < (1920-cover_w)) cover_ex = fdpd_data[i].br_x + cover_w;
+                                else cover_ex = 1920-1;
+                                if (fdpd_data[i].br_y < (1080-cover_h)) cover_ey = fdpd_data[i].br_y + cover_h;
+                                else cover_ey = 1080-1;
 
-                            // dp("1 sx:%d sy:%d 2 sx:%d ey:%d\n", cover_sx, cover_sy, fdpd_data[i].ul_x, fdpd_data[i].ul_y);
-                            // dp("1 ex:%d ey:%d 2 ex:%d ey:%d\n", cover_ex, cover_ey, fdpd_data[i].br_x, fdpd_data[i].br_y);
+                                // dp("1 sx:%d sy:%d 2 sx:%d ey:%d\n", cover_sx, cover_sy, fdpd_data[i].ul_x, fdpd_data[i].ul_y);
+                                // dp("1 ex:%d ey:%d 2 ex:%d ey:%d\n", cover_ex, cover_ey, fdpd_data[i].br_x, fdpd_data[i].br_y);
 
-                            rect_rAttr.type = OSD_REG_COVER;
-                            rect_rAttr.rect.p0.x = cover_sx;
-                            rect_rAttr.rect.p0.y = cover_sy;
-                            rect_rAttr.rect.p1.x = cover_ex;
-                            rect_rAttr.rect.p1.y = cover_ey;
+                                rect_rAttr.type = OSD_REG_COVER;
+                                rect_rAttr.rect.p0.x = cover_sx;
+                                rect_rAttr.rect.p0.y = cover_sy;
+                                rect_rAttr.rect.p1.x = cover_ex;
+                                rect_rAttr.rect.p1.y = cover_ey;
+                            #else
+                                rect_rAttr.type = OSD_REG_COVER;
+                                rect_rAttr.rect.p0.x = fdpd_data[i].ul_x;
+                                rect_rAttr.rect.p0.y = fdpd_data[i].ul_y;
+                                rect_rAttr.rect.p1.x = fdpd_data[i].br_x;
+                                rect_rAttr.rect.p1.y = fdpd_data[i].br_y;
+                            #endif
+
+
+
+                            rect_rAttr.fmt = PIX_FMT_BGRA;
+                                //  OSD_IPU_BLACK   = 0xff000000, /**< black */
+                                //  OSD_IPU_WHITE   = 0xffffffff, /**< white*/
+                                //  OSD_IPU_RED     = 0xffff0000, /**< red */
+                                //  OSD_IPU_GREEN   = 0xff00ff00, /**< green */
+                                //  OSD_IPU_BLUE    = 0xff0000ff, /**< blue */
+                            rect_rAttr.data.coverData.color = 0xff777777;
+                            IMP_OSD_SetRgnAttr(prHander[2+i], &rect_rAttr);
+                            ret = IMP_OSD_ShowRgn(prHander[2+i], mosdgrp, 1);
+                            if (ret != 0) {
+                                IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
+                                return NULL;
+                            }
+                            else {
+                                mosaic_time[i] = sample_gettimeus();
+                            }
                         #else
-                            rect_rAttr.type = OSD_REG_COVER;
-                            rect_rAttr.rect.p0.x = fdpd_data[i].ul_x;
-                            rect_rAttr.rect.p0.y = fdpd_data[i].ul_y;
-                            rect_rAttr.rect.p1.x = fdpd_data[i].br_x;
-                            rect_rAttr.rect.p1.y = fdpd_data[i].br_y;
+                            IMPOSDRgnAttr mosaic_rAttr;
+                            int x_cal, y_cal, w_cal, h_cal;
+
+                            w_cal = (((fdpd_data[i].br_x-fdpd_data[i].ul_x)/40)+1)*40;
+                            h_cal = (((fdpd_data[i].br_y-fdpd_data[i].ul_y)/40)+1)*40;
+                            x_cal = (fdpd_data[i].ul_x / 40)*40 - (w_cal/2);
+                            if (x_cal < 0) x_cal = 0;
+                            y_cal = (fdpd_data[i].ul_y / 40)*40 - (h_cal/2);
+                            if (y_cal < 0) y_cal = 0;
+                            w_cal *= 2;
+                            if ((x_cal + w_cal) > 1920) {
+                                x_cal = 1920-w_cal;
+                            }
+                            h_cal *= 2;
+                            if ((y_cal + h_cal) > 1080) {
+                                y_cal = 1080-h_cal;
+                            }
+
+                            
+                            // w_cal = ((fdpd_data[i].br_x-fdpd_data[i].ul_x)/10)*10;
+                            // h_cal = ((fdpd_data[i].br_y-fdpd_data[i].ul_y)/10)*10;
+                            
+                            // x_cal = (fdpd_data[i].ul_x/10)*10 - (w_cal/2);
+                            // if (x_cal < 0) x_cal = 0;
+                            // y_cal = (fdpd_data[i].ul_y/10)*10 - (h_cal/2);
+                            // if (y_cal < 0) y_cal = 0;
+
+                            // w_cal *= 2;
+                            // if ((x_cal + w_cal) > 1920) {
+                            //     x_cal = 1920-w_cal;
+                            // }
+                            // h_cal *= 2;
+                            // if ((y_cal + h_cal) > 1080) {
+                            //     y_cal = 1080-h_cal;
+                            // }
+                            
+
+                            // dp("x:%d y:%d w:%d h:%d\n", x_cal, y_cal, w_cal, h_cal);
+
+                            mosaic_rAttr.type = OSD_REG_MOSAIC;
+                            mosaic_rAttr.mosaicAttr.x = x_cal;
+                            mosaic_rAttr.mosaicAttr.y = y_cal;
+                            mosaic_rAttr.mosaicAttr.mosaic_width = w_cal;
+                            mosaic_rAttr.mosaicAttr.mosaic_height = h_cal;
+                            mosaic_rAttr.mosaicAttr.frame_width = 1920;
+                            mosaic_rAttr.mosaicAttr.frame_height = 1080;
+                            mosaic_rAttr.mosaicAttr.mosaic_min_size = 40;
+
+                            IMP_OSD_SetRgnAttr(prHander[2+RECT_INDEX+i], &mosaic_rAttr);
+                            ret = IMP_OSD_ShowRgn(prHander[2+RECT_INDEX+i], mosdgrp, 1);
+                            if (ret != 0) {
+                                IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
+                                return NULL;
+                            }
+                            else {
+                                mosaic_time[i] = sample_gettimeus();
+                            }
                         #endif
-
-
-
-                        rect_rAttr.fmt = PIX_FMT_BGRA;
-                            //  OSD_IPU_BLACK   = 0xff000000, /**< black */
-                            //  OSD_IPU_WHITE   = 0xffffffff, /**< white*/
-                            //  OSD_IPU_RED     = 0xffff0000, /**< red */
-                            //  OSD_IPU_GREEN   = 0xff00ff00, /**< green */
-                            //  OSD_IPU_BLUE    = 0xff0000ff, /**< blue */
-                        rect_rAttr.data.coverData.color = 0xff777777;
-                        IMP_OSD_SetRgnAttr(prHander[2+i], &rect_rAttr);
-                        ret = IMP_OSD_ShowRgn(prHander[2+i], mosdgrp, 1);
-                        if (ret != 0) {
-                            IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
-                            return NULL;
-                        }
-                        else {
-                            mosaic_time[i] = sample_gettimeus();
-                        }
                     }
 
                     // dp("fdpd cnt: %d/%d class : %d track %d confidence : %f \n", i, r->count, class_id, track_id, confidence);
+                    // dp("x:%d, y:%d, w:%d h:%d confidence:%f\n", fdpd_data[i].ul_x, fdpd_data[i].ul_y, (fdpd_data[i].br_x-fdpd_data[i].ul_x), (fdpd_data[i].br_y-fdpd_data[i].ul_y), fdpd_data[i].confidence);
                 
                     if(class_id == 0 && confidence > 0) {
-                        face_num++;
+                        if ( ((fdpd_data[i].ul_x >= move_det_xs && fdpd_data[i].ul_x <= move_det_xe) && 
+                              (fdpd_data[i].ul_y >= move_det_ys && fdpd_data[i].ul_y <= move_det_ye)) &&
+                             ((fdpd_data[i].br_x >= move_det_xs && fdpd_data[i].br_x <= move_det_xe) && 
+                              (fdpd_data[i].br_y >= move_det_ys && fdpd_data[i].br_y <= move_det_ye)) ) {
+                            // face_num++;
+                        }
+                        else {
+                            face_num++;
+                        }
+                        // dp("x:%d, y:%d, w:%d h:%d confidence:%f\n", fdpd_data[i].ul_x, fdpd_data[i].ul_y, (fdpd_data[i].br_x-fdpd_data[i].ul_x), (fdpd_data[i].br_y-fdpd_data[i].ul_y), fdpd_data[i].confidence);
                         // dp("fdpd cnt: %d/%d class : %d track %d confidence : %f x : %d y : %d\n"
                             // , i, r->count, class_id, track_id, confidence, fdpd_data[i].ul_x, fdpd_data[i].ul_y);
                         // dp("fr:%d confidence:%f thumbnail_snap:%d\n", fr_state, confidence, thumbnail_snap);
+                        #if 0
                         // if ((fr_state == 1 && track_id > 0 && confidence > 0.85) &&
-                        if ((fr_state == FR_START && confidence > 0.90 && !thumbnail_snap) &&
-                            (((fdpd_data[i].ul_x+fdpd_data[i].br_x)/2) > 200) &&
-                            (((fdpd_data[i].ul_x+fdpd_data[i].br_x)/2) < 1920 - 100) &&
-                            (((fdpd_data[i].ul_y+fdpd_data[i].br_y)/2) > 200) &&
-                            (((fdpd_data[i].ul_y+fdpd_data[i].br_y)/2) < 1080 - 100) &&
-                            (face_track[0] != fdpd_data[i].trackid) &&
-                            (face_track[1] != fdpd_data[i].trackid) &&
-                            (face_track[2] != fdpd_data[i].trackid) &&
-                            (face_track[3] != fdpd_data[i].trackid) &&
-                            (face_track[4] != fdpd_data[i].trackid))
-                            {
+                        // if ((fr_state == FR_START && confidence > 0.90 && !thumbnail_snap) &&
+                        //     (((fdpd_data[i].ul_x+fdpd_data[i].br_x)/2) > 200) &&
+                        //     (((fdpd_data[i].ul_x+fdpd_data[i].br_x)/2) < 1920 - 100) &&
+                        //     (((fdpd_data[i].ul_y+fdpd_data[i].br_y)/2) > 200) &&
+                        //     (((fdpd_data[i].ul_y+fdpd_data[i].br_y)/2) < 1080 - 100) &&
+                        //     (face_track[0] != fdpd_data[i].trackid) &&
+                        //     (face_track[1] != fdpd_data[i].trackid) &&
+                        //     (face_track[2] != fdpd_data[i].trackid) &&
+                        //     (face_track[3] != fdpd_data[i].trackid) &&
+                        //     (face_track[4] != fdpd_data[i].trackid))
+                        #endif
+
+                        #if 0
+                        // if ( (fr_state == FR_START && confidence > 0.90 && !thumbnail_snap) &&
+                        //     (((fdpd_data[i].ul_x+fdpd_data[i].br_x)/2) > 200) &&
+                        //     (((fdpd_data[i].ul_x+fdpd_data[i].br_x)/2) < 1920 - 200) &&
+                        //     (((fdpd_data[i].ul_y+fdpd_data[i].br_y)/2) > 200) &&
+                        //     (((fdpd_data[i].ul_y+fdpd_data[i].br_y)/2) < 1080 - 200) )
+                        #endif
+
+                        if ( (fr_state == FR_START && confidence > 0.85 && !thumbnail_snap) && ((fdpd_data[i].br_x-fdpd_data[i].ul_x) > 100) ) 
+                        {
                             fr_state++;
                             facial_data.flag = fdpd_data[i].flag;
                             facial_data.classid = fdpd_data[i].classid;
                             facial_data.trackid = fdpd_data[i].trackid;
-                            face_track[face_crop_cnt] = facial_data.trackid;
+                            // face_track[face_crop_cnt] = facial_data.trackid;
                             facial_data.confidence = fdpd_data[i].confidence;
                             facial_data.ul_x = fdpd_data[i].ul_x;
                             facial_data.ul_y = fdpd_data[i].ul_y;
                             facial_data.br_x = fdpd_data[i].br_x;
                             facial_data.br_y = fdpd_data[i].br_y;
                             face_snap = true;
-                            dp("x:%d, y:%d, confidence:%f\n", facial_data.ul_x, facial_data.ul_y, facial_data.confidence);
+                            dp("**************************************x:%d, y:%d, confidence:%f\n", facial_data.ul_x, facial_data.ul_y, facial_data.confidence);
                         }
                     }
                     else { 
@@ -561,7 +650,10 @@ void *fdpd_thread(void *args)
         // usleep(100*1000);
         if (!fdpd_En){
             fdpd_en_cnt++;
-            if (fdpd_en_cnt>5) fdpd_En = true;
+            if (fdpd_en_cnt>1) {
+                fdpd_En = true;
+                // dp("Sibal\n");
+            }
         }
 
         if ((face_cnt_time != 0) && ((sample_gettimeus()-face_cnt_time) > 2000000)) {

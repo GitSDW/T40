@@ -539,5 +539,12 @@ int md5_get(char *filepath, char *md5_char)
     return 0;
 }
 
-
+uint16_t doubleToUnsignedShort(double value) {
+    if (value >= 0.0) {
+        return (uint16_t)value;  // 양수인 경우, 간단히 형변환하여 반환
+    } else {
+        // 음수인 경우, 양수로 변환 후 2의 보수 형태로 계산하여 반환
+        return (uint16_t)(256 + value);
+    }
+}
 

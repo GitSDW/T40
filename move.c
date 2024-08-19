@@ -230,6 +230,7 @@ static void *sample_ivs_move_get_result_process(void *arg)
 					( (result->rects[j].br.x >= move_det_xs && result->rects[j].br.x <= move_det_xe) && (result->rects[j].br.y >= move_det_ys && result->rects[j].br.y <= move_det_ye)))
 				{
 					// dp("Prohibited Areas, Motion Not Detection!!!\n ");
+					// dp("PA : %d %d %d %d\n", result->rects[j].ul.x, result->rects[j].ul.y, result->rects[j].br.x, result->rects[j].br.y);
 					if (!move_flag) {
 						detect_flag = true;;
 					}
@@ -281,6 +282,8 @@ static void *sample_ivs_move_get_result_process(void *arg)
 						// detect_flag = true;;
 						
 					// }
+					// dp("P %d %d %d %d\n  %d %d %d %d\n", result->rects[j].ul.x, result->rects[j].ul.y, result->rects[j].br.x, result->rects[j].br.y,
+															// move_det_xs, move_det_xe, move_det_ys, move_det_ye);
 					if (det_ex_cnt < 5) {
 						det_ex_cnt++;
 						// dp("1Out Area! %d\n", det_ex_cnt);

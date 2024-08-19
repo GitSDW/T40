@@ -186,6 +186,10 @@ int  spi_write_bytes(int fd,unsigned char *pdata_buff,unsigned int len)
         .len = len,//SPI Can't support synchronous transfer
     };
 
+    if (send_retry_flag) {
+        dp("bud[9]:0x%02x\n", pdata_buff[9]);
+    }
+
     ret = ioctl(fd, SPI_IOC_MESSAGE(1), &tr);
     if (ret < 1)
     {
@@ -1803,13 +1807,13 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
         read_buff[6] = 0;
         len = 7;
 
-        if (Ready_Busy_Check() > 0){
-            // dp("File Send Start!\n");
-        }
-        else{
-            dp("[RB ERR]Face Start CMD\n");
-            return -1;
-        }
+        // if (Ready_Busy_Check() > 0){
+        //     // dp("File Send Start!\n");
+        // }
+        // else{
+        //     dp("[RB ERR]Face Start CMD\n");
+        //     return -1;
+        // }
         
         dp("Face File Count : %d\n", read_buff[5]);
         Make_Spi_Packet(tx_buff, read_buff, len, REC, REC_STREAM_STR);
@@ -2613,7 +2617,7 @@ void *spi_send_stream (void *arg)
                 // datasize = (AI_Cir_Buff.WIndex - AI_Cir_Buff.RIndex + A_BUFF_SIZE) % (500*1024);
                 datasize = 0;
 
-            if (datasize >= 640) {
+            if (datasize >= A_SEND_SIZE) {
                 pthread_mutex_lock(&buffMutex_ai);
                 datasize = (datasize > A_SEND_SIZE) ? A_SEND_SIZE : datasize;
                 // for (int i = 0; i < datasize; ++i) {
@@ -2646,23 +2650,24 @@ void *spi_send_stream (void *arg)
                 ///////////////// SPI Send //////////////////////////
                 if (data_sel == 3 || data_sel == 4) {
                     // ret = spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
-                    if (stream_state == 1){
+                    if (stream_state == 1 && audio_spi_flag){
                         Make_Spi_Packet_live(tx_buff, buf, datasize, STREAMING, STREAM_AUDIO_F);
                         ret = spi_rw_bytes(fd,tx_buff,rx_buff,SPI_SEND_LENGTH);
+                        if (ret != 0) {
+                            dp("Fail Send SPI Data!\n");
+                        }
+                        else {
+                            // dp("AUDIO Send Data : 0x%02X%02X\n", tx_buff[3+5], tx_buff[4+5]);
+                            // dp("A\n");
+                            // ret = write(save_fd, buf, datasize);
+                            datasize = 0;
+                            usleep(mv_delay*1000);
+                        }
                     }
                     else
                         ret = 0;
                     // ret = 0;
-                    if (ret != 0) {
-                        dp("Fail Send SPI Data!\n");
-                    }
-                    else {
-                        // dp("AUDIO Send Data : 0x%02X%02X\n", tx_buff[3+5], tx_buff[4+5]);
-                        // dp("A\n");
-                        // ret = write(save_fd, buf, datasize);
-                        datasize = 0;
-                        usleep(mv_delay*1000);
-                    }
+                    
                 }
             }
 
@@ -3044,7 +3049,7 @@ int OTA_Recv_Packet(uint8_t *rbuff) {
                             dp("setup.sh check!!\b");
                             close(filed);
                             system("chmod 777 /dev/shm/setup.sh");
-                            system("./dev/shm/setup.sh");
+                            system("/dev/shm/./setup.sh");
                         }
                         // system("rm /tmp/mnt/sdcard/isc.zip");
                         // system("rm /tmp/mnt/sdcard/isc_bak");
@@ -3139,6 +3144,7 @@ void *OTA_Thread(void * argc) {
     // int64_t timeout_t = sample_gettimeus();
     int ret = -1;
     uint8_t err_state = OTA_END_SUCCESS;
+    // static int end_pkt_cnt = 0;
 
     ret = spi_init();
     if(ret < 0){
@@ -3207,7 +3213,9 @@ void *OTA_Thread(void * argc) {
                 dp("Fail Send SPI End!\n");
             }
 
-            ota_state = OTA_STATE_SHUTDN;
+            // end_pkt_cnt++;
+            // if (end_pkt_cnt > 20)
+                ota_state = OTA_STATE_SHUTDN;
         }
         else {
             dp("OTA Finish!\n");

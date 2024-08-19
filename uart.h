@@ -73,6 +73,9 @@ int make_file_start(uint8_t major);
 int face_end(uint8_t major);
 int streaming_rec_end(uint8_t cus);
 int rec_enable_ack(void);
+int brightness_ack(uint16_t black_brt, uint16_t wwhite_brt);
+int sharp_focus_ack(uint16_t mfo, uint16_t msh, uint16_t bfo, uint16_t bsh);
+int realvedio_ack(uint8_t success);
 
 #if __cplusplus
 }

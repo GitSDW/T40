@@ -389,8 +389,6 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
     ack_minor = minor;
 
     switch(major) {
-    case DTEST_BACK:
-
     case REC_BACK:
         switch(minor) {
         case UREC_BELL:
@@ -400,12 +398,13 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/bell3.wav";
             else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/bell4.wav";
             dp("play : %s\n", effect_file);
-            ao_file_play_thread(effect_file);
+            // ao_file_play_thread(effect_file);
             // clip_cause_t.Major = CLIP_CAUSE_BOX;
             // clip_cause_t.Minor = CLIP_BOX_OCCUR;
             // bell_rec_state = REC_START;
             if (stream_state == 1) {
-                printf("Bell Stream : %d\n", stream_state);
+                dp("Bell Stream : %d\n", stream_state);
+                ao_file_play_thread(effect_file);
                 break;
             }
             
@@ -414,6 +413,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             // dp("av_off : %d\n", av_off_flag);
             if (av_off_flag) {
                 if (bl_state == BSS_WAIT) {
+                    dp("Bell Flag!!\n");
                     bell_flag = true;
                     bell_call_flag = false;
                     // bell_rec_state = REC_START;
@@ -422,6 +422,15 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             else if (bell_rerecode_flag) {
                 rec_enable_ack();
             }
+
+            if (!get_audio) {
+                get_audio = true;
+                // if (rbuff[index+9] > 0)     dn_g726_falg = false;
+                // else                        dn_g726_falg = true;
+                dn_g726_falg = true;
+            }
+
+            ao_file_play_thread(effect_file);
         break;
         case UREC_BELL_MUTE:
             // clip_cause_t.Major = CLIP_CAUSE_BOX;
@@ -451,6 +460,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 stream_state = 1;
                 rec_streaming_state = REC_START;
                 bell_stream_flag = true;
+                audio_spi_flag = true;
                 if (Rec_type == BELL_REC || Rec_type == BELL_REREC) {
                     bell_call_flag = true;
                 }
@@ -463,6 +473,13 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 stream_state = 1;
                 if (streaming_rec_state != REC_READY)
                     streaming_rec_state = REC_RECONNECT;
+            }
+
+            if (!get_audio) {
+                get_audio = true;
+                // if (rbuff[index+9] > 0)     dn_g726_falg = false;
+                // else                        dn_g726_falg = true;
+                dn_g726_falg = true;
             }
         break;
 
@@ -503,13 +520,15 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         break;
         
         case REC_DATE:
-            if (rbuff[index+9] > 0)     netwrok_busy = true;
-            else                        netwrok_busy = false;
-
-            // netwrok_busy = true;
+            if (!get_audio) {
+                get_audio = true;
+                // if (rbuff[index+9] > 0)     dn_g726_falg = false;
+                // else                        dn_g726_falg = true;
+                dn_g726_falg = true;
+            }
 
             snprintf(TimeStamp.date, 13, "%s\n", (char*)&rbuff[index+9+1]);
-            dp("1Set Busy : %d Date : %s\n", netwrok_busy, TimeStamp.date);
+            dp("1 dn_g726_falg: %d Date : %s\n", dn_g726_falg, TimeStamp.date);
             ack_len = 0;
             // ack_flag = true;
         break;
@@ -577,7 +596,9 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 rec_total += rec_time_e;
                 streaming_rec_state = REC_STOP;
                 rec_on = false;
+                ao_clear_flag = true;
                 ack_len = 0;
+                audio_spi_flag = false;
                 if (rec_total > 57000000) {
                     usleep(10*1000);
                     streaming_rec_end(CAUSE_MEM);
@@ -613,6 +634,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 // if (boot_mode == 0x01) {
                 //     Rec_type = STRM_REC;
                 // }
+                audio_spi_flag = true;
                 if (Rec_type == BELL_REC) {
                      bell_call_flag = true;
                 }
@@ -623,6 +645,14 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                     rec_cnt++;
                     dp("Bell Start : %d\n", rec_cnt);
                 }
+
+                if (!get_audio) {
+                    get_audio = true;
+                    // if (rbuff[index+9] > 0)     dn_g726_falg = false;
+                    // else                        dn_g726_falg = true;
+                    dn_g726_falg = true;
+                }
+
                 ack_len = 1;
                 ack_data[0] = 1;
                 // ack_flag = true;
@@ -651,11 +681,15 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             // ack_flag = true;
         break;
         case STREAM_DATE:
-            if (rbuff[index+9] > 0)     netwrok_busy = true;
-            else                        netwrok_busy = false;
+            if (!get_audio) {
+                get_audio = true;
+                // if (rbuff[index+9] > 0)     dn_g726_falg = false;
+                // else                        dn_g726_falg = true;
+                dn_g726_falg = true;
+            }
 
             snprintf(TimeStamp.date, 13, "%s\n", (char*)&rbuff[index+9+1]);
-            dp("Set Busy : %d Date : %s\n", netwrok_busy, TimeStamp.date);
+            dp("2 dn_g726_falg : %d Date : %s\n", dn_g726_falg, TimeStamp.date);
             ack_len = 0;
             // ack_flag = true;
         break;
@@ -996,6 +1030,60 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         break;
         }
     break;
+    case DTEST_BACK:
+        switch(minor) {
+        case TEST_BRIGTH:
+            dp("Bright Test!!\n");
+            brt_st_stat = 1;
+        break;
+        case TEST_DIMMING:
+            dp("Dimmint Test!!\n");
+            int index_D = rbuff[index+9];
+            if (index_D == 1) {
+                dim_st_stat = 1;     
+            }
+            else if (index_D == 0) {
+                dim_st_stat = 3;
+            }
+            else {
+                dp("[DIMMING]Invalid Index\n");
+            }
+        break;
+        case TEST_BLED:
+            dp("Bottom Led Test!!\n");
+            int index_B = rbuff[index+9];
+            if (index_B == 1) {
+                bled_st_stat  = 1;
+            }
+            else if (index_B == 0) {
+                bled_st_stat  = 3;
+            }
+            else {
+                dp("[BLT]Invalid Index\n");
+            }
+        break;
+        case TEST_SPK:
+            dp("Sound Test For 1KHz.\n");
+            amp_on();
+            Set_Vol(100,25,spk_vol_buf,spk_gain_buf);
+            effect_file = "/tmp/mnt/sdcard/effects/test6.wav";
+            dp("play : %s\n", effect_file);
+            ao_file_play_thread(effect_file);
+        break;
+        case TEST_MIC:
+            dp("MIC Test!!\n");
+            mic_st_stat  = 1;
+        break;
+        case TEST_VEDIO:
+            dp("Video Test!!\n");
+            video_st_stat = 1;
+        break;
+        case TEST_CLARITY:
+            dp("Sharpness & FocusTest!!\n");
+            shfo_st_stat = 1;
+        break;
+        }
+    break;
     default:
         return -1;
     break;        
@@ -1067,6 +1155,7 @@ int device_end(uint8_t major) {
     uart_send(fd_uart, uart_tx, 10);
 
     usleep(100*1000);
+    system("echo Program_End!! > /tmp/end_file");
 
     uart_send(fd_uart, uart_tx, 10);
     
@@ -1167,6 +1256,8 @@ int face_end(uint8_t major) {
     return 0;
 }
 
+bool memflag = false;
+
 int streaming_rec_end(uint8_t cus) {
     uint8_t *uart_tx;
 
@@ -1189,9 +1280,11 @@ int streaming_rec_end(uint8_t cus) {
     uart_tx[8] = 0x00;
     uart_tx[9] = 0x03;
 
-    uart_send(fd_uart, uart_tx, 10);
-    
-    dp("SRE\n");
+    if (!memflag) {
+        memflag = true;
+        uart_send(fd_uart, uart_tx, 10);
+        dp("SRE\n");
+    }
     
     free(uart_tx);
 
@@ -1250,6 +1343,106 @@ int rec_enable_ack(void) {
     return 0;
 }
 
+int brightness_ack(uint16_t black_brt, uint16_t wwhite_brt) {
+    uint8_t *uart_tx;
+
+    uart_tx = malloc(20);
+
+    memset(uart_tx, 0, 20);
+    uart_tx[0] = 0x02;
+    uart_tx[1] = 0x00;
+    uart_tx[2] = 0x03;
+    uart_tx[3] = 0;
+    uart_tx[4] = 4;
+    uart_tx[5] = 0x00;
+    uart_tx[6] = 0x00;
+    uart_tx[7] = 0x00;
+    uart_tx[8] = 0x00;
+
+    uart_tx[9]  = (black_brt>>8) & 0xFF;
+    uart_tx[10] = (black_brt) & 0xFF;
+
+    uart_tx[11] = (wwhite_brt>>8) & 0xFF;
+    uart_tx[12] = (wwhite_brt) & 0xFF;
+
+    uart_tx[13] = 0x03;
+
+    uart_send(fd_uart, uart_tx, 14);
+    
+    dp("Sharpness Focus Ack Packet\n");
+    
+    free(uart_tx);
+
+    return 0;
+}
+
+int sharp_focus_ack(uint16_t mfo, uint16_t msh, uint16_t bfo, uint16_t bsh) {
+    uint8_t *uart_tx;
+
+    uart_tx = malloc(20);
+
+    memset(uart_tx, 0, 20);
+    uart_tx[0] = 0x02;
+    uart_tx[1] = 0x00;
+    uart_tx[2] = 0x0A;
+    uart_tx[3] = 0;
+    uart_tx[4] = 8;
+    uart_tx[5] = 0x00;
+    uart_tx[6] = 0x00;
+    uart_tx[7] = 0x00;
+    uart_tx[8] = 0x00;
+
+    uart_tx[9]  = (mfo>>8) & 0xFF;
+    uart_tx[10] = (mfo) & 0xFF;
+
+    uart_tx[11] = (msh>>8) & 0xFF;
+    uart_tx[12] = (msh) & 0xFF;
+
+    uart_tx[13] = (bfo>>8) & 0xFF;
+    uart_tx[14] = (bfo) & 0xFF;
+
+    uart_tx[15] = (bsh>>8) & 0xFF;
+    uart_tx[16] = (bsh) & 0xFF;
+
+    uart_tx[17] = 0x03;
+
+    uart_send(fd_uart, uart_tx, 18);
+    
+    dp("Sharpness Focus Ack Packet\n");
+    
+    free(uart_tx);
+
+    return 0;
+}
+
+int realvedio_ack(uint8_t success) {
+    uint8_t *uart_tx;
+
+    uart_tx = malloc(20);
+
+    memset(uart_tx, 0, 20);
+    uart_tx[0] = 0x02;
+    uart_tx[1] = 0x00;
+    uart_tx[2] = 0x09;
+    uart_tx[3] = 0;
+    uart_tx[4] = 1;
+    uart_tx[5] = 0x00;
+    uart_tx[6] = 0x00;
+    uart_tx[7] = 0x00;
+    uart_tx[8] = 0x00;
+
+    uart_tx[9]  = success & 0xFF;
+    
+    uart_tx[10] = 0x03;
+
+    uart_send(fd_uart, uart_tx, 18);
+    
+    dp("Srealvedio_ack Packet\n");
+    
+    free(uart_tx);
+
+    return 0;
+}
 
 
 /*
@@ -1358,7 +1551,7 @@ void *uart_thread(void *argc)
                 len_p = res;
                 // dp("0UART RX: ");
                 // for (int i=0; i<res; i++) {
-                    // dp("0x%02x ", cmd_rx[i]);
+                //     dp("0x%02x ", cmd_rx[i]);
                 // }
                 // dp("\n");
                 // dp("len : %d\n", len);
@@ -1374,7 +1567,7 @@ void *uart_thread(void *argc)
                 }
                 // dp("1UART RX: ");
                 // for (int i=0; i<len_p; i++) {
-                    // dp("0x%02x ", cmd_rx[i]);
+                //     dp("0x%02x ", cmd_rx[i]);
                 // }
                 // dp("\n");
             }

@@ -805,7 +805,7 @@ int thumbnail_make(Thum_Data_t cont) {
 }
 
 
-int facecrop_make(Fdpd_Data_t cont) {
+/*int facecrop_make(Fdpd_Data_t cont) {
     int cx, cy, size, x, y;
     // 이미지 파일 경로
     std::string inputImagePath = "/dev/shm/face.jpg";
@@ -813,7 +813,12 @@ int facecrop_make(Fdpd_Data_t cont) {
 
     cx = (cont.ul_x + cont.br_x)/2;
     cy = (cont.ul_y + cont.br_y)/2;
-    size = cont.br_y - cont.ul_y;
+    
+    if ( (cont.br_y - cont.ul_y) > (cont.br_x - cont.ul_x) )
+        size = cont.br_y - cont.ul_y;
+    else
+        size = cont.br_x - cont.ul_x;    
+    
     size = size*2;
     if (size > 500) size = 500;
 
@@ -837,6 +842,8 @@ int facecrop_make(Fdpd_Data_t cont) {
     //     if (x+500 > 1920) x = 1920-500-1;
     //     if (y+500 > 1080) y = 1080-500-1;
     // }
+
+
 
     dp("cx:%d cy:%d size:%d x:%d y:%d\n", cx, cy, size, x, y);
     try {
@@ -862,9 +869,108 @@ int facecrop_make(Fdpd_Data_t cont) {
         cerr << "Face Crop Fail!" << endl;
         return -1;
     }
+}*/
+
+
+int facecrop_make(Fdpd_Data_t cont) {
+    // int cx, cy, size, x, y;
+    // 이미지 파일 경로
+    std::string inputImagePath = "/dev/shm/face.jpg";
+    std::string outputImagePath = "/dev/shm/face_crop" + std::to_string(face_crop_cnt) + ".jpg";
+
+    // cx = (cont.ul_x + cont.br_x)/2;
+    // cy = (cont.ul_y + cont.br_y)/2;
+    
+    // if ( (cont.br_y - cont.ul_y) > (cont.br_x - cont.ul_x) )
+    //     size = cont.br_y - cont.ul_y;
+    // else
+    //     size = cont.br_x - cont.ul_x;    
+    
+    // size = size*2;
+    // // if (size > 500) size = 500;
+
+    // x = cx - (size/2);
+    // y = cy - (size/2);
+
+    // if (x < 0) x = 0;
+    // if (y < 0) y = 0;
+
+    // if (x+size >= 1920) x = 1920-size-1;
+    // if (y+size >= 1080) y = 1080-size-1;
+    
+    // }
+    // else {
+    //     x = cx - 250;
+    //     y = cy - 250;
+
+    //     if (x < 0) x = 0;
+    //     if (y < 0) y = 0;
+
+    //     if (x+500 > 1920) x = 1920-500-1;
+    //     if (y+500 > 1080) y = 1080-500-1;
+    // }
+
+    float s1cx = cont.ul_x + (cont.br_x-cont.ul_x) / 2.0;
+    float s1cy = cont.ul_y + (cont.br_y-cont.ul_y) / 2.0;
+    float m = std::max((cont.br_x-cont.ul_x), (cont.br_y-cont.ul_y));
+
+
+    try {
+        // // 이미지 로드
+        // Mat image = imread(inputImagePath);
+
+        // // 입력 좌표와 크기로 이미지를 크롭
+        // Rect roi(x, y, size, size);
+        // Mat croppedImage = image(roi);
+
+        // resizeImage(croppedImage, 500, 500);
+
+       
+
+        // // 크롭된 이미지 저장
+        // imwrite(outputImagePath, croppedImage, compression_params);
+
+
+        // Define the source points
+        std::vector<cv::Point2f> src = {
+            cv::Point2f(s1cx - m, s1cy - m),
+            cv::Point2f(s1cx - m, s1cy + m),
+            cv::Point2f(s1cx + m, s1cy - m),
+            cv::Point2f(s1cx + m, s1cy + m)
+        };
+
+        // Define the destination points for 500x500 image
+        std::vector<cv::Point2f> dst = {
+            cv::Point2f(0, 0),
+            cv::Point2f(0, 500),
+            cv::Point2f(500, 0),
+            cv::Point2f(500, 500)
+        };
+
+        cv::Mat trans = cv::getAffineTransform(src.data(), dst.data());
+
+        Mat image = imread(inputImagePath);
+
+        cv::Mat wImg;
+        cv::warpAffine(image, wImg, trans, cv::Size(500, 500), cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar(0, 0, 0));
+
+        vector<int> compression_params;
+        compression_params.push_back(IMWRITE_JPEG_QUALITY);
+        compression_params.push_back(100);
+
+        imwrite(outputImagePath, wImg, compression_params);
+
+        // dp("cx:%d cy:%d size:%d x:%d y:%d\n", cx, cy, size, x, y);
+
+
+        face_crop_cnt++;
+        return 0;
+
+    } catch (Exception& e) {
+        cerr << "Face Crop Fail!" << endl;
+        return -1;
+    }
 }
-
-
 
 
 double calculateSharpness(const std::string& imagePath) {
@@ -928,6 +1034,8 @@ pair<double, double> calculateFocusAndSharpness(const string& imagePath) {
 
     return make_pair(focus, sharpness);
 }
+
+
 int focus_and_sharpness_cal(char *imgpath1, Focus_Sharpness2 *fs_t) {
     // 이미지 파일 경로
     std::string imagePath = imgpath1;
@@ -937,6 +1045,7 @@ int focus_and_sharpness_cal(char *imgpath1, Focus_Sharpness2 *fs_t) {
         pair<double, double> result = calculateFocusAndSharpness(imagePath);
 
         if (result.first >= 0 && result.second >= 0) {
+            cout << "path: " << imagePath<< endl;
             cout << "Focus: " << result.first << endl;
             cout << "Sharpness: " << result.second << endl;
         }

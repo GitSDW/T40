@@ -26,6 +26,7 @@ uint8_t SceneceSet(int getset, uint8_t val);
 int Set_Target_Bit(uint32_t targetbit);
 int Set_Target_Bit2(uint32_t targetbit);
 uint8_t bright_set(uint8_t bright);
+uint32_t Get_Brightness(void);
 
 
 void *get_video_stream_test_thread(void *args);

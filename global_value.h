@@ -12,15 +12,15 @@ extern "C" {
 
 #ifndef __PHILL_REQ__
 	#define MAJOR_VER	"0"
-	#define MINOR_VER	"8"
-	#define CAHR_VER	"m"
+	#define MINOR_VER	"a"
+	#define CAHR_VER	"d"
 #else
 	#define MAJOR_VER	"0"
-	#define MINOR_VER	"9"	
-	#define CAHR_VER	"s"
+	#define MINOR_VER	"z"	
+	#define CAHR_VER	"b"
 #endif
 
-#define DeBug 			1
+#define DeBug 			0
 
 #if DeBug
 	#define		dp(...)	printf(__VA_ARGS__)
@@ -98,10 +98,11 @@ int move_det_xs, move_det_ys, move_det_xe, move_det_ye;
 #define V_BUFF_SIZE 				256*1024
 #define MAX_REC_TIME 				65000000	// 60 * 1000 * 1000 usec
 #define ROAMING_PER_TIME 			35000000	// 60 * 1000 * 1000 usec
-#define THUMBNAIL_TIME 				1000000
-#define FACE_FIND_END_TIME 			5000000
+#define THUMBNAIL_TIME 				5000000
+#define FACE_FIND_END_TIME 			4800000
 #define BELL_START_TIME				8000000
 #define BELL_TIME_MIN				15000000
+#define TEMP_TIME_MIN				6000000
 #define CLIP_CLOSE_TIME  			1500000
 #define LIVE_MESSAGE_TIME  			10000000	// 10 * 1000 * 1000 usec
 
@@ -250,6 +251,7 @@ int64_t rec_time_s;
 int64_t rec_each_time[10];
 int64_t audio_timeout;
 int64_t mosaic_time[10];
+int64_t frame_ck;
 
 int stream_state;
 int thumbnail_state;
@@ -272,6 +274,14 @@ int bl_state;
 int spk_vol_buf;
 int spk_gain_buf;
 int send_retry;
+
+
+int brt_st_stat;
+int dim_st_stat;
+int bled_st_stat;
+int video_st_stat;
+int mic_st_stat;
+int shfo_st_stat;
 
 bool main_snap;
 bool box_snap;
@@ -317,6 +327,13 @@ bool mem_full_flag;
 bool av_off_flag;
 bool send_retry_flag;
 bool bell_rerecode_flag;
+bool audio_spi_flag;
+bool dn_g726_falg;
+bool get_audio;
+bool set_audio;
+bool bDimming;
+bool bBLed;
+bool ao_clear_flag;
 
 
 extern int bExit;
@@ -428,10 +445,12 @@ enum REC_TYPE {
 
 // #define __TEST_FAKE_VEDIO__
 // #define __STREAMING_CMD__
+// #define __TEST_CMD__
 // #define __BOX_ALGORITH__
 #define __G726__
 #define __FILE_SEND_CHANGE__
 #define __PRIVERCE_SIZE_UP__
+#define __FRAME_SYNC__
 
 #ifdef __TEST_FAKE_VEDIO__
 	int led_cnt;

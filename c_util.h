@@ -27,6 +27,7 @@ int file_name_get(SaveFile *filelist, int topbot);
 int check_delay_time(void);
 void set_delay_time(int64_t ti);
 int md5_get(char *filepath, char *md5_char);
+uint16_t doubleToUnsignedShort(double value);
 
 
 #if __cplusplus

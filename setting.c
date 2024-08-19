@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "setting.h"
+#include "global_value.h"
 
 const char *setting_file = "/tmp/mnt/sdcard/settings.dat";
 const char *setting_crc = "/tmp/mnt/sdcard/crc.dat";
@@ -50,7 +51,7 @@ void saveCRC(uint32_t crc, const char *filename) {
         fwrite(&crc, sizeof(uint32_t), 1, file);
         fclose(file);
     } else {
-        printf("Error: Unable to open file for writing.\n");
+        dp("Error: Unable to open file for writing.\n");
     }
 }
 
@@ -62,21 +63,21 @@ bool loadCRC(uint32_t *crc, const char *filename) {
         fclose(file);
         return true;
     } else {
-        printf("Error: Unable to open file for reading.\n");
+        dp("Error: Unable to open file for reading.\n");
         return false;
     }
 }
 
 // 설정 값을 파일에 저장
 void saveSettings(Settings *settings, const char *filename) {
-    printf("save! :%s\n", filename);
+    dp("save! :%s\n", filename);
     FILE *file = fopen(filename, "wb");
-    printf("open!\n");
+    dp("open!\n");
     if (file != NULL) {
         fwrite(settings, sizeof(Settings), 1, file);
         fclose(file);
     } else {
-        printf("Error: Unable to open file for writing.\n");
+        dp("Error: Unable to open file for writing.\n");
     }
 }
 
@@ -89,12 +90,12 @@ void loadSettings(Settings *settings, const char *filename) {
     } else {
         // 파일이 없는 경우 기본값으로 설정
         settings->spk_vol = 0;
-        printf("Warning: Unable to open file for reading. Loading default settings.\n");
+        dp("Warning: Unable to open file for reading. Loading default settings.\n");
     }
 }
 
 void Setting_Reinit(void) {
-    printf("Setting Reinit.\n");
+    dp("Setting Reinit.\n");
     // 기본 설정값 사용
     settings.spk_vol = 4;
     settings.bell_type = 0;
@@ -117,12 +118,12 @@ void Setting_Reinit(void) {
     settings.SF.bits.user_g = 0;
 
     // 파일에 설정값 저장
-    printf("Save Setting!\n");
+    dp("Save Setting!\n");
     saveSettings(&settings, setting_file);
     // 파일의 CRC 값 저장
-    printf("CRC Save!!\n");
+    dp("CRC Save!!\n");
     saveCRC(calculateCRC(fopen(setting_file, "rb")), setting_crc);
-    printf("ReInit settings saved.\n");
+    dp("ReInit settings saved.\n");
 }
 
 void Setting_Init(void) {
@@ -140,29 +141,29 @@ void Setting_Init(void) {
         if (loadCRC(&savedCRC, setting_crc)) {
             // 저장된 CRC 값과 계산된 CRC 값 비교
             if (savedCRC == crc) {
-                printf("File integrity check: OK\n");
+                dp("File integrity check: OK\n");
                 // 파일에서 설정값 불러오기
                 loadSettings(&settings, setting_file);
             } else {
-                printf("CRC check: FAILED\n");
+                dp("CRC check: FAILED\n");
                 // fclose(file);
                 Setting_Reinit();
             }
         } else {
-            printf("CRC file not found.\n");
+            dp("CRC file not found.\n");
             // fclose(file);
             Setting_Reinit();
         }
     } else {
-        printf("Settings file not found.\n");
+        dp("Settings file not found.\n");
         Setting_Reinit();
     }
 
     // 현재 설정값 출력
-    // printf("Current settings:\n");
-    // printf("Spk Vol: %d\n", settings.spk_vol);
-    // printf("Setting Flag : 0x%04X\n", settings.SF.bytes);
-    printf("Setting Load Success!!\n");
+    // dp("Current settings:\n");
+    // dp("Spk Vol: %d\n", settings.spk_vol);
+    // dp("Setting Flag : 0x%04X\n", settings.SF.bytes);
+    dp("Setting Load Success!!\n");
 }
 
 void Setting_Save(void) {
@@ -190,12 +191,12 @@ void Setting_Save(void) {
 //         if (loadCRC(&savedCRC, "/tmp/mnt/sdcard/crc.dat")) {
 //             // 저장된 CRC 값과 계산된 CRC 값 비교
 //             if (savedCRC == crc) {
-//                 printf("File integrity check: OK\n");
+//                 dp("File integrity check: OK\n");
 //                 // 파일에서 설정값 불러오기
 //                 loadSettings(&settings, filename);
 //             } else {
-//                 printf("File integrity check: FAILED\n");
-//                 printf("Settings file is corrupted.\n");
+//                 dp("File integrity check: FAILED\n");
+//                 dp("Settings file is corrupted.\n");
 //                 // 기본 설정값 사용
 //                 settings.height = 0;
 //                 settings.width = 0;
@@ -203,15 +204,15 @@ void Setting_Save(void) {
 //                 settings.exposure = 0;
 //             }
 //         } else {
-//             printf("CRC file not found.\n");
+//             dp("CRC file not found.\n");
 //             // 파일에 설정값 저장
 //             saveSettings(&settings, filename);
 //             // 계산된 CRC 값을 저장
 //             saveCRC(crc, "/tmp/mnt/sdcard/crc.dat");
-//             printf("Initial settings saved.\n");
+//             dp("Initial settings saved.\n");
 //         }
 //     } else {
-//         printf("Settings file not found.\n");
+//         dp("Settings file not found.\n");
 //         // 기본 설정값 사용
 //         settings.height = 0;
 //         settings.width = 0;
@@ -221,15 +222,15 @@ void Setting_Save(void) {
 //         saveSettings(&settings, filename);
 //         // 파일의 CRC 값 저장
 //         saveCRC(calculateCRC(fopen(filename, "rb")), "/tmp/mnt/sdcard/crc.dat");
-//         printf("Initial settings saved.\n");
+//         dp("Initial settings saved.\n");
 //     }
 
 //     // 현재 설정값 출력
-//     printf("Current settings:\n");
-//     printf("Height: %d\n", settings.height);
-//     printf("Width: %d\n", settings.width);
-//     printf("Length: %d\n", settings.length);
-//     printf("Exposure: %d\n", settings.exposure);
+//     dp("Current settings:\n");
+//     dp("Height: %d\n", settings.height);
+//     dp("Width: %d\n", settings.width);
+//     dp("Length: %d\n", settings.length);
+//     dp("Exposure: %d\n", settings.exposure);
 
 //     return 0;
 // }
