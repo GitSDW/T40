@@ -97,9 +97,9 @@ void loadSettings(Settings *settings, const char *filename) {
 void Setting_Reinit(void) {
     dp("Setting Reinit.\n");
     // 기본 설정값 사용
-    settings.spk_vol = 4;
+    settings.spk_vol = 2;
     settings.bell_type = 0;
-    settings.move_sensitivty = 2;
+    settings.move_sensitivty = 4;
     settings.move_ex_s_x = 0;
     settings.move_ex_s_y = 0;
     settings.move_ex_e_x = 0;
@@ -110,8 +110,8 @@ void Setting_Reinit(void) {
     }
 
     settings.SF.bits.led = 1;
-    settings.SF.bits.backlight = 1;
-    settings.SF.bits.flicker = 1;
+    settings.SF.bits.backlight = 0;
+    settings.SF.bits.flicker = 0;
     settings.SF.bits.move_ex = 0;
     settings.SF.bits.per_face = 1;
     settings.SF.bits.door_g = 0;

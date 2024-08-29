@@ -645,8 +645,6 @@ extern pthread_mutex_t buffMutex_ao;
 //     return 0;
 // }
 
-extern void amp_on(void);
-
 static int Recv_Spi_Packet_live(uint8_t *rbuff) {
     int index, len;
     uint8_t major, minor;
@@ -784,12 +782,6 @@ static int Recv_Spi_Packet_live(uint8_t *rbuff) {
     case STREAMING_BACK:
         switch(minor) {
         case STREAM_AUDIO_B:
-            // dp("audio dn len:%d\n", len);
-            // len = 882;
-            // if (!amp) {
-            //     amp = true;
-            //     amp_on();
-            // }
             if(len > 0){
                 pthread_mutex_lock(&buffMutex_ao);
                 if (AO_Cir_Buff.RIndex != AO_Cir_Buff.WIndex) {
@@ -1236,25 +1228,26 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                 // usleep(dly*1000);
             } while(ret != 0);
 
-            // if (sz_file[(scnt*2)]%SPI_SEND_LENGTH == 0) {
-            //     if (stream_state == 1) {
-            //         dp("SPI Faile : Streaming\n");
-            //         return 2;
-            //     }
-            //     else if (Ready_Busy_Check() > 0){
-            //         // dp("RB Checked!\n");
-            //     }
-            //     else{
-            //         dp("F:%d\n", wcnt);
-            //         return -1;
-            //     }
-            //     Make_Spi_Packet(tx_buff, read_buff, 0, REC, fs->minor);
-            //     tx_buff[8+V_SEND_RESERV] = wcnt&0xFF;
-            //     spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
-            //     dp("E2 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", 
-            //     tx_buff[0], tx_buff[1], tx_buff[2], tx_buff[3],
-            //     tx_buff[4], tx_buff[5], tx_buff[6], tx_buff[7], tx_buff[8]);
-            // }
+            if (sz_file[(scnt*2)]%SPI_SEND_LENGTH == 0) {
+                if (stream_state == 1) {
+                    dp("SPI Faile : Streaming\n");
+                    return 2;
+                }
+                else if (Ready_Busy_Check() > 0){
+                    // dp("RB Checked!\n");
+                }
+                else{
+                    dp("F:%d\n", wcnt);
+                    return -1;
+                }
+                dp("Data 0 Send!!\n");
+                Make_Spi_Packet(tx_buff, read_buff, 0, REC, fs->minor);
+                tx_buff[8+V_SEND_RESERV] = wcnt&0xFF;
+                spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
+                // dp("E2 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", 
+                // tx_buff[0], tx_buff[1], tx_buff[2], tx_buff[3],
+                // tx_buff[4], tx_buff[5], tx_buff[6], tx_buff[7], tx_buff[8]);
+            }
             
             len = 9;
             read_buff[0] = fs->minor;
@@ -1338,25 +1331,26 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                 // usleep(dly*1000);
             } while(ret != 0);
 
-            // if (sz_file[(scnt*2)+1]%SPI_SEND_LENGTH == 0) {
-            //     if (stream_state == 1) {
-            //         dp("SPI Faile : Streaming\n");
-            //         return 2;
-            //     }
-            //     else if (Ready_Busy_Check() > 0){
-            //         // dp("RB Checked!\n");
-            //     }
-            //     else{
-            //         dp("F:%d\n", wcnt);
-            //         return -1;
-            //     }
-            //     Make_Spi_Packet(tx_buff, read_buff, 0, REC, fs->minor+1);
-            //     tx_buff[8+V_SEND_RESERV] = wcnt&0xFF;
-            //     spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
-            //     dp("E2 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", 
-            //     tx_buff[0], tx_buff[1], tx_buff[2], tx_buff[3],
-            //     tx_buff[4], tx_buff[5], tx_buff[6], tx_buff[7], tx_buff[8]);
-            // }
+            if (sz_file[(scnt*2)+1]%SPI_SEND_LENGTH == 0) {
+                if (stream_state == 1) {
+                    dp("SPI Faile : Streaming\n");
+                    return 2;
+                }
+                else if (Ready_Busy_Check() > 0){
+                    // dp("RB Checked!\n");
+                }
+                else{
+                    dp("F:%d\n", wcnt);
+                    return -1;
+                }
+                dp("Data 0 Send!!\n");
+                Make_Spi_Packet(tx_buff, read_buff, 0, REC, fs->minor+1);
+                tx_buff[8+V_SEND_RESERV] = wcnt&0xFF;
+                spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
+                // dp("E2 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", 
+                // tx_buff[0], tx_buff[1], tx_buff[2], tx_buff[3],
+                // tx_buff[4], tx_buff[5], tx_buff[6], tx_buff[7], tx_buff[8]);
+            }
             
             len = 9;
             read_buff[0] = fs->minor;
@@ -1527,6 +1521,27 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                 wcnt++;
                 // usleep(dly*1000);
             } while(ret != 0);
+
+            if (sz_file[(scnt*2)]%SPI_SEND_LENGTH == 0) {
+                if (stream_state == 1) {
+                    dp("SPI Faile : Streaming\n");
+                    return 2;
+                }
+                else if (Ready_Busy_Check() > 0){
+                    // dp("RB Checked!\n");
+                }
+                else{
+                    dp("F:%d\n", wcnt);
+                    return -1;
+                }
+                dp("Data 0 Send!!\n");
+                Make_Spi_Packet(tx_buff, read_buff, 0, REC, fs->minor);
+                tx_buff[8+V_SEND_RESERV] = wcnt&0xFF;
+                spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
+                // dp("E2 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", 
+                // tx_buff[0], tx_buff[1], tx_buff[2], tx_buff[3],
+                // tx_buff[4], tx_buff[5], tx_buff[6], tx_buff[7], tx_buff[8]);
+            }
             
             len = 9;
             read_buff[0] = fs->minor;
@@ -1582,7 +1597,27 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                 // usleep(dly*1000);
             } while(ret != 0);
 
-            
+            if (sz_file[(scnt*2)+1]%SPI_SEND_LENGTH == 0) {
+                if (stream_state == 1) {
+                    dp("SPI Faile : Streaming\n");
+                    return 2;
+                }
+                else if (Ready_Busy_Check() > 0){
+                    // dp("RB Checked!\n");
+                }
+                else{
+                    dp("F:%d\n", wcnt);
+                    return -1;
+                }
+                dp("Data 0 Send!!\n");
+                Make_Spi_Packet(tx_buff, read_buff, 0, REC, fs->minor+1);
+                tx_buff[8+V_SEND_RESERV] = wcnt&0xFF;
+                spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
+                // dp("E2 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", 
+                // tx_buff[0], tx_buff[1], tx_buff[2], tx_buff[3],
+                // tx_buff[4], tx_buff[5], tx_buff[6], tx_buff[7], tx_buff[8]);
+            }
+
             len = 9;
             read_buff[0] = fs->minor;
             read_buff[1] = (sz_file[(scnt*2)+1]>>24)&0xFF;
@@ -2489,6 +2524,10 @@ void *spi_send_stream (void *arg)
             // if (VM_Frame_Buff.cnt > 7) stream_start1 = true;
         // }
         // else if (VM_Frame_Buff.cnt > 0) {
+        if (!bLive && stream_state == 1) {
+            bLive = true;
+        }
+        
         if (VM_Frame_Buff.cnt > 0) {
             
             if (VM_Frame_Buff.cnt >= 14) {

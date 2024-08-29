@@ -186,6 +186,9 @@ int global_value_init(void) {
 	set_audio = false;
 	bBLed = false;
 	ao_clear_flag = false;
+	bLive = false;
+	bLiveFile = false;
+	rebell = false;
 
 	for(i=0;i<10;i++){
 		fdpd_data[i].flag = false;
@@ -216,7 +219,7 @@ int gpio_active_low(unsigned int pin) {
 		return -1;
 	}
 
-	ret = gpio_set_dir(pin, GPIO_OUTPUT, GPIO_LOW);
+	ret = gpio_set_dir(pin, GPIO_OUTPUT, GPIO_HIGH);
 	if(ret < 0){
 		dp("Fail set dir GPIO : %d\n",pin);
 		return -1;
@@ -241,7 +244,7 @@ void *unused_pin_low(void *argc) {
 				k == PORTC+0 || k == PORTC+1 || k == PORTC+2 || k == PORTC+3 || k == PORTC+4 || k == PORTC+5 ||
 				k == PORTC+12 || k == PORTC+27 || k == PORTC+28 || k == PORTC+29 || k == PORTC+30 ||
 				// Port D
-				k == PORTD+6 || k == PORTD+22 || k >= PORTD+27
+				k == PORTD+6 || k == PORTD+21 || k == PORTD+22 || k >= PORTD+27
 			) 
 			{
 				continue;
@@ -335,10 +338,9 @@ int gpio_init(void) {
 	// 	return -1;
 	// }
 
-	// ret = gpio_set_dir(PORTB+31, GPIO_OUTPUT, GPIO_HIGH);
-	// // ret = gpio_set_dir(PORTB+31, GPIO_OUTPUT, GPIO_LOW);
+	// ret = gpio_set_dir(PORTB+31, GPIO_OUTPUT, GPIO_LOW);
 	// if(ret < 0){
-	// 	dp("Fail get dir GPIO : %d\n", PORTB+17);
+	// 	dp("Fail get dir GPIO : %d\n", PORTB+31);
 	// 	return -1;
 	// }
 
@@ -358,18 +360,38 @@ int gpio_init(void) {
 	return 0;
 }
 
+bool en_ck = false;
+
 void amp_on(void) {
 	int ret = -1;
 
-	ret = gpio_set_val(PORTD+21, 1);
-	if(ret < 0){
-		dp("Fail set Value GPIO : %d\n", PORTD+21);
+	if (!en_ck) {
+		ret = gpio_set_val(PORTD+21, 1);
+		if(ret < 0){
+			dp("Fail set Value GPIO : %d\n", PORTD+21);
+		}
+
+		// Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
+		en_ck = true;
+		dp("Set AMP On!\n");
 	}
-
-	// Set_Vol(100,25,spk_vol_buf,spk_gain_buf);
-
-	dp("Set AMP On!\n");
 }
+
+void amp_off(void) {
+	int ret = -1;
+
+	if (en_ck) {
+		ret = gpio_set_val(PORTD+21, 0);
+		if(ret < 0){
+			dp("Fail set Value GPIO : %d\n", PORTD+21);
+		}
+
+		// Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
+		en_ck = false;
+		dp("Set AMP On!\n");
+	}
+}
+
 
 int gpio_deinit(void) {
 	int ret = 0;
@@ -459,14 +481,16 @@ int gpio_LED_dimming (int onoff) {
 		// system("echo 0 > /sys/class/pwm/pwmchip0/pwm6/enable");
 	}
 	else {
-		led_duty = 90;
+		led_duty = 20;
+		system("echo normal > /sys/class/pwm/pwmchip0/pwm6/polarity");
+		system("echo 0 > /sys/class/pwm/pwmchip0/pwm6/enable");
 		system("echo 100000 > /sys/class/pwm/pwmchip0/pwm6/period");
 		memset(file_sep, 0, 100);
 		sprintf(file_sep, "echo %d > /sys/class/pwm/pwmchip0/pwm6/duty_cycle", 1000*(led_duty));
-		// dp(file_sep);
-		// dp("\n");
+		dp(file_sep);
+		dp("\n");
 		system(file_sep);
-		system("echo 0 > /sys/class/pwm/pwmchip0/pwm6/enable");
+		// system("echo 0 > /sys/class/pwm/pwmchip0/pwm6/enable");
 		system("echo 1 > /sys/class/pwm/pwmchip0/pwm6/enable");
 		
 		dimming = true;
@@ -503,6 +527,8 @@ int gpio_LED_Set (int onoff) {
 	}
 
 	if (onoff == 1) {
+		
+
 		led_duty = 99;
 		system("echo inversed > /sys/class/pwm/pwmchip0/pwm6/polarity");
 		system("echo 0 > /sys/class/pwm/pwmchip0/pwm6/enable");
@@ -542,6 +568,14 @@ int gpio_LED_Set (int onoff) {
 		light_on = false;
 	}
 	else {
+		
+		ret = gpio_set_val(PORTD+6, 1);
+		if(ret < 0){
+			dp("Fail set Value GPIO : %d\n", PORTD+6);
+			return -1;
+		}
+
+		system("echo 0 > /sys/class/pwm/pwmchip0/pwm6/enable");
 		led_duty = 0;
 		system("echo inversed > /sys/class/pwm/pwmchip0/pwm6/polarity");
 		system("echo 1000000 > /sys/class/pwm/pwmchip0/pwm6/period");
@@ -550,13 +584,11 @@ int gpio_LED_Set (int onoff) {
 		dp(file_sep);
 		dp("\n");
 		system(file_sep);
-		// system("echo 0 > /sys/class/pwm/pwmchip0/pwm6/enable");
+		
 		system("echo 1 > /sys/class/pwm/pwmchip0/pwm6/enable");
-		ret = gpio_set_val(PORTD+6, 1);
-		if(ret < 0){
-			dp("Fail set Value GPIO : %d\n", PORTD+6);
-			return -1;
-		}
+		
+
+
 
 		light_on = false;
 	}
@@ -986,7 +1018,9 @@ int main(int argc, char **argv) {
     // bool camera_test_flag = false;
     // bool adc_flag = false;
     // int gval = 0;
-    // bool ao_init = false;
+    // #ifdef __TEST_CMD__
+    // 	bool ao_init = false;
+    // #endif
     int64_t realvedio_time = 0;
     bool realvedio_flag = false;
 
@@ -1028,7 +1062,7 @@ int main(int argc, char **argv) {
 		// dp("Move Ex : %d %d %d %d\n", move_det_xs, move_det_ys, move_det_xe, move_det_ye);
     }
 
-    Set_Vol(100,25,spk_vol_buf,spk_gain_buf);
+    Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
 
 
 
@@ -1110,14 +1144,10 @@ int main(int argc, char **argv) {
 			
 			if (cmd == 1) {
 				int ao_vol, ao_gain, ao_index;
+				int play_cnt = 1;
 				char* effect_file = NULL;
 
 				dp("cmd 1  Sound Test.\n");
-
-				if (!ao_init) {
-					ao_init = true;
-					amp_on();
-				}
 
 				dp("Test Audio Out Volume(0~120) : ");
 				ao_vol = scanf_index();
@@ -1131,7 +1161,7 @@ int main(int argc, char **argv) {
 					dp("Gain Set Fail!!\n");
 					continue;
 				}
-				Set_Vol(100,25,ao_vol,ao_gain);
+				
 
 				dp("Test Audio Number(1~5) : ");
 				ao_index = scanf_index();
@@ -1140,13 +1170,20 @@ int main(int argc, char **argv) {
 					continue;
 				}
 
+				dp("Number og Repeat Play : ");
+				play_cnt = scanf_index();
+				if (play_cnt < 1) play_cnt = 1;
+
 				if (ao_index == 1) effect_file = "/tmp/mnt/sdcard/effects/test1.wav";
 	            else if (ao_index == 2) effect_file = "/tmp/mnt/sdcard/effects/test2.wav";
 	            else if (ao_index == 3) effect_file = "/tmp/mnt/sdcard/effects/test3.wav";
 	            else if (ao_index == 4) effect_file = "/tmp/mnt/sdcard/effects/test4.wav";
 	            else if (ao_index == 5) effect_file = "/tmp/mnt/sdcard/effects/test5.wav";
 	            dp("play : %s\n", effect_file);
-	            ao_file_play_thread(effect_file);
+	            for (int a=0; a<play_cnt; a++) {
+	            	Set_Vol(90,30,ao_vol,ao_gain);
+	            	ao_file_play_thread(effect_file);
+	            }
 	            dp("Audio Out Test End!!\n");
 				continue;
 			}
@@ -1235,12 +1272,7 @@ int main(int argc, char **argv) {
 
 				dp("cmd 7  Sound Test For 1KHz.\n");
 
-				if (!ao_init) {
-					ao_init = true;
-					amp_on();
-				}
-
-				Set_Vol(100,25,spk_vol_buf,spk_gain_buf);
+				Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
 
 				effect_file = "/tmp/mnt/sdcard/effects/test6.wav";
 	            
@@ -1252,7 +1284,6 @@ int main(int argc, char **argv) {
 			else if (cmd == 8) {
 				static bool get_record = false;
 				dp("cmd 8  MIC Test!!\n");
-				amp_on();
 				IMP_Audio_Test_InOut_Thread();
 			}
 			else if (cmd == 9) {
@@ -1471,7 +1502,6 @@ int main(int argc, char **argv) {
 			if (mic_st_stat > 0) {
 				dp("cmd 8  MIC Test!!\n");
 				if (mic_st_stat == 1) {
-					amp_on();
 					IMP_Audio_Test_InOut_Thread();
 					mic_st_stat = 0;
 				}
@@ -1681,6 +1711,8 @@ int clip_total(void) {
 	
 	int64_t end_time = 0, total_time = 0;
 	int64_t start_time2 = 0, end_time2 = 0, total_time2 = 0;
+	int64_t start_time3 = 0, total_time3 = 0;
+	int64_t forced_live = 0;
 	// char file_path[128] = {0};
 	char file_sep[100] = {0};
 	int file_each_cnt[10] = {0};
@@ -1693,10 +1725,17 @@ int clip_total(void) {
 
 	pthread_t tid_ao, tid_ai;
     pthread_t tid_stream, tid_snap, tid_move, tim_osd, tid_fdpd;
-    pthread_t tid_uart;//, tid_live;
+    pthread_t tid_uart, tid_live;
     pthread_t tid_vmod;
+    pthread_t tid_dimming;
 
     int64_t make_start = 0;
+
+    int64_t dimming_e = 0;
+    int dimming_val = 40;
+    bool dimming_up = true;
+    bool amp_f = false;
+    bool redimming = false;
 
 
     // Init_Audio_Out();
@@ -1771,11 +1810,11 @@ int clip_total(void) {
 		return -1;
 	}
 
-	// ret = pthread_create(&tid_live, NULL, device_live_thread, NULL);
-	// if(ret != 0) {
-		// IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create device_live_thread failed\n", __func__);
-		// return -1;
-	// }
+	ret = pthread_create(&tid_live, NULL, device_live_thread, NULL);
+	if(ret != 0) {
+		IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create device_live_thread failed\n", __func__);
+		return -1;
+	}
 
 	// ret = pthread_create(&tid_ao, NULL, IMP_Audio_Play_Thread, NULL);
 	// if(ret != 0) {
@@ -1789,16 +1828,23 @@ int clip_total(void) {
 		return -1;
 	}
 
-	ret = pthread_create(&tid_vmod, NULL, sample_soft_photosensitive_ctrl, NULL);
-	if(ret != 0) {
-		IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create sample_soft_photosensitive_ctrl failed\n", __func__);
-		return -1;
+	if (settings.SF.bits.backlight) {
+		ret = pthread_create(&tid_vmod, NULL, sample_soft_photosensitive_ctrl, NULL);
+		if(ret != 0) {
+			IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create sample_soft_photosensitive_ctrl failed\n", __func__);
+			return -1;
+		}
 	}
 
 	// usleep(100*1000);
 
 	
 	do {
+		if (!amp_f && stream_state == 1) {
+			amp_f = true;
+			amp_on();
+		}
+
 		if (get_audio && !set_audio) {
 			set_audio = true;
 			if (dn_g726_falg) {
@@ -1947,8 +1993,7 @@ int clip_total(void) {
 									}
 								}
 								#ifdef __PHILL_REQ__
-									amp_on();
-									Set_Vol(100,25,spk_vol_buf,spk_gain_buf);
+									Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
 					            	ao_file_play_thread("/tmp/mnt/sdcard/effects/bell4.wav");
 					            #endif
 							}
@@ -1958,6 +2003,7 @@ int clip_total(void) {
 								uint8_t snap_minor = 0;
 								if (face_crop_cnt > 0) snap_minor = REC_FACESHOT;
 								else snap_minor = REC_SNAPSHOT;
+								bLiveFile = true;
 								ret = spi_send_file_face(snap_minor, face_crop_cnt);
 								if (ret < 0) {
 									int secss = 0;
@@ -1981,13 +2027,12 @@ int clip_total(void) {
 										}
 									}
 								}
-								
+								bLiveFile = false;
 
 								if (face_crop_cnt > 0) {
 									// system("cp /dev/shm/face*.jpg /tmp/mnt/sdcard");
 									#ifdef __PHILL_REQ__
-										amp_on();
-										Set_Vol(100,25,spk_vol_buf,spk_gain_buf);
+										Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
 						            	ao_file_play_thread("/tmp/mnt/sdcard/effects/bell1.wav");
 						            #endif
 								}
@@ -2079,13 +2124,14 @@ int clip_total(void) {
 					bell_flag = false;
 					Rec_type = BELL_REC;
 					bl_state = BSS_START;
-					bell_snap_m = true;
-					bell_snap_b = true;
-					
+					// if (fr_state != FR_END) {
+						bell_snap_m = true;
+						bell_snap_b = true;
+					// }
 				}
 
 			#ifdef __FRAME_SYNC__
-				if ((frame_ck > 1200) && (clip_rec_state == REC_ING)) {	// 60Sec Time Over -> Clip Stop
+				if (((frame_ck > 1180) || (total_time > MAX_CLIP_TIME)) && (clip_rec_state == REC_ING)) {	// 60Sec Time Over -> Clip Stop
 			#else
 				if ((total_time > MAX_REC_TIME) && (clip_rec_state == REC_ING)) {	// 60Sec Time Over -> Clip Stop
 			#endif
@@ -2106,7 +2152,7 @@ int clip_total(void) {
 				
 			#ifndef __PHILL_REQ__
 				if ((file_cnt == 0) && (total_time > BELL_START_TIME+1000000) && (clip_rec_state < REC_STOP)) {	// Face or Motion Not Found -> Clip Stop
-					if ((person_cnt == 0) && (main_motion_detect == 0)) {
+					if ((face_cnt == 0) && (person_cnt == 0) && (main_motion_detect == 0)) {
 						if ((sample_gettimeus() - end_time) > CLIP_CLOSE_TIME) {
 							dp("CLIP END:Move End!\n");
 							// rec_stop = true;
@@ -2140,14 +2186,51 @@ int clip_total(void) {
 			}
 			else if (Rec_type == BELL_REC) {
 				total_time2 = sample_gettimeus() - start_time2;
+				if (start_time3 != 0) {
+					total_time3 = sample_gettimeus() - start_time3;
+				}
 				if (total_time2%10000000 == 0){
 					dp("Rec T:%d time : %lld\n", Rec_type, total_time2);
 				}
 
-				if (!bell_snap_m && !bell_snap_b && bl_state < BSS_SEND) {
+				if (dimming) {
+					dimming_e =  sample_gettimeus() - dimming_s;
+					if ((dimming_e > 100000) & dimming_up) {
+						dimming_s = sample_gettimeus();
+						if (dimming_val > 15)
+							dimming_val -= 2;
+						else
+							dimming_val -= 1;
+						// dimming_val -= 2;
+						LED_dimming (dimming_val);
+						if (dimming_val <= 5) {
+							dp("tup\n");
+							dimming_up = false;
+						}
+						// dp("dimming val : %d %lld\n", dimming_val, dimming_e);
+					}
+					else if ((dimming_e > 100000) & !dimming_up) {
+						dimming_s = sample_gettimeus();
+						if (dimming_val > 15)
+							dimming_val += 2;
+						else
+							dimming_val += 1;
+						// dimming_val += 2;
+						LED_dimming (dimming_val);
+						if (dimming_val >= 30) {
+							dp("tdn\n");
+							dimming_up = true;
+						}
+						// dp("dimming val : %d %lld\n", dimming_val, dimming_e);
+					}
+				}
+
+				if ( (!bell_snap_m && !bell_snap_b) && bl_state < BSS_SEND ) {
 					bl_state = BSS_SEND;
 					start_time2 = end_time2 = sample_gettimeus();
 					bell_rec_state = REC_START;
+
+					
 				}
 
 				if (bl_state == BSS_SEND) {
@@ -2162,40 +2245,45 @@ int clip_total(void) {
 
 					av_off_flag = false;
 
-					if (Ready_Busy_Check() > 0){
-						dp("Bell/Temp Dual JPG Send!\n");
-						// memset(file_path, 0, 64);
-						// sprintf(file_path, "/dev/shm/bell_m.jpg");
-						// memset(file_sep, 0, 64);
-						// sprintf(file_sep, "/dev/shm/bell_b.jpg");
-						box_resize("/dev/shm/bell_b.jpg", "dev/shm/bell_b_r.jpg");
-						ret = spi_send_file_dual(major_buf1, major_buf2, "/dev/shm/bell_m.jpg", "dev/shm/bell_b_r.jpg");
-						if (ret < 0) {
-							int secss = 0;
-							retry_time = sample_gettimeus();
-							while (1) {
-								if (stream_state == 1) {
-									dp("streaming!!\n");
-									break;
-								}
-								if (send_retry_flag) {
-									spi_send_file_dual(major_buf1, major_buf2, "/dev/shm/bell_m.jpg", "dev/shm/bell_b_r.jpg");
-									break;
-								}
-								if ((sample_gettimeus() - retry_time)%1000000 == 0){
-									secss++;
-									dp("sec:%d\n", secss);
-								}
-								if ((sample_gettimeus() - retry_time) > 15000000) {
-									dp("Motion Cap Faile!\n");
-									break;
+					// if (fr_state != FR_END) {
+					bLiveFile = true;
+						if (Ready_Busy_Check() > 0){
+							dp("Bell/Temp Dual JPG Send!\n");
+							// memset(file_path, 0, 64);
+							// sprintf(file_path, "/dev/shm/bell_m.jpg");
+							// memset(file_sep, 0, 64);
+							// sprintf(file_sep, "/dev/shm/bell_b.jpg");
+							// box_resize("/dev/shm/bell_b.jpg", "dev/shm/bell_b_r.jpg");
+							// ret = spi_send_file_dual(major_buf1, major_buf2, "/dev/shm/bell_m.jpg", "dev/shm/bell_b_r.jpg");
+							ret = spi_send_file_dual(major_buf1, major_buf2, "/dev/shm/bell_m.jpg", "/dev/shm/bell_b.jpg");
+							if (ret < 0) {
+								int secss = 0;
+								retry_time = sample_gettimeus();
+								while (1) {
+									if (stream_state == 1) {
+										dp("streaming!!\n");
+										break;
+									}
+									if (send_retry_flag) {
+										spi_send_file_dual(major_buf1, major_buf2, "/dev/shm/bell_m.jpg", "/dev/shm/bell_b.jpg");
+										break;
+									}
+									if ((sample_gettimeus() - retry_time)%1000000 == 0){
+										secss++;
+										dp("sec:%d\n", secss);
+									}
+									if ((sample_gettimeus() - retry_time) > 15000000) {
+										dp("Motion Cap Faile!\n");
+										break;
+									}
 								}
 							}
 						}
-					}
-					else {
-						dp("Fail to Dual Bell JPG Send.\n");
-					}
+						else {
+							dp("Fail to Dual Bell JPG Send.\n");
+						}
+					// }
+					bLiveFile = false;
 
 					if (!face_send_flag) {
 						face_send_flag = true;
@@ -2205,10 +2293,80 @@ int clip_total(void) {
 					stream_state = 1;
 					// data_sel = 4;
 
+					gpio_LED_dimming(2);
+					dimming_val = 20;
+
 					bl_state = BSS_END;
 				}
 
 				if (bl_state == BSS_END) {
+					
+					if (total_time2 > BELL_TIME_MIN && dimming && !redimming) {
+						dimming = false;
+						gpio_LED_dimming(1);
+						if (bellend_sound == 1)
+							ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
+					}
+
+					if (total_time2 > BELL_TIME_MIN && rebell) {
+						rebell = false;
+						bell_snap_m = true;
+						bell_snap_b = true;
+						stream_state = 0;
+
+						start_time3 = sample_gettimeus();
+
+						while(!bell_snap_m && !bell_snap_b);
+
+						bLiveFile = true;
+						if (Ready_Busy_Check() > 0){
+							dp("Bell/Temp Dual JPG ReSend!\n");
+							// memset(file_path, 0, 64);
+							// sprintf(file_path, "/dev/shm/bell_m.jpg");
+							// memset(file_sep, 0, 64);
+							// sprintf(file_sep, "/dev/shm/bell_b.jpg");
+							// box_resize("/dev/shm/bell_b.jpg", "dev/shm/bell_b_r.jpg");
+							// ret = spi_send_file_dual(major_buf1, major_buf2, "/dev/shm/bell_m.jpg", "dev/shm/bell_b_r.jpg");
+							ret = spi_send_file_dual(major_buf1, major_buf2, "/dev/shm/bell_m.jpg", "/dev/shm/bell_b.jpg");
+							if (ret < 0) {
+								int secss = 0;
+								retry_time = sample_gettimeus();
+								while (1) {
+									if (stream_state == 1) {
+										dp("streaming!!\n");
+										break;
+									}
+									if (send_retry_flag) {
+										spi_send_file_dual(major_buf1, major_buf2, "/dev/shm/bell_m.jpg", "/dev/shm/bell_b.jpg");
+										break;
+									}
+									if ((sample_gettimeus() - retry_time)%1000000 == 0){
+										secss++;
+										dp("sec:%d\n", secss);
+									}
+									if ((sample_gettimeus() - retry_time) > 15000000) {
+										dp("Motion Cap Faile!\n");
+										break;
+									}
+								}
+							}
+						}
+						else {
+							dp("Fail to Dual Bell JPG Send.\n");
+						}
+
+						gpio_LED_dimming(2);
+						dimming_val = 20;
+						redimming = true;
+
+						bLiveFile = false;
+
+						stream_state = 1;
+					}
+					else {
+						rebell = false;
+					}
+
 					if (rec_on) {
 						bell_rec_state = REC_STOP;
 						bell_rerecode_flag = true;
@@ -2216,7 +2374,7 @@ int clip_total(void) {
 						Rec_type = STRM_REC;
 					}
 
-					if ((rec_streaming_state == REC_STOP) && (total_time2 > BELL_TIME_MIN)) {
+					if ((rec_streaming_state == REC_STOP) && (total_time2 > 5000000)) {
 						bell_rerecode_flag = true;
 						rec_streaming_state = REC_MP4MAKE;
 						dp("BELL END:Steaming End! %lld\n", total_time);
@@ -2225,16 +2383,45 @@ int clip_total(void) {
 							Rec_type = MAKE_FILE;
 							// box_snap = true;
 						}
+						if (bellend_sound == 2)  {
+			                ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
+			                bellend_sound++;
+						}
+						else {
+							dp("bellend : %d\n", bellend_sound);
+						}
+						continue;
 					}
 
 					if ((total_time2 > MAX_REC_TIME) && (bell_rec_state == REC_ING) && (bell_rec_state < REC_STOP)) {	// 60Sec Time Over -> Clip Stop
 						bell_rerecode_flag = true;
 						// rec_stop = true;
-						dp("BELL END:Time Over! %lld\n", total_time);
+						dp("BELL END:Time Over! %lld\n", total_time2);
 						bell_rec_state = REC_STOP;
-						if (bell_stream_flag == false){
-							Rec_type = MAKE_FILE;
+						// dp("0:%d t3:%lld s3:%lld\n", bell_stream_flag, total_time3, start_time3);
+						if (bell_stream_flag == false) {
+							if (start_time3 != 0) {
+								if (total_time3 > BELL_TIME_MIN) {
+									// dp("1 t3:%lld s3:%lld\n", total_time3, start_time3);
+									Rec_type = MAKE_FILE;
+								}
+								else {
+									// dp("2 t3:%lld s3:%lld\n", total_time3, start_time3);
+								}
+							}
+							else {
+								// dp("3 t3:%lld s3:%lld\n", total_time3, start_time3);
+								Rec_type = MAKE_FILE;
+							}
 							// box_snap = true;
+						}
+
+						if (bellend_sound == 2)  {
+			                ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
+			                bellend_sound++;
+						}
+						else {
+							dp("bellend : %d\n", bellend_sound);
 						}
 					}
 
@@ -2251,23 +2438,42 @@ int clip_total(void) {
 					if ((total_time2 > BELL_TIME_MIN) && (person_cnt == 0) && (main_motion_detect == 0) && (bell_rec_state < REC_STOP)) {
 						if ((sample_gettimeus() - end_time2) > CLIP_CLOSE_TIME) {
 							bell_rerecode_flag = true;
-							dp("BELL END:Move End! %lld\n", total_time);
+							dp("BELL END:Move End! %lld\n", total_time2);
 							bell_rec_state = REC_STOP;
 							if (bell_stream_flag == false) {
 								Rec_type = MAKE_FILE;
 								// box_snap = true;
 							}
+
+							if (bellend_sound == 2)  {
+				                ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
+				                bellend_sound++;
+							}
+							// else {
+							// 	dp("bellend : %d\n", bellend_sound);
+							// }
 						}
 					}
 					else {
 						end_time2 = sample_gettimeus();
 					}
 
-					if ((bell_rec_state == REC_STOP) && (bell_stream_flag == false)) {
-						stream_state = 0;
-						bell_rerecode_flag = true;
-						Rec_type = MAKE_FILE;
-						// box_snap = true;
+					if (bell_rec_state == REC_STOP) {
+						if (start_time3 != 0) {
+							if (total_time3 > BELL_TIME_MIN) {
+								dp("4 t3:%lld s3:%lld\n", total_time3, start_time3);
+								stream_state = 0;
+								bell_rerecode_flag = true;
+								Rec_type = MAKE_FILE;
+							}
+							
+						}
+						else if (bell_stream_flag == false) {
+							dp("5 t3:%lld s3:%lld\n", total_time3, start_time3);
+							stream_state = 0;
+							bell_rerecode_flag = true;
+							Rec_type = MAKE_FILE;
+						}
 					}
 				}
 			}
@@ -2282,6 +2488,8 @@ int clip_total(void) {
 			}
 
 			if (stream_state == 1) continue;
+
+			dimming = false;
 
 			// if ((clip_rec_state == REC_WAIT && bell_rec_state == REC_WAIT) ||
 			// 	(clip_rec_state == REC_WAIT && bell_rec_state == REC_READY))
@@ -2374,8 +2582,6 @@ int clip_total(void) {
 				}
 			}
 
-
-
 			make_start = sample_gettimeus();
 
 			box_snap = true;
@@ -2428,6 +2634,8 @@ int clip_total(void) {
 				}
 			}
 
+
+
 			if (!bfile_flag) {			
 				if (file_cnt2 > 0) {
 					Make_File mfd2;
@@ -2452,7 +2660,7 @@ int clip_total(void) {
 				(clip_rec_state == REC_MP4MAKE && bell_rec_state == REC_READY)) {
 
 	    		#ifndef __PHILL_REQ__
-	    			if (!box_send_flag && stream_state != 1) {
+	    			if (!box_send_flag && stream_state != 1 && !bell_flag)  {
 			    		// memset(file_path, 0, 64);
 						// sprintf(file_path, "/dev/shm/box0.jpg");
 						box_resize("/dev/shm/box0.jpg", "dev/shm/box_r.jpg");
@@ -2460,36 +2668,40 @@ int clip_total(void) {
 						// memset(file_path, 0, 64);
 						// sprintf(file_path, "/dev/shm/box_r.jpg");
 
-						if (!file_21_flag) {
-							file_21_flag = true;
-							make_file_start(REC);
-						}
-					
-		    			ret = spi_send_file(REC_BOX_ALM, "/dev/shm/box_r.jpg", 0, 0, 0);
-		    			if (ret < 0) {
-							int secss = 0;
-							retry_time = sample_gettimeus();
-							while (1) {
-								if (stream_state == 1) {
-									dp("streaming!!\n");
-									break;
-								}
-								if (send_retry_flag) {
-									spi_send_file(REC_BOX_ALM, "/dev/shm/box_r.jpg", 0, 0, 0);
-									break;
-								}
-								if ((sample_gettimeus() - retry_time)%1000000 == 0){
-									secss++;
-									dp("sec:%d\n", secss);
-								}
-								if ((sample_gettimeus() - retry_time) > 15000000) {
-									dp("Motion Cap Faile!\n");
-									break;
+						if (stream_state != 1) {
+
+							if (!file_21_flag) {
+								file_21_flag = true;
+								make_file_start(REC);
+								bLive = true;
+							}
+						
+			    			ret = spi_send_file(REC_BOX_ALM, "/dev/shm/box_r.jpg", 0, 0, 0);
+			    			if (ret < 0) {
+								int secss = 0;
+								retry_time = sample_gettimeus();
+								while (1) {
+									if (stream_state == 1) {
+										dp("streaming!!\n");
+										break;
+									}
+									if (send_retry_flag) {
+										spi_send_file(REC_BOX_ALM, "/dev/shm/box_r.jpg", 0, 0, 0);
+										break;
+									}
+									if ((sample_gettimeus() - retry_time)%1000000 == 0){
+										secss++;
+										dp("sec:%d\n", secss);
+									}
+									if ((sample_gettimeus() - retry_time) > 15000000) {
+										dp("Motion Cap Faile!\n");
+										break;
+									}
 								}
 							}
-						}
-		    			box_send_flag = true;
-		    			usleep(200*1000);
+			    			box_send_flag = true;
+			    			usleep(200*1000);
+			    		}
 		    		}
 	    		#endif
 
@@ -2557,7 +2769,7 @@ int clip_total(void) {
 
 			if (stream_state == 1) continue;
 
-			
+			bLive = true;
 
 			if (file_cnt == 1 && cfile_flag1 && cfile_flag2 && file_cnt2 == 0) {
 				pthread_t tid_avoff;
@@ -3019,7 +3231,7 @@ int clip_total(void) {
 				Make_File mfd_rec[10];
 
 				stream_state = 0;
-				make_file_start(STREAMING);
+				make_file_start(REC);
 
 				if (rec_cnt > 10) rec_cnt = 10;
 				for (int i=0; i<rec_cnt; i++) {
@@ -3088,9 +3300,45 @@ int clip_total(void) {
 				dp("Rec T:%d time : %lld\n", Rec_type, total_time2);
 			}
 
+			// if ((total_time2 - forced_live) > 3000000) {
+			// 	forced_live = total_time2;
+			// 	device_live(boot_mode);
+			// }
+
+			if (dimming) {
+				dimming_e =  sample_gettimeus() - dimming_s;
+				if ((dimming_e > 100000) & dimming_up) {
+					dimming_s = sample_gettimeus();
+					if (dimming_val > 15)
+						dimming_val -= 2;
+					else
+						dimming_val -= 1;
+					// dimming_val -= 2;
+					LED_dimming (dimming_val);
+					if (dimming_val <= 5) {
+						dp("tup\n");
+						dimming_up = false;
+					}
+					// dp("dimming val : %d %lld\n", dimming_val, dimming_e);
+				}
+				else if ((dimming_e > 100000) & !dimming_up) {
+					dimming_s = sample_gettimeus();
+					if (dimming_val > 15)
+						dimming_val += 2;
+					else
+						dimming_val += 1;
+					// dimming_val += 2;
+					LED_dimming (dimming_val);
+					if (dimming_val >= 30) {
+						dp("tdn\n");
+						dimming_up = true;
+					}
+					// dp("dimming val : %d %lld\n", dimming_val, dimming_e);
+				}
+			}
+
 			if (!bell_snap_m && !bell_snap_b && bl_state < BSS_SEND) {
 				bl_state = BSS_SEND;
-				// else dp("m %d b %d state %d\n", bell_snap_m, bell_snap_b, bl_state);
 				start_time2 = end_time2 = sample_gettimeus();
 				bell_rec_state = REC_START;
 			}
@@ -3113,14 +3361,16 @@ int clip_total(void) {
 					// sprintf(file_path, "/dev/shm/bell_m.jpg");
 					// memset(file_sep, 0, 64);
 					// sprintf(file_sep, "/dev/shm/bell_b.jpg");
-					box_resize("/dev/shm/bell_b.jpg", "dev/shm/bell_b_r.jpg");
-					spi_send_file_dual(major_buf1, major_buf2, "/dev/shm/bell_m.jpg", "dev/shm/bell_b_r.jpg");
+					// box_resize("/dev/shm/bell_b.jpg", "dev/shm/bell_b_r.jpg");
+					// spi_send_file_dual(major_buf1, major_buf2, "/dev/shm/bell_m.jpg", "dev/shm/bell_b_r.jpg");
+					spi_send_file_dual(major_buf1, major_buf2, "/dev/shm/bell_m.jpg", "/dev/shm/bell_b.jpg");
 				}
 				else {
 					dp("Fail to Dual Bell JPG Send.\n");
 				}
 
-				
+				gpio_LED_dimming(2);
+				dimming_val = 20;
 
 				stream_state = 1;
 				// data_sel = 4;
@@ -3130,18 +3380,96 @@ int clip_total(void) {
 			}
 
 			if (bl_state == BSS_END) {
+
+				if (total_time2 > BELL_TIME_MIN && dimming && !redimming) {
+					dimming = false;
+					gpio_LED_dimming(1);
+					ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
+				}
+
+				if (total_time2 > BELL_TIME_MIN && rebell) {
+					rebell = false;
+					bell_snap_m = true;
+					bell_snap_b = true;
+					stream_state = 0;
+
+					total_time3 = sample_gettimeus();
+
+					while(!bell_snap_m && !bell_snap_b);
+
+					bLiveFile = true;
+					if (Ready_Busy_Check() > 0){
+						dp("Bell/Temp Dual JPG ReSend!\n");
+						// memset(file_path, 0, 64);
+						// sprintf(file_path, "/dev/shm/bell_m.jpg");
+						// memset(file_sep, 0, 64);
+						// sprintf(file_sep, "/dev/shm/bell_b.jpg");
+						// box_resize("/dev/shm/bell_b.jpg", "dev/shm/bell_b_r.jpg");
+						// ret = spi_send_file_dual(major_buf1, major_buf2, "/dev/shm/bell_m.jpg", "dev/shm/bell_b_r.jpg");
+						ret = spi_send_file_dual(major_buf1, major_buf2, "/dev/shm/bell_m.jpg", "/dev/shm/bell_b.jpg");
+						if (ret < 0) {
+							int secss = 0;
+							retry_time = sample_gettimeus();
+							while (1) {
+								if (stream_state == 1) {
+									dp("streaming!!\n");
+									break;
+								}
+								if (send_retry_flag) {
+									spi_send_file_dual(major_buf1, major_buf2, "/dev/shm/bell_m.jpg", "/dev/shm/bell_b.jpg");
+									break;
+								}
+								if ((sample_gettimeus() - retry_time)%1000000 == 0){
+									secss++;
+									dp("sec:%d\n", secss);
+								}
+								if ((sample_gettimeus() - retry_time) > 15000000) {
+									dp("Motion Cap Faile!\n");
+									break;
+								}
+							}
+						}
+					}
+					else {
+						dp("Fail to Dual Bell JPG Send.\n");
+					}
+
+					gpio_LED_dimming(2);
+					dimming_val = 20;
+					redimming = true;
+
+					bLiveFile = false;
+
+					stream_state = 1;
+				}
+				else {
+					rebell = false;
+				}
 				
-				if ((rec_streaming_state == REC_STOP) && (total_time2 > BELL_TIME_MIN)) {
+				if ((rec_streaming_state == REC_STOP) && (total_time2 > 5000000)) {
 					bell_rerecode_flag = true;
 					bell_rec_state = REC_STOP;
 					dp("BELL END:Steaming End! %lld\n", total_time);
+					if (bellend_sound == 2)  {
+		                ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
+		                bellend_sound++;
+					}
+					else {
+						dp("bellend : %d\n", bellend_sound);
+					}
 				}
 
 				if ((total_time2 > MAX_REC_TIME) && (bell_rec_state == REC_ING) && (bell_rec_state < REC_STOP)) {	// 60Sec Time Over -> Clip Stop
 					bell_rerecode_flag = true;
 					 bell_rec_state = REC_STOP;
 					dp("BELL END:Time Over! %lld\n", total_time);
-					
+					if (bellend_sound == 2)  {
+		                ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
+		                bellend_sound++;
+					}
+					else {
+						dp("bellend : %d\n", bellend_sound);
+					}
 				}
 
 				if ((total_time2 > TEMP_TIME_MIN) && (temp_flag)) {
@@ -3159,6 +3487,21 @@ int clip_total(void) {
 						bell_rerecode_flag = true;
 						bell_rec_state = REC_STOP;
 						dp("BELL END:Move End! %lld\n", total_time);
+						if (bellend_sound == 2)  {
+			                ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
+			                bellend_sound++;
+						}
+						else {
+							dp("bellend : %d\n", bellend_sound);
+						}
+
+						if (bellend_sound == 2)  {
+			                ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
+			                bellend_sound++;
+						}
+						else {
+							dp("bellend : %d\n", bellend_sound);
+						}
 					}
 				}
 				else {
@@ -3194,6 +3537,7 @@ int clip_total(void) {
 				}
 				else continue;
 			
+				make_file_start(REC);
 
 				pthread_t tid_makefile;
 
@@ -3452,10 +3796,12 @@ int stream_total(int mode) {
 			return -1;
 		}
 
-		ret = pthread_create(&tid_vmod, NULL, sample_soft_photosensitive_ctrl, NULL);
-		if(ret != 0) {
-			IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create sample_soft_photosensitive_ctrl failed\n", __func__);
-			return -1;
+		if (settings.SF.bits.backlight) {
+			ret = pthread_create(&tid_vmod, NULL, sample_soft_photosensitive_ctrl, NULL);
+			if(ret != 0) {
+				IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create sample_soft_photosensitive_ctrl failed\n", __func__);
+				return -1;
+			}
 		}
 
 	}	
@@ -3480,6 +3826,8 @@ int stream_total(int mode) {
 
 	// usleep(1000*1000);
 
+	// amp_on();
+
 	do {
 
 #ifdef __STREAMING_CMD__
@@ -3495,7 +3843,7 @@ int stream_total(int mode) {
 
 		if (cmd == 1) {
 			dp("cmd 1 Audio IN/Out Vol, Gain Set!\n");
-			amp_on();
+			
 			Get_Vol();
 			int ai_vol = 100, ai_gain = 20, ao_vol = 100, ao_gain = 20;
 			dp("Audio In Vol(0~120) : ");
@@ -3528,6 +3876,16 @@ int stream_total(int mode) {
 			dp("Set Ao vol:%d\n", ao_vol);
 			dp("Set Ao gain:%d\n", ao_gain);
 			Set_Vol(ai_vol, ai_gain, ao_vol, ao_gain);
+
+			if (!set_audio) {
+				set_audio = true;
+				amp_on();
+				ret = pthread_create(&tid_ao, NULL, IMP_Audio_Play_Thread_pcm, NULL);
+				if(ret != 0) {
+					IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Play_Thread failed\n", __func__);
+					return -1;
+				}
+			}
 		}
 	
 		else if (cmd == 90) {
@@ -4019,6 +4377,10 @@ void *dimming_test(void *argc) {
 				dimming_s = sample_gettimeus();
 				dimming_val -= 1;
 				LED_dimming (dimming_val);
+				if (Dimming_end) {
+					bDimming = true;
+					break;					
+				}
 				if (dimming_val <= 40) {
 					dimming_up = false;
 				}

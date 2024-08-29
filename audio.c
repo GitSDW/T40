@@ -846,6 +846,7 @@ void * IMP_Audio_Record_AEC_Thread(void *argv)
 
 extern int64_t sample_gettimeus(void);
 extern void amp_on(void);
+extern void amp_off(void);
 
 void *IMP_Audio_Play_Thread(void *argv)
 {
@@ -894,15 +895,9 @@ void *IMP_Audio_Play_Thread(void *argv)
 	// bool ao_start_f = false;
 	// int64_t ao_start_t = sample_gettimeus();
 
-	amp_on();
-
 	do {
 		if (bExit) break;
 
-		// if (!ao_start_f && ((sample_gettimeus()- ao_start_t)>3000000)) {
-		// 	ao_start_f = true;
-		// 	amp_on();
-		// }
 		if (ao_clear_flag) {
 			dp("Clear Flag!!\n");
 			ao_clear_flag = false;
@@ -953,7 +948,6 @@ void *IMP_Audio_Play_Thread(void *argv)
 								IMP_LOG_ERR(TAG, "IMP_AO_ClearChnBuf error\n");
 								return NULL;
 							}
-							// amp_on();
 						}
 						datasize = 0;
 					#endif
@@ -1085,6 +1079,9 @@ void *IMP_Audio_Play_Thread_pcm(void *argv)
 	unsigned char *buf = NULL;
 	int ret = -1;
 	int datasize = 0, definesize = 0;
+	bool amp_f = false;
+	int amp_c = 0;
+
 	// int save_fd = 0;
     // save_fd = open("/tmp/mnt/sdcard/save_ao.g726", O_RDWR | O_CREAT | O_TRUNC, 0777);
 
@@ -1109,10 +1106,17 @@ void *IMP_Audio_Play_Thread_pcm(void *argv)
 	do {
 		if (bExit) break;
 
-		// if (!ao_start_f && ((sample_gettimeus()- ao_start_t)>3000000)) {
-		// 	ao_start_f = true;
-		// 	amp_on();
-		// }
+		if (ao_clear_flag) {
+			dp("Clear Flag!!\n");
+			ao_clear_flag = false;
+			ret = IMP_AO_ClearChnBuf(ao_devID, ao_chnID);
+			if (ret != 0) {
+				IMP_LOG_ERR(TAG, "IMP_AO_ClearChnBuf error\n");
+				return NULL;
+			}
+			AO_Cir_Buff.RIndex = AO_Cir_Buff.WIndex = 0;
+			asflg = false;
+		}
 
 		ret = IMP_AO_QueryChnStat(ao_devID, ao_chnID, &play_status);
 		if(ret != 0) {
@@ -1139,7 +1143,6 @@ void *IMP_Audio_Play_Thread_pcm(void *argv)
 							IMP_LOG_ERR(TAG, "IMP_AO_ClearChnBuf error\n");
 							return NULL;
 						}
-						amp_on();
 					}
 					datasize = 0;
 				}
@@ -1207,6 +1210,16 @@ void *IMP_Audio_Play_Thread_pcm(void *argv)
 				datasize = 0;
 			}
 
+			if (!amp_f) {
+				if (amp_c > 20) {
+					amp_f = true;
+					amp_on();
+				}
+				else {
+					amp_c++;
+				}
+			}
+
 			// usleep(10*1000);
 			IMP_LOG_INFO(TAG, "Play: TotalNum %d, FreeNum %d, BusyNum %d\n",
 					play_status.chnTotalNum, play_status.chnFreeNum, play_status.chnBusyNum);
@@ -1265,15 +1278,8 @@ void *IMP_Audio_Play_Thread_g726(void *argv)
 	// bool ao_start_f = false;
 	// int64_t ao_start_t = sample_gettimeus();
 
-	amp_on();
-
 	do {
 		if (bExit) break;
-
-		// if (!ao_start_f && ((sample_gettimeus()- ao_start_t)>3000000)) {
-		// 	ao_start_f = true;
-		// 	amp_on();
-		// }
 
 		ret = IMP_AO_QueryChnStat(ao_devID, ao_chnID, &play_status);
 		if(ret != 0) {
@@ -1300,7 +1306,6 @@ void *IMP_Audio_Play_Thread_g726(void *argv)
 							IMP_LOG_ERR(TAG, "IMP_AO_ClearChnBuf error\n");
 							return NULL;
 						}
-						amp_on();
 					}
 					datasize = 0;
 				}
@@ -1425,6 +1430,8 @@ void ao_file_play_thread(void *argv)
 	int ret = -1;
 	int old_chnbusy=0, old_busy_cnt=0;
 	bool stop_flag = false;
+	int amp_c = 0;
+	bool amp_f = false;
 	// int total = 0;
 
 	buf = (unsigned char *)malloc(AUDIO_SAMPLE_BUF_SIZE);
@@ -1443,8 +1450,6 @@ void ao_file_play_thread(void *argv)
 	if (size < 80)
 		return;
 	else dp("wav header read!!\n");
-
-	amp_on();
 
 	do {
 		if (bExit) break;
@@ -1491,11 +1496,112 @@ void ao_file_play_thread(void *argv)
 
 		usleep(18*1000);
 
+		if (!amp_f) {
+			if (amp_c == 20) {
+				amp_on();
+			}
+			else if (amp_c == 25) {
+				amp_off();
+			}
+			else if (amp_c == 30) {
+				amp_f = true;
+				amp_on();
+			}
+			else {
+				amp_c++;
+			}
+		}
+
 		IMP_LOG_INFO(TAG, "Play: TotalNum %d, FreeNum %d, BusyNum %d\n",
 				play_status.chnTotalNum, play_status.chnFreeNum, play_status.chnBusyNum);
 	}while (1);
 
-	Set_Vol(100,25,spk_vol_buf,spk_gain_buf);
+	Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
+
+	dp("[Audio File] Thread End!\n");
+	fclose(play_file);
+	free(buf);
+	
+	// pthread_exit(0);
+}
+
+void ao_file_play_thread_mute(void *argv)
+{
+	unsigned char *buf = NULL;
+	int size = 0;
+	int ret = -1;
+	int old_chnbusy=0, old_busy_cnt=0;
+	bool stop_flag = false;
+	// int total = 0;
+
+	buf = (unsigned char *)malloc(AUDIO_SAMPLE_BUF_SIZE);
+	if (buf == NULL) {
+		IMP_LOG_ERR(TAG, "[ERROR] %s: malloc audio buf error\n", __func__);
+		return;
+	}
+
+	FILE *play_file = fopen(argv, "rb");
+	if (play_file == NULL) {
+		IMP_LOG_ERR(TAG, "[ERROR] %s: fopen %s failed\n", __func__, argv);
+		return;
+	}
+
+	size = fread(buf, 1, 80, play_file);
+	if (size < 80)
+		return;
+	else dp("wav header read!!\n");
+
+	amp_off();
+
+	do {
+		if (bExit) break;
+
+		if (!stop_flag) {
+			size = fread(buf, 1, AUDIO_SAMPLE_BUF_SIZE, play_file);
+			// if (size < AUDIO_SAMPLE_BUF_SIZE)
+				// break;
+			if (size == 0)
+				break;
+
+			/* Step 5: send frame data. */
+			IMPAudioFrame frm;
+			frm.virAddr = (uint32_t *)buf;
+			frm.len = size;
+			ret = IMP_AO_SendFrame(ao_devID, ao_chnID, &frm, BLOCK);
+			if (ret != 0) {
+				IMP_LOG_ERR(TAG, "send Frame Data error\n");
+				return;
+			}
+		}
+
+		IMPAudioOChnState play_status;
+		ret = IMP_AO_QueryChnStat(ao_devID, ao_chnID, &play_status);
+		if (ret != 0) {
+			IMP_LOG_ERR(TAG, "IMP_AO_QueryChnStat error\n");
+			return;
+		}
+
+		if (play_status.chnBusyNum > 0) {
+			if (old_chnbusy != play_status.chnBusyNum) {
+				old_chnbusy = play_status.chnBusyNum;
+				old_busy_cnt = 0;
+			}
+			else {
+				old_busy_cnt++;
+				if (old_busy_cnt%10 == 0) {
+					dp("busynum:%d\n", play_status.chnBusyNum);
+				}
+				if (play_status.chnBusyNum > 18) stop_flag = true;
+				else if (play_status.chnBusyNum > 5) stop_flag = false;
+			}
+		}
+
+		usleep(18*1000);
+
+
+		IMP_LOG_INFO(TAG, "Play: TotalNum %d, FreeNum %d, BusyNum %d\n",
+				play_status.chnTotalNum, play_status.chnFreeNum, play_status.chnBusyNum);
+	}while (1);
 
 	dp("[Audio File] Thread End!\n");
 	fclose(play_file);
@@ -1509,7 +1615,6 @@ void ao_file_play_pcm_thread(void *argv)
 	unsigned char *buf = NULL;
 	int size = 0;
 	int ret = -1;
-
 
 	buf = (unsigned char *)malloc(AUDIO_SAMPLE_BUF_SIZE);
 	if (buf == NULL) {
@@ -1689,7 +1794,7 @@ void IMP_Audio_Test_Out_Thread(void)
 				play_status.chnTotalNum, play_status.chnFreeNum, play_status.chnBusyNum);
 	}while (1);
 
-	Set_Vol(100,25,spk_vol_buf,spk_gain_buf);
+	Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
 
 	dp("[Audio File] Thread End!\n");
 	fclose(play_file);
@@ -1765,9 +1870,9 @@ void IMP_Audio_Test_InOut_Thread(void)
 			return;
 		}
 
-		if ((sample_gettimeus() - mic_test_time) > 10000000) {
-			break;
-		}
+		// if ((sample_gettimeus() - mic_test_time) > 10000000) {
+		// 	break;
+		// }
 
 	}while(!bStrem);
 
@@ -1775,85 +1880,4 @@ void IMP_Audio_Test_InOut_Thread(void)
 	// pthread_exit(0);
 
 }
-
-// void IMP_Audio_Test_Out_Thread(void)
-// {
-// 	unsigned char *buf = NULL;
-// 	int size = 0;
-// 	int ret = -1;
-// 	int old_chnbusy=0, old_busy_cnt=0;
-// 	bool stop_flag = false;
-// 	// int total = 0;
-
-// 	buf = (unsigned char *)malloc(AUDIO_SAMPLE_BUF_SIZE);
-// 	if (buf == NULL) {
-// 		IMP_LOG_ERR(TAG, "[ERROR] %s: malloc audio buf error\n", __func__);
-// 		return;
-// 	}
-
-// 	FILE *play_file = fopen("/dev/shm/mictest.pcm", "rb");
-// 	if (play_file == NULL) {
-// 		IMP_LOG_ERR(TAG, "[ERROR] %s: fopen %s failed\n", __func__, "/dev/shm/mictest.pcm");
-// 		return;
-// 	}
-
-// 	amp_on();
-
-// 	do {
-// 		if (bExit) break;
-
-// 		if (!stop_flag) {
-// 			size = fread(buf, 1, AUDIO_SAMPLE_BUF_SIZE, play_file);
-// 			// if (size < AUDIO_SAMPLE_BUF_SIZE)
-// 				// break;
-// 			if (size == 0)
-// 				break;
-
-// 			/* Step 5: send frame data. */
-// 			IMPAudioFrame frm;
-// 			frm.virAddr = (uint32_t *)buf;
-// 			frm.len = size;
-// 			ret = IMP_AO_SendFrame(ao_devID, ao_chnID, &frm, BLOCK);
-// 			if (ret != 0) {
-// 				IMP_LOG_ERR(TAG, "send Frame Data error\n");
-// 				return;
-// 			}
-// 		}
-
-// 		IMPAudioOChnState play_status;
-// 		ret = IMP_AO_QueryChnStat(ao_devID, ao_chnID, &play_status);
-// 		if (ret != 0) {
-// 			IMP_LOG_ERR(TAG, "IMP_AO_QueryChnStat error\n");
-// 			return;
-// 		}
-
-// 		if (play_status.chnBusyNum > 0) {
-// 			if (old_chnbusy != play_status.chnBusyNum) {
-// 				old_chnbusy = play_status.chnBusyNum;
-// 				old_busy_cnt = 0;
-// 			}
-// 			else {
-// 				old_busy_cnt++;
-// 				if (old_busy_cnt%10 == 0) {
-// 					dp("busynum:%d\n", play_status.chnBusyNum);
-// 				}
-// 				if (play_status.chnBusyNum > 18) stop_flag = true;
-// 				else if (play_status.chnBusyNum > 5) stop_flag = false;
-// 			}
-// 		}
-
-// 		usleep(18*1000);
-
-// 		IMP_LOG_INFO(TAG, "Play: TotalNum %d, FreeNum %d, BusyNum %d\n",
-// 				play_status.chnTotalNum, play_status.chnFreeNum, play_status.chnBusyNum);
-// 	}while (1);
-
-// 	Set_Vol(100,25,spk_vol_buf,spk_gain_buf);
-
-// 	dp("[Audio File] Thread End!\n");
-// 	fclose(play_file);
-// 	free(buf);
-	
-
-// }
 

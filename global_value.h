@@ -13,14 +13,14 @@ extern "C" {
 #ifndef __PHILL_REQ__
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"a"
-	#define CAHR_VER	"d"
+	#define CAHR_VER	"o"
 #else
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"z"	
-	#define CAHR_VER	"b"
+	#define CAHR_VER	"e"
 #endif
 
-#define DeBug 			0
+#define DeBug 			1
 
 #if DeBug
 	#define		dp(...)	printf(__VA_ARGS__)
@@ -97,14 +97,15 @@ int move_det_xs, move_det_ys, move_det_xe, move_det_ye;
 #define V_SEND_RESERV 				5
 #define V_BUFF_SIZE 				256*1024
 #define MAX_REC_TIME 				65000000	// 60 * 1000 * 1000 usec
+#define MAX_CLIP_TIME				75000000
 #define ROAMING_PER_TIME 			35000000	// 60 * 1000 * 1000 usec
 #define THUMBNAIL_TIME 				5000000
 #define FACE_FIND_END_TIME 			4800000
 #define BELL_START_TIME				8000000
-#define BELL_TIME_MIN				15000000
+#define BELL_TIME_MIN				35000000
 #define TEMP_TIME_MIN				6000000
 #define CLIP_CLOSE_TIME  			1500000
-#define LIVE_MESSAGE_TIME  			10000000	// 10 * 1000 * 1000 usec
+#define LIVE_MESSAGE_TIME  			1000000	// 1 * 1000 * 1000 usec
 
 int data_sel;
 char ip[30];
@@ -282,6 +283,7 @@ int bled_st_stat;
 int video_st_stat;
 int mic_st_stat;
 int shfo_st_stat;
+int bellend_sound;
 
 bool main_snap;
 bool box_snap;
@@ -292,6 +294,8 @@ bool roaming_person;
 bool bStrem;
 
 bool bUart;
+bool bLive;
+bool bLiveFile;
 
 // pcm test
 int save_pcm;
@@ -332,8 +336,10 @@ bool dn_g726_falg;
 bool get_audio;
 bool set_audio;
 bool bDimming;
+bool Dimming_end;
 bool bBLed;
 bool ao_clear_flag;
+bool rebell;
 
 
 extern int bExit;

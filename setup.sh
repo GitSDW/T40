@@ -30,5 +30,10 @@ if [ -e "/dev/shm/mute_msg.sh" ]; then
 	cp /dev/shm/mute_msg.sh /tmp/mnt/sdcard
 fi
 
+if [ -d "/dev/shm/effects" ]; then
+	echo "Sound File Cnage!"
+	cp /dev/shm/effects/*.wav /tmp/mnt/sdcard/effects
+fi
+
 sync
 sync
