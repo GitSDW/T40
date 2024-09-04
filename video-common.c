@@ -2758,9 +2758,7 @@ static void *get_video_stream_user(void *args)
 	chnNum = val & 0xffff;
 	encType = (val >> 16) & 0xffff;
 
-	if (Mosaic_En) {
-		while(!fdpd_En) ;
-	}
+	
 
 	ret = IMP_Encoder_StartRecvPic(chnNum);
 	if (ret < 0) {
@@ -2847,15 +2845,19 @@ static void *get_video_stream_user(void *args)
 			
 			if (clip_rec_state == REC_START || clip_rec_state == REC_ING) {
 				if (chnNum == 0) {
-					ret = save_stream1(clip_fd, &stream, chnNum);
-					if (ret < 0) {
-						IMP_LOG_ERR(TAG, "Clip Save Err : %d!\n", chnNum);
+					if (!Mosaic_En || fdpd_En) {
+						ret = save_stream1(clip_fd, &stream, chnNum);
+						if (ret < 0) {
+							IMP_LOG_ERR(TAG, "Clip Save Err : %d!\n", chnNum);
+						}
 					}
 				}
 				if (chnNum == 3) {
-					ret = save_stream2(clip_fd, &stream, chnNum);
-					if (ret < 0) {
-						IMP_LOG_ERR(TAG, "Clip Save Err : %d!\n", chnNum);
+					if (!Mosaic_En || fdpd_En) {
+						ret = save_stream2(clip_fd, &stream, chnNum);
+						if (ret < 0) {
+							IMP_LOG_ERR(TAG, "Clip Save Err : %d!\n", chnNum);
+						}
 					}
 				}
 			}

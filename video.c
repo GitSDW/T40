@@ -1247,6 +1247,7 @@ void *OSD_thread(void *args)
 
 	int64_t total_time = 0;
 	int64_t oldt_time = 0;//, BLC_time = 0;//, mean_time = 0;;
+	int mosaic_test_cnt = 0;
 
 	// int f_cnt=0;
 	
@@ -1255,7 +1256,7 @@ void *OSD_thread(void *args)
 
 	// IMPOSDRgnAttr rect_rAttr;
 	// IMPOSDRgnAttr cover_rAttr;
-	// IMPOSDRgnAttr mosaic_rAttr;
+	IMPOSDRgnAttr mosaic_rAttr;
 	// int mosaic_index = 0;
 	
 	// int64_t now_mosaic_time = 0;
@@ -1567,6 +1568,26 @@ void *OSD_thread(void *args)
 		// 	}
 		// } 
 		// usleep(5*1000);
+
+		// if (check_delay_time()) {
+		// 	mosaic_test_cnt++;
+		// 	mosaic_rAttr.type = OSD_REG_MOSAIC;
+		// 	mosaic_rAttr.mosaicAttr.x = (mosaic_test_cnt*40)%1720;
+		// 	mosaic_rAttr.mosaicAttr.y = (mosaic_test_cnt*40)%800;
+		// 	mosaic_rAttr.mosaicAttr.mosaic_width = 200;
+		// 	mosaic_rAttr.mosaicAttr.mosaic_height = 280;
+		// 	mosaic_rAttr.mosaicAttr.frame_width = FIRST_SENSOR_WIDTH;
+		// 	mosaic_rAttr.mosaicAttr.frame_height = FIRST_SENSOR_HEIGHT;
+		// 	mosaic_rAttr.mosaicAttr.mosaic_min_size = 40;
+
+		// 	ret = IMP_OSD_SetRgnAttr(prHander[2+RECT_INDEX], &mosaic_rAttr);
+		// 	if (ret != 0) {
+		// 		IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Mosaic error\n");
+		// 		return NULL;
+		// 	}
+		// 	set_delay_time(200*1000);
+		// }
+
 
 		for (int i=0; i<10; i++) {
 			if (mosaic_time[i] != 0){

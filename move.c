@@ -59,7 +59,10 @@ int sample_ivs_move_start(int grp_num, int chn_num, IMPIVSInterface **interface)
     //check ivs version    
 	move_param_input_t param;
 	memset(&param, 0, sizeof(move_param_input_t));
-	param.sense = settings.move_sensitivty;
+	if (settings.move_sensitivty == 4)
+		param.sense = 3;
+	else
+		param.sense = settings.move_sensitivty;
 	// param.sense = 0;
 	param.frameInfo.width = 1920;
 	param.frameInfo.height = 1080;

@@ -644,44 +644,54 @@ int Set_Vol(int ai_vol, int ai_gain, int ao_vol, int ao_gain) {
 	return 0;
 }
 
+int Set_Mute(int onoff) {
+
+	IMP_AI_SetVolMute(ao_devID, ao_chnID, onoff);
+
+	IMP_AI_SetVolMute(ai_devID, ai_chnID, onoff);
+
+	return 0;
+}
+
+int get_out_vol = 0;
+int get_out_gain = 0;
+int get_in_vol = 0;
+int get_in_gain = 0;
+
 int Get_Vol(void) {
 	int ret = -1;
 	/* step 5. Set audio channel volume. */
-	int aichnVol = 0;
-	ret = IMP_AI_GetVol(ai_devID, ai_chnID, &aichnVol);
+	ret = IMP_AI_GetVol(ai_devID, ai_chnID, &get_in_vol);
 	if(ret != 0) {
 		IMP_LOG_ERR(TAG, "Audio Record get volume failed\n");
 		return ret;
 	}
 
-	IMP_LOG_INFO(TAG, "Audio In GetVol    vol : %d\n", aichnVol);
+	IMP_LOG_INFO(TAG, "Audio In GetVol    vol : %d\n", get_in_vol);
 
-	int aigain = 0;
-	ret = IMP_AI_GetGain(ai_devID, ai_chnID, &aigain);
+	ret = IMP_AI_GetGain(ai_devID, ai_chnID, &get_in_gain);
 	if(ret != 0) {
 		IMP_LOG_ERR(TAG, "Audio Record Get Gain failed\n");
 		return ret;
 	}
-	IMP_LOG_INFO(TAG, "Audio In GetGain    gain : %d\n", aigain);
+	IMP_LOG_INFO(TAG, "Audio In GetGain    gain : %d\n", get_in_gain);
 
 		/* Step 4: Set audio channel volume. */
-	int aochnVol = 0;
-	ret = IMP_AO_GetVol(ao_devID, ao_chnID, &aochnVol);
+	ret = IMP_AO_GetVol(ao_devID, ao_chnID, &get_out_vol);
 	if(ret != 0) {
 		IMP_LOG_ERR(TAG, "Audio Play get volume failed\n");
 		return ret;
 	}
-	IMP_LOG_INFO(TAG, "Audio Out GetVol    vol:%d\n", aochnVol);
+	IMP_LOG_INFO(TAG, "Audio Out GetVol    vol:%d\n", get_out_vol);
 
-	int aogain = 0;
-	ret = IMP_AO_GetGain(ao_devID, ao_chnID, &aogain);
+	ret = IMP_AO_GetGain(ao_devID, ao_chnID, &get_out_gain);
 	if(ret != 0) {
 		IMP_LOG_ERR(TAG, "Audio Record Get Gain failed\n");
 		return ret;
 	}
-	IMP_LOG_INFO(TAG, "Audio Out GetGain    gain : %d\n", aogain);
+	IMP_LOG_INFO(TAG, "Audio Out GetGain    gain : %d\n", get_out_gain);
 
-	dp("ai vol:%d ai gain:%d ao vol:%d ao gain:%d\n", aichnVol, aigain, aochnVol, aogain);
+	dp("ai vol:%d ai gain:%d ao vol:%d ao gain:%d\n", get_in_vol, get_in_gain, get_out_vol, get_out_gain);
 
 	return 0;
 }
@@ -1079,7 +1089,7 @@ void *IMP_Audio_Play_Thread_pcm(void *argv)
 	unsigned char *buf = NULL;
 	int ret = -1;
 	int datasize = 0, definesize = 0;
-	bool amp_f = false;
+	static bool amp_f = false;
 	int amp_c = 0;
 
 	// int save_fd = 0;
@@ -1210,14 +1220,21 @@ void *IMP_Audio_Play_Thread_pcm(void *argv)
 				datasize = 0;
 			}
 
+
 			if (!amp_f) {
-				if (amp_c > 20) {
+				if (amp_c == 20) {
+					Get_Vol();
+					Set_Vol(-30,0,-30,0);
+					Set_Mute(0);
+					amp_off();
+				}
+				else if (amp_c == 22) {
 					amp_f = true;
 					amp_on();
+					Set_Mute(1);
+					Set_Vol(90,25,get_out_vol,get_out_gain);
 				}
-				else {
-					amp_c++;
-				}
+				amp_c++;
 			}
 
 			// usleep(10*1000);
@@ -1431,7 +1448,7 @@ void ao_file_play_thread(void *argv)
 	int old_chnbusy=0, old_busy_cnt=0;
 	bool stop_flag = false;
 	int amp_c = 0;
-	bool amp_f = false;
+	static bool amp_f = false;
 	// int total = 0;
 
 	buf = (unsigned char *)malloc(AUDIO_SAMPLE_BUF_SIZE);
@@ -1498,25 +1515,25 @@ void ao_file_play_thread(void *argv)
 
 		if (!amp_f) {
 			if (amp_c == 20) {
-				amp_on();
-			}
-			else if (amp_c == 25) {
+				Get_Vol();
+				Set_Vol(-30,0,-30,0);
+				Set_Mute(0);
 				amp_off();
 			}
-			else if (amp_c == 30) {
+			else if (amp_c == 22) {
 				amp_f = true;
 				amp_on();
+				Set_Mute(1);
+				Set_Vol(90,25,get_out_vol,get_out_gain);
 			}
-			else {
-				amp_c++;
-			}
+			amp_c++;
 		}
 
 		IMP_LOG_INFO(TAG, "Play: TotalNum %d, FreeNum %d, BusyNum %d\n",
 				play_status.chnTotalNum, play_status.chnFreeNum, play_status.chnBusyNum);
 	}while (1);
 
-	Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
+	Set_Vol(90,25,spk_vol_buf,spk_gain_buf);
 
 	dp("[Audio File] Thread End!\n");
 	fclose(play_file);
@@ -1794,7 +1811,7 @@ void IMP_Audio_Test_Out_Thread(void)
 				play_status.chnTotalNum, play_status.chnFreeNum, play_status.chnBusyNum);
 	}while (1);
 
-	Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
+	Set_Vol(90,25,spk_vol_buf,spk_gain_buf);
 
 	dp("[Audio File] Thread End!\n");
 	fclose(play_file);

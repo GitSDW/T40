@@ -371,7 +371,7 @@ void amp_on(void) {
 			dp("Fail set Value GPIO : %d\n", PORTD+21);
 		}
 
-		// Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
+		// Set_Vol(90,25,spk_vol_buf,spk_gain_buf);
 		en_ck = true;
 		dp("Set AMP On!\n");
 	}
@@ -386,7 +386,7 @@ void amp_off(void) {
 			dp("Fail set Value GPIO : %d\n", PORTD+21);
 		}
 
-		// Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
+		// Set_Vol(90,25,spk_vol_buf,spk_gain_buf);
 		en_ck = false;
 		dp("Set AMP On!\n");
 	}
@@ -1062,7 +1062,7 @@ int main(int argc, char **argv) {
 		// dp("Move Ex : %d %d %d %d\n", move_det_xs, move_det_ys, move_det_xe, move_det_ye);
     }
 
-    Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
+    Set_Vol(90,25,spk_vol_buf,spk_gain_buf);
 
 
 
@@ -1181,7 +1181,7 @@ int main(int argc, char **argv) {
 	            else if (ao_index == 5) effect_file = "/tmp/mnt/sdcard/effects/test5.wav";
 	            dp("play : %s\n", effect_file);
 	            for (int a=0; a<play_cnt; a++) {
-	            	Set_Vol(90,30,ao_vol,ao_gain);
+	            	Set_Vol(90,25,ao_vol,ao_gain);
 	            	ao_file_play_thread(effect_file);
 	            }
 	            dp("Audio Out Test End!!\n");
@@ -1272,7 +1272,7 @@ int main(int argc, char **argv) {
 
 				dp("cmd 7  Sound Test For 1KHz.\n");
 
-				Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
+				Set_Vol(90,25,spk_vol_buf,spk_gain_buf);
 
 				effect_file = "/tmp/mnt/sdcard/effects/test6.wav";
 	            
@@ -1993,7 +1993,7 @@ int clip_total(void) {
 									}
 								}
 								#ifdef __PHILL_REQ__
-									Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
+									Set_Vol(90,25,spk_vol_buf,spk_gain_buf);
 					            	ao_file_play_thread("/tmp/mnt/sdcard/effects/bell4.wav");
 					            #endif
 							}
@@ -2032,7 +2032,7 @@ int clip_total(void) {
 								if (face_crop_cnt > 0) {
 									// system("cp /dev/shm/face*.jpg /tmp/mnt/sdcard");
 									#ifdef __PHILL_REQ__
-										Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
+										Set_Vol(90,25,spk_vol_buf,spk_gain_buf);
 						            	ao_file_play_thread("/tmp/mnt/sdcard/effects/bell1.wav");
 						            #endif
 								}
@@ -2185,6 +2185,8 @@ int clip_total(void) {
 				
 			}
 			else if (Rec_type == BELL_REC) {
+				if (start_time2 == 0)
+					start_time2 = end_time2 = sample_gettimeus();
 				total_time2 = sample_gettimeus() - start_time2;
 				if (start_time3 != 0) {
 					total_time3 = sample_gettimeus() - start_time3;
@@ -2227,7 +2229,7 @@ int clip_total(void) {
 
 				if ( (!bell_snap_m && !bell_snap_b) && bl_state < BSS_SEND ) {
 					bl_state = BSS_SEND;
-					start_time2 = end_time2 = sample_gettimeus();
+					
 					bell_rec_state = REC_START;
 
 					
@@ -2374,7 +2376,7 @@ int clip_total(void) {
 						Rec_type = STRM_REC;
 					}
 
-					if ((rec_streaming_state == REC_STOP) && (total_time2 > 5000000)) {
+					if ((rec_streaming_state == REC_STOP) && (total_time2 > 8000000)) {
 						bell_rerecode_flag = true;
 						rec_streaming_state = REC_MP4MAKE;
 						dp("BELL END:Steaming End! %lld\n", total_time);
@@ -2458,18 +2460,23 @@ int clip_total(void) {
 						end_time2 = sample_gettimeus();
 					}
 
-					if (bell_rec_state == REC_STOP) {
+					if (bell_rec_state == REC_STOP || bell_rec_state == REC_WAIT) {
 						if (start_time3 != 0) {
+							// dp("4 t3:%lld s3:%lld\n", total_time3, start_time3);
 							if (total_time3 > BELL_TIME_MIN) {
-								dp("4 t3:%lld s3:%lld\n", total_time3, start_time3);
+								dp("5 t3:%lld s3:%lld\n", total_time3, start_time3);
 								stream_state = 0;
 								bell_rerecode_flag = true;
 								Rec_type = MAKE_FILE;
+								if (bellend_sound == 1)  {
+					                ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
+					                bellend_sound++;
+								}
 							}
 							
 						}
 						else if (bell_stream_flag == false) {
-							dp("5 t3:%lld s3:%lld\n", total_time3, start_time3);
+							dp("6 t3:%lld s3:%lld\n", total_time3, start_time3);
 							stream_state = 0;
 							bell_rerecode_flag = true;
 							Rec_type = MAKE_FILE;
@@ -3295,6 +3302,8 @@ int clip_total(void) {
 		}
 		if (Rec_type == BELL_REREC) {
 			// dp("******************************BELL RESTART!********************************\n");
+			if (start_time2 == 0)
+					start_time2 = end_time2 = sample_gettimeus();
 			total_time2 = sample_gettimeus() - start_time2;
 			if (total_time2%10000000 == 0){
 				dp("Rec T:%d time : %lld\n", Rec_type, total_time2);
