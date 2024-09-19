@@ -12,8 +12,8 @@ extern "C" {
 
 #ifndef __PHILL_REQ__
 	#define MAJOR_VER	"0"
-	#define MINOR_VER	"a"
-	#define CAHR_VER	"x"
+	#define MINOR_VER	"b"
+	#define CAHR_VER	"j"
 #else
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"z"	
@@ -99,9 +99,9 @@ int move_det_xs, move_det_ys, move_det_xe, move_det_ye;
 #define MAX_REC_TIME 				65000000	// 60 * 1000 * 1000 usec
 #define MAX_CLIP_TIME				75000000
 #define ROAMING_PER_TIME 			35000000	// 60 * 1000 * 1000 usec
-#define THUMBNAIL_TIME 				5000000
-#define FACE_FIND_END_TIME 			4800000
-#define BELL_START_TIME				8000000
+// #define THUMBNAIL_TIME 				6000000
+#define FACE_FIND_END_TIME 			6000000
+#define BELL_START_TIME				5000000
 #define BELL_TIME_MIN				35000000
 #define TEMP_TIME_MIN				6000000
 #define CLIP_CLOSE_TIME  			1500000
@@ -340,6 +340,7 @@ bool Dimming_end;
 bool bBLed;
 bool ao_clear_flag;
 bool rebell;
+bool bMove, move_start_flag;
 
 
 extern int bExit;
@@ -351,6 +352,7 @@ enum FR_STATE {
   FR_SNAPSHOT,  // 3
   FR_SUCCESS,	// 4
   FR_END,		// 5
+  FR_SEND,		// 6
 };
 
 enum THUMB_STATE {

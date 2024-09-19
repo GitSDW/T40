@@ -21,6 +21,7 @@
 #include "video-common.h"
 #include "global_value.h"
 #include "setting.h"
+#include "c_util.h"
 
 #define TAG "MOVE"
 
@@ -49,6 +50,7 @@ int sample_ivs_move_exit(int grp_num){
 
 int sample_ivs_move_start(int grp_num, int chn_num, IMPIVSInterface **interface){
 	int ret = 0;
+	float lvl_buf = 0.5;
     //check ivs version
     //MOVE_VERSION_NUM defined in ivs_inf_move.h.
     uint32_t move_ver = move_get_version_info();
@@ -59,17 +61,31 @@ int sample_ivs_move_start(int grp_num, int chn_num, IMPIVSInterface **interface)
     //check ivs version    
 	move_param_input_t param;
 	memset(&param, 0, sizeof(move_param_input_t));
-	if (settings.move_sensitivty == 4)
-		param.sense = 3;
-	else
-		param.sense = settings.move_sensitivty;
+
+	if (!move_start_flag) {
+		dp("Move Start Set!!\n");
+		if (settings.move_sensitivty == 4)
+			param.sense = 3;
+		else
+			param.sense = settings.move_sensitivty;
+
+		lvl_buf = 0.1 + (settings.move_sensitivty * 0.2);
+		// param.level=0.5; // 0.3 -> 0.8
+		param.level = lvl_buf;
+	}
+	else {
+		dp("Move End Set!!\n");
+		param.sense = 0;
+		param.level = 0.1;
+	}
+
 	// param.sense = 0;
 	param.frameInfo.width = 1920;
 	param.frameInfo.height = 1080;
 	param.min_h = 50;
 	param.min_w = 50;
 
-	param.level=0.5; // 0.3 -> 0.8
+	
 	param.timeon = 110; 
 	param.timeoff = 0;  
 	param.light = 0;    
@@ -183,17 +199,19 @@ IMPIVSInterface *inteface = NULL;
 
 static void *sample_ivs_move_get_result_process(void *arg)
 {
-	dp("move detect\n");
 	int ret = 0;
 	int chn_num = (int)arg;
 	move_param_output_t *result = NULL;
 	bool detect_flag = false;
 	int detect_on_cnt = 0, detect_off_cnt = 0;
-	int detect_off_timer = 0;
+	// int detect_off_timer = 0;
 	// int ex_w, ex_h, ex_v;
 	// bool ex_check=false;
-	int det_ex_cnt = 0;
-	int det_ex_cnt2 = 0;
+	// int det_ex_cnt = 0;
+	// int det_ex_cnt2 = 0;
+	int ex_cnt = 0;
+	int nex_cnt = 0;
+	int move_on_buf = 0;
 	// int px_w, px_h;
 
 	/* Step.6 start to ivs */
@@ -211,6 +229,7 @@ static void *sample_ivs_move_get_result_process(void *arg)
 	// for (i = 0; i < 1000/*NR_FRAMES_TO_SAVE*/; i++) {
 	do {
 		ret = IMP_IVS_PollingResult(chn_num, IMP_IVS_DEFAULT_TIMEOUTMS);
+		// ret = IMP_IVS_PollingResult(chn_num, 100);
         if (ret < 0) {
 			IMP_LOG_ERR(TAG, "IMP_IVS_PollingResult(%d, %d) failed\n", chn_num, IMP_IVS_DEFAULT_TIMEOUTMS);
 			return (void *)-1;
@@ -220,11 +239,11 @@ static void *sample_ivs_move_get_result_process(void *arg)
 			IMP_LOG_ERR(TAG, "IMP_IVS_GetResult(%d) failed\n", chn_num);
             return (void *)-1;
         }
-  		
-  		
-  		// ex_check = false;
+
+  		detect_flag = false;
+
 		if (result->ret > 0) {
-			// dp("[Alive]result->ret=%d result->count%d result->detcount%d\n", result->ret, result->count, result->detcount);
+			
 			for (int j=0; j<8; j++){
 				if (result->rects[j].ul.x == 0 && result->rects[j].ul.y == 0 && result->rects[j].br.x == 0 && result->rects[j].br.y == 0){
 					// dp("[%d]Not Detection Position!\n", j);
@@ -232,119 +251,80 @@ static void *sample_ivs_move_get_result_process(void *arg)
 				else if (((result->rects[j].ul.x >= move_det_xs && result->rects[j].ul.x <= move_det_xe) && (result->rects[j].ul.y >= move_det_ys && result->rects[j].ul.y <= move_det_ye)) &&
 					( (result->rects[j].br.x >= move_det_xs && result->rects[j].br.x <= move_det_xe) && (result->rects[j].br.y >= move_det_ys && result->rects[j].br.y <= move_det_ye)))
 				{
-					// dp("Prohibited Areas, Motion Not Detection!!!\n ");
-					// dp("PA : %d %d %d %d\n", result->rects[j].ul.x, result->rects[j].ul.y, result->rects[j].br.x, result->rects[j].br.y);
+					if (!move_flag) {
+						// dp("[%d]2\n", j);
+						detect_flag = true;;
+					}
+					else {
+						// dp("[%d]3\n", j);
+						ex_cnt++;
+						// det_ex_cnt = 0;
+						// det_ex_cnt2++;
+						// if (det_ex_cnt2 > 2) {
+						// 	detect_flag = false;
+						// 	det_ex_cnt2 = 0;
+						// }
+					}
+				}
+				else{
+					// dp("[%d]4\n", j);
 					if (!move_flag) {
 						detect_flag = true;;
 					}
 					else {
-						// ex_check = true;
-
-						det_ex_cnt = 0;
-						// dp("EX Area!!\n");
-						det_ex_cnt2++;
-						if (det_ex_cnt2 > 2) {
-							detect_flag = false;
-							det_ex_cnt2 = 0;
-						}
-						// if (!ex_on) {
-						// 	ex_on = true;
-						// 	min_pixel_x2 = result->rects[j].ul.x;
-						// 	min_pixel_y2 = result->rects[j].ul.y;
-						// 	max_pixel_x2 = result->rects[j].br.x;
-						// 	max_pixel_y2 = result->rects[j].br.y;
-						// 	dp("2ret:%d\n", result->ret);
-						// 	dp("2count:%d\n", result->count);
-						// 	dp("2blksize:%d\n", result->blockSize);
-						// 	dp("2rectcnt:%d\n", result->rectcnt);
-						// 	ex_w = result->rects[j].br.x - result->rects[j].ul.x;
-						// 	if (ex_w < 0) ex_w *= -1;
-						// 	ex_h = result->rects[j].br.y - result->rects[j].ul.y;
-						// 	if (ex_h < 0) ex_h *= -1;
-
-						// 	ex_v = ex_h * ex_w;
-
-						// }
+						nex_cnt++;
 					}
-
-					
-				}
-				else{
-
-					// int bufw, bufh, bufv;
-					// bufw = result->rects[j].br.x - result->rects[j].ul.x;
-					// if (bufw < 0) bufw *= -1;
-					// bufh = result->rects[j].br.y - result->rects[j].ul.y;
-					// if (bufh < 0) bufh *= -1;
-					// bufv = bufw*bufh;
-
+					// if (det_ex_cnt < 5) {
+					// 	dp("[%d]4\n", j);
+					// 	det_ex_cnt++;
 					// }
-					// dp("sx:%d sy:%d ex:%d ey:%d\n", result->rects[j].ul.x , result->rects[j].ul.y, result->rects[j].br.x, result->rects[j].br.x );
-					// if (!detect_flag && (center_x < move_det_xs || center_x > move_det_xe) && (center_y < move_det_ys || center_y > move_det_ye)){
-					// if (result->rectcnt > 1 && (ex_v < bufv)){
-						// detect_flag = true;;
-						
-					// }
-					// dp("P %d %d %d %d\n  %d %d %d %d\n", result->rects[j].ul.x, result->rects[j].ul.y, result->rects[j].br.x, result->rects[j].br.y,
-															// move_det_xs, move_det_xe, move_det_ys, move_det_ye);
-					if (det_ex_cnt < 5) {
-						det_ex_cnt++;
-						// dp("1Out Area! %d\n", det_ex_cnt);
-					}
-					else {
-						det_ex_cnt = 0;
-						detect_flag = true;
-						// dp("2Out Area! %d\n", det_ex_cnt);
-						// if (!ex_flag) {
-						// 	ex_flag = true;
-						// 	min_pixel_x = result->rects[j].ul.x;
-						// 	min_pixel_y = result->rects[j].ul.y;
-						// 	max_pixel_x = result->rects[j].br.x;
-						// 	max_pixel_y = result->rects[j].br.y;
-						// 	dp("1ret:%d\n", result->ret);
-						// 	dp("1count:%d\n", result->count);
-						// 	dp("1blksize:%d\n", result->blockSize);
-						// 	dp("1rectcnt:%d\n", result->rectcnt);
-						// }
-					}
-					// else if (result->rectcnt == 1){
-					// 	detect_flag = true;;
-					// 	if (!ex_flag) {
-					// 		ex_flag = true;
-					// 		min_pixel_x = result->rects[j].ul.x;
-					// 		min_pixel_y = result->rects[j].ul.y;
-					// 		max_pixel_x = result->rects[j].br.x;
-					// 		max_pixel_y = result->rects[j].br.y;
-					// 		dp("1ret:%d\n", result->ret);
-					// 		dp("1count:%d\n", result->count);
-					// 		dp("1blksize:%d\n", result->blockSize);
-					// 		dp("1rectcnt:%d\n", result->rectcnt);
-					// 		dp("1detcnt:%d\n", result->detcount);
-					// 	}
+					// else {
+					// 	dp("[%d]5\n", j);
+					// 	det_ex_cnt = 0;
+					// 	detect_flag = true;
 					// }
 				}
 			}
 		}
-		else {
-			detect_flag = false;
+		// else {
+		// 	detect_flag = false;
+		// }
+
+
+
+		// dp("Move Polling:%lld result->ret:%d result->count:%d detect_flag:%d detect_on_cnt:%d detect_off_cnt:%d\n", sample_gettimeus(), result->ret, result->count, detect_flag, detect_on_cnt, detect_off_cnt);
+
+		if (move_flag) {
+
+			if ((ex_cnt+nex_cnt != 0) && (ex_cnt < (nex_cnt+1))) {
+				detect_flag = true;
+			}
+			ex_cnt = 0;
+			nex_cnt = 0;
 		}
+
+		if (!move_start_flag) move_on_buf = settings.move_sensitivty;
+		else move_on_buf = 0;
+
 		if (detect_flag){
 			detect_on_cnt++;
-			if(detect_on_cnt > 1){
+			if(detect_on_cnt > (5-move_on_buf)) {
+				// dp("move flag on!\n");
 				detect_on_cnt = 0;
 				detect_off_cnt = 0;
-				detect_off_timer = 0;
+				// detect_off_timer = 0;
 				main_motion_detect++;
 			}
 			// dp("Movement!! %d\n", detect_on_cnt);
 		}
 		else{
 			detect_off_cnt++;
-			if(detect_off_cnt > 4){
+			if(detect_off_cnt > (2+move_on_buf)) {
+				// dp("move flag off!\n");
 				detect_on_cnt = 0;
 				detect_off_cnt = 0;
 				main_motion_detect = 0;
-				detect_off_timer++;
+				// detect_off_timer++;
 			}
 			// dp("No movement!! %d\n", detect_off_timer);
 			
@@ -358,7 +338,9 @@ static void *sample_ivs_move_get_result_process(void *arg)
 			IMP_LOG_ERR(TAG, "IMP_IVS_ReleaseResult(%d) failed\n", chn_num);
 			return (void *)-1;
 		}
-	} while(!bStrem);
+	} while(!bMove);
+
+	move_start_flag = true;
 
 	return (void *)0;
 }
@@ -477,3 +459,44 @@ int move_deinit(IMPCell source_framecell)
 
 	return 0;
 }
+
+int get_parm(void) {
+	int ret = -1;
+	move_param_input_t param;
+
+	ret = IMP_IVS_GetParam(0, &param);
+	if (ret < 0) {
+		dp("Param Get Fail!!\n");
+	}
+
+	dp("Get Param Sens : %d\n", settings.move_sensitivty);
+	dp("Get Param Lvls : %f\n", param.level);
+}
+
+int set_parm_end(void) {
+	int ret = -1;
+	move_param_input_t param;
+
+	ret = IMP_IVS_GetParam(0, &param);
+	if (ret < 0) {
+		dp("Param Get Fail!!\n");
+	}
+
+	dp("Get Param Sens : %d\n", param.sense);
+	dp("Get Param Lvls : %f\n", param.level);
+
+	param.sense = 0;
+	param.level = 0.1;
+
+	param.min_h = 100;
+	param.min_w = 100;
+
+	ret = IMP_IVS_SetParam(0, &param);
+	if (ret < 0) {
+		dp("Param Get Fail!!\n");
+	}
+
+	dp("Set Param Sens : %d\n", param.sense);
+	dp("Set Param Lvls : %f\n", param.level);
+}
+

@@ -189,6 +189,8 @@ int global_value_init(void) {
 	bLive = false;
 	bLiveFile = false;
 	rebell = false;
+	bMove = false;
+	move_start_flag = false;
 
 	for(i=0;i<10;i++){
 		fdpd_data[i].flag = false;
@@ -1699,7 +1701,7 @@ int main(int argc, char **argv) {
 	return 0;
 }
 
-
+extern int set_parm_end(void);
 
 int clip_total(void) {
 	int ret = 0;
@@ -1736,6 +1738,7 @@ int clip_total(void) {
     bool dimming_up = true;
     bool amp_f = false;
     bool redimming = false;
+    bool thum_send_flag = false;
 
 
     // Init_Audio_Out();
@@ -1872,7 +1875,7 @@ int clip_total(void) {
 
 		if (start_flag == false) {
 		#ifndef __PHILL_REQ__
-			if ((face_cnt > 0) || (main_motion_detect > 1) || bell_flag || temp_flag) {
+			if ((face_cnt > 0) || (main_motion_detect > 0) || bell_flag || temp_flag) {
 			// if ((face_cnt > 0) || (person_cnt > 0) || (main_motion_detect > 1) || bell_flag || temp_flag) {
 			// if ((main_motion_detect > 1) || bell_flag || temp_flag) {
 				dp("fc : %d Motion : %d bell : %d temp : %d\n", face_cnt, main_motion_detect, bell_flag, temp_flag);
@@ -1885,6 +1888,7 @@ int clip_total(void) {
 				Rec_type = CLIP_REC;
 				end_time = start_time + START_CHECK_TIME;
 				ExpVal = Get_Brightness();
+				set_parm_end();
 				if (settings.SF.bits.led) {
 				    if (ExpVal > 30000) { // Noh Change 1000 -> 10000 20240530 -> 70000 20240712
 			    		gpio_LED_Set(1);
@@ -1925,7 +1929,7 @@ int clip_total(void) {
 			end_time = start_time + START_CHECK_TIME;
 			ExpVal = Get_Brightness();
 			if (settings.SF.bits.led) {
-			    if (ExpVal > 70000) { // Noh Change 1000 -> 10000 20240530 -> 70000 20240712
+			    if (ExpVal > 30000) { // Noh Change 1000 -> 10000 20240530 -> 70000 20240712
 		    		gpio_LED_Set(1);
 			    }
 			    else {
@@ -1971,9 +1975,10 @@ int clip_total(void) {
 						fr_state = FR_END;
 					}
 				}
-				else if (fr_state != FR_END && total_time > FACE_FIND_END_TIME) {
+				else if ((fr_state == FR_END || fr_state == FR_WAIT || fr_state == FR_START) && total_time > FACE_FIND_END_TIME && !thum_send_flag) {
 				// else if (total_time > FACE_FIND_END_TIME) {
-					fr_state = FR_END;	// fr_state 5 / Time out
+					fr_state = FR_SEND;	// fr_state 5 / Time out
+					thum_send_flag = true;
 					// Make File Send
 					if (stream_state == 0) {
 						#if 0
@@ -2031,10 +2036,10 @@ int clip_total(void) {
 
 								if (face_crop_cnt > 0) {
 									// system("cp /dev/shm/face*.jpg /tmp/mnt/sdcard");
-									#ifdef __PHILL_REQ__
-										Set_Vol(90,25,spk_vol_buf,spk_gain_buf);
-						            	ao_file_play_thread("/tmp/mnt/sdcard/effects/bell1.wav");
-						            #endif
+									// #ifdef __PHILL_REQ__
+									// 	Set_Vol(90,25,spk_vol_buf,spk_gain_buf);
+						            // 	ao_file_play_thread("/tmp/mnt/sdcard/effects/bell1.wav");
+						            // #endif
 								}
 							}
 						#endif
@@ -2094,6 +2099,7 @@ int clip_total(void) {
 						// box_snap = true;
 						Rec_type = MAKE_FILE;
 						file_cnt = 3;
+
 					}
 				#endif
 
@@ -2142,6 +2148,7 @@ int clip_total(void) {
 					// box_snap = true;
 					Rec_type = MAKE_FILE;
 					file_cnt = 3;
+					box_send_flag = true;
 				}
 
 				if (rec_on) {
@@ -2152,7 +2159,7 @@ int clip_total(void) {
 				
 			#ifndef __PHILL_REQ__
 				if ((file_cnt == 0) && (total_time > BELL_START_TIME+1000000) && (clip_rec_state < REC_STOP)) {	// Face or Motion Not Found -> Clip Stop
-					if ((face_cnt == 0) && (person_cnt == 0) && (main_motion_detect == 0)) {
+					if ((face_cnt == 0) && (main_motion_detect == 0)) {
 						if ((sample_gettimeus() - end_time) > CLIP_CLOSE_TIME) {
 							dp("CLIP END:Move End!\n");
 							// rec_stop = true;
@@ -2229,10 +2236,7 @@ int clip_total(void) {
 
 				if ( (!bell_snap_m && !bell_snap_b) && bl_state < BSS_SEND ) {
 					bl_state = BSS_SEND;
-					
 					bell_rec_state = REC_START;
-
-					
 				}
 
 				if (bl_state == BSS_SEND) {
@@ -2287,6 +2291,9 @@ int clip_total(void) {
 					// }
 					bLiveFile = false;
 
+					gpio_LED_dimming(2);
+					dimming_val = 20;
+
 					if (!face_send_flag) {
 						face_send_flag = true;
 						face_end(REC);
@@ -2295,8 +2302,7 @@ int clip_total(void) {
 					stream_state = 1;
 					// data_sel = 4;
 
-					gpio_LED_dimming(2);
-					dimming_val = 20;
+					
 
 					bl_state = BSS_END;
 				}
@@ -2397,9 +2403,10 @@ int clip_total(void) {
 
 					if ((total_time2 > MAX_REC_TIME) && (bell_rec_state == REC_ING) && (bell_rec_state < REC_STOP)) {	// 60Sec Time Over -> Clip Stop
 						bell_rerecode_flag = true;
-						// rec_stop = true;
-						dp("BELL END:Time Over! %lld\n", total_time2);
 						bell_rec_state = REC_STOP;
+						box_send_flag = true;
+						dp("BELL END:Time Over! %lld\n", total_time2);
+						
 						// dp("0:%d t3:%lld s3:%lld\n", bell_stream_flag, total_time3, start_time3);
 						if (bell_stream_flag == false) {
 							if (start_time3 != 0) {
@@ -2418,13 +2425,13 @@ int clip_total(void) {
 							// box_snap = true;
 						}
 
-						if (bellend_sound == 2)  {
-			                ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
-			                bellend_sound++;
-						}
-						else {
-							dp("bellend : %d\n", bellend_sound);
-						}
+						// if (bellend_sound == 2)  {
+			            //     ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
+			            //     bellend_sound++;
+						// }
+						// else {
+						// 	dp("bellend : %d\n", bellend_sound);
+						// }
 					}
 
 					if ((total_time2 > TEMP_TIME_MIN) && (temp_flag)) {
@@ -2442,6 +2449,7 @@ int clip_total(void) {
 							bell_rerecode_flag = true;
 							dp("BELL END:Move End! %lld\n", total_time2);
 							bell_rec_state = REC_STOP;
+
 							if (bell_stream_flag == false) {
 								Rec_type = MAKE_FILE;
 								// box_snap = true;
@@ -2480,6 +2488,10 @@ int clip_total(void) {
 							stream_state = 0;
 							bell_rerecode_flag = true;
 							Rec_type = MAKE_FILE;
+							if (bellend_sound == 2)  {
+				                ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
+				                bellend_sound++;
+							}
 						}
 					}
 				}
@@ -2666,6 +2678,12 @@ int clip_total(void) {
 			if ((clip_rec_state == REC_MP4MAKE && bell_rec_state == REC_MP4MAKE) ||
 				(clip_rec_state == REC_MP4MAKE && bell_rec_state == REC_READY)) {
 
+				if (!file_21_flag) {
+					file_21_flag = true;
+					make_file_start(REC);
+					bLive = true;
+				}
+
 	    		#ifndef __PHILL_REQ__
 	    			if (!box_send_flag && stream_state != 1 && !bell_flag)  {
 			    		// memset(file_path, 0, 64);
@@ -2677,11 +2695,11 @@ int clip_total(void) {
 
 						if (stream_state != 1) {
 
-							if (!file_21_flag) {
-								file_21_flag = true;
-								make_file_start(REC);
-								bLive = true;
-							}
+							// if (!file_21_flag) {
+							// 	file_21_flag = true;
+							// 	make_file_start(REC);
+							// 	bLive = true;
+							// }
 						
 			    			ret = spi_send_file(REC_BOX_ALM, "/dev/shm/box_r.jpg", 0, 0, 0);
 			    			if (ret < 0) {
@@ -3189,10 +3207,14 @@ int clip_total(void) {
 			}
 			else if (streaming_rec_state == REC_ING) {
 				rec_now = sample_gettimeus() - rec_time_s;
-				if (rec_total + rec_now >= 60000000) {
+				if (rec_total + rec_now >= 65000000) {
 	            	rec_on = false;
 	            	rec_total += rec_time_s;
 	            	rec_mem_flag = true;
+	            	rec_time_e = sample_gettimeus()-rec_time_s;
+	                dp("Rec Filecnt : %d Time : %lld total : %lld\n", rec_cnt, rec_time_e, rec_total);
+	                rec_each_time[rec_cnt-1] = rec_time_e;
+	                rec_total += rec_time_e;
 	            	streaming_rec_state = REC_STOP;
 	            	mem_full_flag = true;
 	            	streaming_rec_end(CAUSE_MEM);
@@ -3305,14 +3327,12 @@ int clip_total(void) {
 			if (start_time2 == 0)
 					start_time2 = end_time2 = sample_gettimeus();
 			total_time2 = sample_gettimeus() - start_time2;
+			if (start_time3 != 0) {
+				total_time3 = sample_gettimeus() - start_time3;
+			}
 			if (total_time2%10000000 == 0){
 				dp("Rec T:%d time : %lld\n", Rec_type, total_time2);
 			}
-
-			// if ((total_time2 - forced_live) > 3000000) {
-			// 	forced_live = total_time2;
-			// 	device_live(boot_mode);
-			// }
 
 			if (dimming) {
 				dimming_e =  sample_gettimeus() - dimming_s;
@@ -3348,7 +3368,6 @@ int clip_total(void) {
 
 			if (!bell_snap_m && !bell_snap_b && bl_state < BSS_SEND) {
 				bl_state = BSS_SEND;
-				start_time2 = end_time2 = sample_gettimeus();
 				bell_rec_state = REC_START;
 			}
 
@@ -3372,7 +3391,29 @@ int clip_total(void) {
 					// sprintf(file_sep, "/dev/shm/bell_b.jpg");
 					// box_resize("/dev/shm/bell_b.jpg", "dev/shm/bell_b_r.jpg");
 					// spi_send_file_dual(major_buf1, major_buf2, "/dev/shm/bell_m.jpg", "dev/shm/bell_b_r.jpg");
-					spi_send_file_dual(major_buf1, major_buf2, "/dev/shm/bell_m.jpg", "/dev/shm/bell_b.jpg");
+					ret = spi_send_file_dual(major_buf1, major_buf2, "/dev/shm/bell_m.jpg", "/dev/shm/bell_b.jpg");
+					if (ret < 0) {
+						int secss = 0;
+						retry_time = sample_gettimeus();
+						while (1) {
+							if (stream_state == 1) {
+								dp("streaming!!\n");
+								break;
+							}
+							if (send_retry_flag) {
+								spi_send_file_dual(major_buf1, major_buf2, "/dev/shm/bell_m.jpg", "/dev/shm/bell_b.jpg");
+								break;
+							}
+							if ((sample_gettimeus() - retry_time)%1000000 == 0){
+								secss++;
+								dp("sec:%d\n", secss);
+							}
+							if ((sample_gettimeus() - retry_time) > 15000000) {
+								dp("Motion Cap Faile!\n");
+								break;
+							}
+						}
+					}
 				}
 				else {
 					dp("Fail to Dual Bell JPG Send.\n");
@@ -3393,7 +3434,8 @@ int clip_total(void) {
 				if (total_time2 > BELL_TIME_MIN && dimming && !redimming) {
 					dimming = false;
 					gpio_LED_dimming(1);
-					ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
+					if (bellend_sound == 1)
+						ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
 				}
 
 				if (total_time2 > BELL_TIME_MIN && rebell) {
@@ -3455,10 +3497,11 @@ int clip_total(void) {
 					rebell = false;
 				}
 				
-				if ((rec_streaming_state == REC_STOP) && (total_time2 > 5000000)) {
+				if ((rec_streaming_state == REC_STOP) && (total_time2 > 8000000)) {
 					bell_rerecode_flag = true;
 					bell_rec_state = REC_STOP;
 					dp("BELL END:Steaming End! %lld\n", total_time);
+					bell_rec_state =REC_STOP;
 					if (bellend_sound == 2)  {
 		                ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
 		                bellend_sound++;
@@ -3470,15 +3513,34 @@ int clip_total(void) {
 
 				if ((total_time2 > MAX_REC_TIME) && (bell_rec_state == REC_ING) && (bell_rec_state < REC_STOP)) {	// 60Sec Time Over -> Clip Stop
 					bell_rerecode_flag = true;
-					 bell_rec_state = REC_STOP;
+					bell_rec_state = REC_STOP;
+					box_send_flag = true;
 					dp("BELL END:Time Over! %lld\n", total_time);
-					if (bellend_sound == 2)  {
-		                ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
-		                bellend_sound++;
+
+					if (bell_stream_flag == false) {
+						if (start_time3 != 0) {
+							if (total_time3 > BELL_TIME_MIN) {
+								// dp("1 t3:%lld s3:%lld\n", total_time3, start_time3);
+								Rec_type = MAKE_FILE;
+							}
+							else {
+								// dp("2 t3:%lld s3:%lld\n", total_time3, start_time3);
+							}
+						}
+						else {
+							// dp("3 t3:%lld s3:%lld\n", total_time3, start_time3);
+							Rec_type = MAKE_FILE;
+						}
+						// box_snap = true;
 					}
-					else {
-						dp("bellend : %d\n", bellend_sound);
-					}
+
+					// if (bellend_sound == 2)  {
+		            //     ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
+		            //     bellend_sound++;
+					// }
+					// else {
+					// 	dp("bellend : %d\n", bellend_sound);
+					// }
 				}
 
 				if ((total_time2 > TEMP_TIME_MIN) && (temp_flag)) {
@@ -3496,21 +3558,19 @@ int clip_total(void) {
 						bell_rerecode_flag = true;
 						bell_rec_state = REC_STOP;
 						dp("BELL END:Move End! %lld\n", total_time);
-						if (bellend_sound == 2)  {
-			                ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
-			                bellend_sound++;
-						}
-						else {
-							dp("bellend : %d\n", bellend_sound);
-						}
+						
+
+
+
+
 
 						if (bellend_sound == 2)  {
 			                ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
 			                bellend_sound++;
 						}
-						else {
-							dp("bellend : %d\n", bellend_sound);
-						}
+						// else {
+						// 	dp("bellend : %d\n", bellend_sound);
+						// }
 					}
 				}
 				else {
@@ -3518,61 +3578,82 @@ int clip_total(void) {
 				}
 
 				if ((bell_rec_state == REC_STOP) && (bell_stream_flag == false)) {
-					bell_rerecode_flag = true;
-					stream_state = 0;
-					bl_state = BSS_MAKE;
-				}
-			}
-
-			if (bl_state == BSS_MAKE) {
-				// dp("Make File!!\n");
-				if (bell_rec_state == REC_WAIT)
-				{
-					if (bell_rec_state == REC_WAIT) bell_rec_state = REC_MP4MAKE;
-
-					if (total_time2 < 2000000){
-						file_cnt2 = 0;
-					}
-					else if (total_time2 < 23000000) {
-						file_cnt2 = 1;
-					}
-					else if (total_time2 < 43000000) {
-						file_cnt2 = 2;
-					}
-					else if (total_time2 >= 43000000) {
-						file_cnt2 = 3;
-					}
-					dp("Detection End! BELL END. file cnt : %d\n", file_cnt2);
-				}
-				else continue;
-			
-				make_file_start(REC);
-
-				pthread_t tid_makefile;
-
-				if (!bfile_flag) {			
-					if (file_cnt2 > 0) {
-						Make_File mfd2;
-						mfd2.type = 1;
-						mfd2.cnt = file_cnt2;
-						bfile_flag = false;
-						ret = pthread_create(&tid_makefile, NULL, make_mp4_bell,(void*)&mfd2);
-						if(ret != 0) {
-							IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Record_AEC_Thread failed\n", __func__);
-							return -1;
+					if (start_time3 != 0) {
+						// dp("4 t3:%lld s3:%lld\n", total_time3, start_time3);
+						if (total_time3 > BELL_TIME_MIN) {
+							dp("5 t3:%lld s3:%lld\n", total_time3, start_time3);
+							stream_state = 0;
+							bell_rerecode_flag = true;
+							Rec_type = MAKE_FILE;
+							if (bellend_sound == 1)  {
+				                ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
+				                bellend_sound++;
+							}
 						}
+						
 					}
-					else {
-						bfile_flag = true;
+					else if (bell_stream_flag == false) {
+						dp("6 t3:%lld s3:%lld\n", total_time3, start_time3);
+						stream_state = 0;
+						bell_rerecode_flag = true;
+						Rec_type = MAKE_FILE;
 					}
 				}
-
-				while (!bfile_flag) ;
-
-				dp("ReBell end!!\n");
-
-				Rec_type = MAKE_FILE;
 			}
+
+			if (Rec_type == MAKE_FILE) {
+				streaming_rec_state == REC_SENDEND;
+			}
+
+			// if (bl_state == BSS_MAKE) {
+			// 	// dp("Make File!!\n");
+			// 	if (bell_rec_state == REC_WAIT)
+			// 	{
+			// 		if (bell_rec_state == REC_WAIT) bell_rec_state = REC_MP4MAKE;
+
+			// 		if (total_time2 < 2000000){
+			// 			file_cnt2 = 0;
+			// 		}
+			// 		else if (total_time2 < 23000000) {
+			// 			file_cnt2 = 1;
+			// 		}
+			// 		else if (total_time2 < 43000000) {
+			// 			file_cnt2 = 2;
+			// 		}
+			// 		else if (total_time2 >= 43000000) {
+			// 			file_cnt2 = 3;
+			// 		}
+			// 		dp("Detection End! BELL END. file cnt : %d\n", file_cnt2);
+			// 	}
+			// 	else continue;
+			
+			// 	make_file_start(REC);
+
+			// 	pthread_t tid_makefile;
+
+			// 	if (!bfile_flag) {			
+			// 		if (file_cnt2 > 0) {
+			// 			Make_File mfd2;
+			// 			mfd2.type = 1;
+			// 			mfd2.cnt = file_cnt2;
+			// 			bfile_flag = false;
+			// 			ret = pthread_create(&tid_makefile, NULL, make_mp4_bell,(void*)&mfd2);
+			// 			if(ret != 0) {
+			// 				IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create IMP_Audio_Record_AEC_Thread failed\n", __func__);
+			// 				return -1;
+			// 			}
+			// 		}
+			// 		else {
+			// 			bfile_flag = true;
+			// 		}
+			// 	}
+
+			// 	while (!bfile_flag) ;
+
+			// 	dp("ReBell end!!\n");
+
+			// 	Rec_type = MAKE_FILE;
+			// }
 		}
 	}while(1);
 
@@ -3956,6 +4037,10 @@ int stream_total(int mode) {
             	rec_total += rec_time_s;
             	rec_mem_flag = true;
             	streaming_rec_state = REC_STOP;
+            	rec_time_e = sample_gettimeus()-rec_time_s;
+                dp("Rec Filecnt : %d Time : %lld total : %lld\n", rec_cnt, rec_time_e, rec_total);
+                rec_each_time[rec_cnt-1] = rec_time_e;
+                rec_total += rec_time_e;
             	streaming_rec_end(CAUSE_MEM);
             	// stream_state = 0;
 			}

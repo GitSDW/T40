@@ -415,6 +415,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             // clip_cause_t.Minor = CLIP_BOX_OCCUR;
             // bell_rec_state = REC_START;
 
+            // dp("0-1 bell : %d\n", bellend_sound);
             if (bellend_sound == 0) bellend_sound++;
 
             if (stream_state == 1) {
@@ -458,6 +459,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             bell_flag = true;
             bell_call_flag = false;
             ack_len = 0;
+            if (bellend_sound == 0) bellend_sound++;
             // ack_flag = true;
         break;
         case UREC_RETRY:
@@ -612,27 +614,30 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             }
             else {
                 dp("Streaming Rec End!\n");
-                rec_time_e = sample_gettimeus()-rec_time_s;
-                dp("Rec Filecnt : %d Time : %lld total : %lld\n", rec_cnt, rec_time_e, rec_total);
-                rec_each_time[rec_cnt-1] = rec_time_e;
-                rec_total += rec_time_e;
-                streaming_rec_state = REC_STOP;
-                rec_on = false;
-                ao_clear_flag = true;
-                ack_len = 0;
-                audio_spi_flag = false;
+                if (rec_cnt > 0) {
+                    rec_time_e = sample_gettimeus()-rec_time_s;
+                    dp("Rec Filecnt : %d Time : %lld total : %lld\n", rec_cnt, rec_time_e, rec_total);
+                    if (rec_each_time[rec_cnt-1] == 0) {
+                        rec_each_time[rec_cnt-1] = rec_time_e;
+                        rec_total += rec_time_e;
+                    }
+                    streaming_rec_state = REC_STOP;
+                    rec_on = false;
+                    ao_clear_flag = true;
+                    ack_len = 0;
+                    audio_spi_flag = false;
 
-                if (bellend_sound == 1) bellend_sound++;
-                
-                if (rec_total > 57000000) {
-                    usleep(10*1000);
-                    streaming_rec_end(CAUSE_MEM);
+                    if (bellend_sound == 1) bellend_sound++;
+                    
+                    if (rec_total > 57000000) {
+                        usleep(10*1000);
+                        streaming_rec_end(CAUSE_MEM);
+                    }
+                    else if (rec_cnt >= 9) {
+                        usleep(10*1000);
+                        streaming_rec_end(CAUSE_FILE);
+                    }
                 }
-                else if (rec_cnt >= 9) {
-                    usleep(10*1000);
-                    streaming_rec_end(CAUSE_FILE);
-                }
-
             }
             ack_len = 0;
             // ack_flag = true;
@@ -689,6 +694,12 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         break;
         case USTREAM_F_SEND:
             stream_state = 0;
+            // if (streaming_rec_state < REC_STOP) {
+            //     rec_time_e = sample_gettimeus()-rec_time_s;
+            //     dp("Rec Filecnt : %d Time : %lld total : %lld\n", rec_cnt, rec_time_e, rec_total);
+            //     rec_each_time[rec_cnt-1] = rec_time_e;
+            //     rec_total += rec_time_e;
+            // }
             rec_streaming_state = REC_STOP;
             bell_stream_flag = false;
             ack_len = 0;

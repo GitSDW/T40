@@ -9,6 +9,7 @@ extern "C" {
 int move_init(IMPCell source_framecell);
 int move(void);
 int move_deinit(IMPCell source_framecell);
+int get_parm(void);
 
 #if __cplusplus
 }
