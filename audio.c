@@ -1232,7 +1232,7 @@ void *IMP_Audio_Play_Thread_pcm(void *argv)
 					amp_f = true;
 					amp_on();
 					Set_Mute(1);
-					Set_Vol(90,25,get_out_vol,get_out_gain);
+					Set_Vol(90,30,get_out_vol,get_out_gain);
 				}
 				amp_c++;
 			}
@@ -1524,7 +1524,7 @@ void ao_file_play_thread(void *argv)
 				amp_f = true;
 				amp_on();
 				Set_Mute(1);
-				Set_Vol(90,25,get_out_vol,get_out_gain);
+				Set_Vol(90,30,get_out_vol,get_out_gain);
 			}
 			amp_c++;
 		}
@@ -1533,7 +1533,7 @@ void ao_file_play_thread(void *argv)
 				play_status.chnTotalNum, play_status.chnFreeNum, play_status.chnBusyNum);
 	}while (1);
 
-	Set_Vol(90,25,spk_vol_buf,spk_gain_buf);
+	Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
 
 	dp("[Audio File] Thread End!\n");
 	fclose(play_file);
@@ -1811,7 +1811,7 @@ void IMP_Audio_Test_Out_Thread(void)
 				play_status.chnTotalNum, play_status.chnFreeNum, play_status.chnBusyNum);
 	}while (1);
 
-	Set_Vol(90,25,spk_vol_buf,spk_gain_buf);
+	Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
 
 	dp("[Audio File] Thread End!\n");
 	fclose(play_file);

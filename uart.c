@@ -447,19 +447,28 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 get_audio = true;
                 // if (rbuff[index+9] > 0)     dn_g726_falg = false;
                 // else                        dn_g726_falg = true;
-                dn_g726_falg = true;
+                dn_g726_falg = false;
             }
 
             ao_file_play_thread(effect_file);
         break;
         case UREC_BELL_MUTE:
-            // clip_cause_t.Major = CLIP_CAUSE_BOX;
-            // clip_cause_t.Minor = CLIP_BOX_OCCUR;
-            // bell_rec_state = REC_START;
-            bell_flag = true;
-            bell_call_flag = false;
-            ack_len = 0;
             if (bellend_sound == 0) bellend_sound++;
+            ack_len = 0;
+            if (av_off_flag) {
+                if (bl_state == BSS_WAIT) {
+                    dp("Mute Bell Flag!!\n");
+                    bell_flag = true;
+                    bell_call_flag = false;
+                }
+            }
+
+            if (!get_audio) {
+                get_audio = true;
+                // if (rbuff[index+9] > 0)     dn_g726_falg = false;
+                // else                        dn_g726_falg = true;
+                dn_g726_falg = false;
+            }
             // ack_flag = true;
         break;
         case UREC_RETRY:
@@ -478,7 +487,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         case UREC_STREAM:
             if (boot_mode == 1) {
                 #ifndef __STREAMING_CMD__
-                    Set_Vol(90,25,spk_vol_buf,spk_gain_buf);
+                    Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
                 #endif
                 stream_state = 1;
                 rec_streaming_state = REC_START;
@@ -530,7 +539,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             else if (rbuff[index+9] == 1)
                 effect_file = "/tmp/mnt/sdcard/effects/dev_takeon.wav";
             dp("play : %s\n", effect_file);
-            Set_Vol(90,25,(10 * 1) + 55,15);
+            Set_Vol(90,30,(10 * 1) + 55,15);
             ao_file_play_thread(effect_file);
 
             // clip_cause_t.Major = CLIP_CAUSE_MOUNT;
@@ -660,14 +669,14 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             }
             else {
                 #ifndef __STREAMING_CMD__
-                    Set_Vol(90,25,spk_vol_buf,spk_gain_buf);
+                    Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
                 #endif
                 rec_time_s = sample_gettimeus();
                 // if (boot_mode == 0x01) {
                 //     Rec_type = STRM_REC;
                 // }
                 audio_spi_flag = true;
-                if (Rec_type == BELL_REC) {
+                if (Rec_type == BELL_REC || Rec_type == BELL_REREC) {
                      bell_call_flag = true;
                 }
                 else {
@@ -928,7 +937,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         break;
         case SET_FACTORY:
             Setting_Reinit();
-            Set_Vol(90,25,(10 * 1) + 55,15);
+            Set_Vol(90,30,(10 * 1) + 55,15);
             effect_file = "/tmp/mnt/sdcard/effects/factory.wav";
             dp("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
@@ -947,14 +956,14 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             gpio_LED_dimming(cmdbuf);
             if (rbuff[index+9] == 1) {
                 ao_file_play_thread_mute("/tmp/mnt/sdcard/effects/pairing.wav");
-                Set_Vol(90,25,(10 * 1) + 55,15);
+                Set_Vol(90,30,(10 * 1) + 55,15);
                 effect_file = "/tmp/mnt/sdcard/effects/dev_start.wav";
                 dp("play : %s\n", effect_file);
                 ao_file_play_thread(effect_file);
             }
             else if (rbuff[index+9] == 2) {
                 ao_file_play_thread_mute("/tmp/mnt/sdcard/effects/pairing.wav");
-                Set_Vol(90,25,(10 * 1) + 55,15);
+                Set_Vol(90,30,(10 * 1) + 55,15);
                 effect_file = "/tmp/mnt/sdcard/effects/pairing.wav";
                 dp("play : %s\n", effect_file);
                 ao_file_play_thread(effect_file);
@@ -972,7 +981,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         case SET_DEV_START:
             ack_len = 0;
             // ack_flag = true;
-            Set_Vol(90,25,(10 * 1) + 55,15);
+            Set_Vol(90,30,(10 * 1) + 55,15);
             effect_file = "/tmp/mnt/sdcard/effects/dev_start.wav";
             dp("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
@@ -982,7 +991,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         case SET_DEV_OFF:
             ack_len = 0;
             // ack_flag = true;
-            Set_Vol(90,25,(10 * 1) + 55,15);
+            Set_Vol(90,30,(10 * 1) + 55,15);
             effect_file = "/tmp/mnt/sdcard/effects/dev_end.wav";
             dp("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
@@ -1123,7 +1132,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         break;
         case TEST_SPK:
             dp("Sound Test For 1KHz.\n");
-            Set_Vol(90,25,spk_vol_buf,spk_gain_buf);
+            Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
             effect_file = "/tmp/mnt/sdcard/effects/dev_takeoff.wav";
             dp("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);

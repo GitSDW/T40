@@ -413,8 +413,6 @@ void *fdpd_thread(void *args)
             // now_time = (sample_gettimeus() - start_time)/1000; // msec
             face_num = 0;
             person_num = 0;
-            fdpd_ck = true;
-            // dp("fdpd Check \n", fdpd_ck);
             for (i = 0; i < r->count; i++) {
                 if(i < r->count) {
                     int class_id = r->faceperson[i].class_id;   // 0 : face 1: person(body)
@@ -435,6 +433,65 @@ void *fdpd_thread(void *args)
                     // dp("confidence:%f\n", confidence);
 
                     // dp("x:%d, y:%d, w:%d h:%d confidence:%f\n", fdpd_data[i].ul_x, fdpd_data[i].ul_y, (fdpd_data[i].br_x-fdpd_data[i].ul_x), (fdpd_data[i].br_y-fdpd_data[i].ul_y), fdpd_data[i].confidence);
+
+                    if(class_id == 0 && confidence > 0) {
+                        if ( ((fdpd_data[i].ul_x >= move_det_xs && fdpd_data[i].ul_x <= move_det_xe) && 
+                              (fdpd_data[i].ul_y >= move_det_ys && fdpd_data[i].ul_y <= move_det_ye)) &&
+                             ((fdpd_data[i].br_x >= move_det_xs && fdpd_data[i].br_x <= move_det_xe) && 
+                              (fdpd_data[i].br_y >= move_det_ys && fdpd_data[i].br_y <= move_det_ye)) ) {
+                            // face_num++;
+                        }
+                        else {
+                            face_num++;
+                        }
+                        // dp("x:%d, y:%d, w:%d h:%d confidence:%f\n", fdpd_data[i].ul_x, fdpd_data[i].ul_y, (fdpd_data[i].br_x-fdpd_data[i].ul_x), (fdpd_data[i].br_y-fdpd_data[i].ul_y), fdpd_data[i].confidence);
+                        // dp("fdpd cnt: %d/%d class : %d track %d confidence : %f x : %d y : %d\n"
+                            // , i, r->count, class_id, track_id, confidence, fdpd_data[i].ul_x, fdpd_data[i].ul_y);
+                        // dp("fr:%d confidence:%f thumbnail_snap:%d\n", fr_state, confidence, thumbnail_snap);
+                        #if 0
+                        // if ((fr_state == 1 && track_id > 0 && confidence > 0.85) &&
+                        // if ((fr_state == FR_START && confidence > 0.90 && !thumbnail_snap) &&
+                        //     (((fdpd_data[i].ul_x+fdpd_data[i].br_x)/2) > 200) &&
+                        //     (((fdpd_data[i].ul_x+fdpd_data[i].br_x)/2) < 1920 - 100) &&
+                        //     (((fdpd_data[i].ul_y+fdpd_data[i].br_y)/2) > 200) &&
+                        //     (((fdpd_data[i].ul_y+fdpd_data[i].br_y)/2) < 1080 - 100) &&
+                        //     (face_track[0] != fdpd_data[i].trackid) &&
+                        //     (face_track[1] != fdpd_data[i].trackid) &&
+                        //     (face_track[2] != fdpd_data[i].trackid) &&
+                        //     (face_track[3] != fdpd_data[i].trackid) &&
+                        //     (face_track[4] != fdpd_data[i].trackid))
+                        #endif
+
+                        #if 0
+                        // if ( (fr_state == FR_START && confidence > 0.90 && !thumbnail_snap) &&
+                        //     (((fdpd_data[i].ul_x+fdpd_data[i].br_x)/2) > 200) &&
+                        //     (((fdpd_data[i].ul_x+fdpd_data[i].br_x)/2) < 1920 - 200) &&
+                        //     (((fdpd_data[i].ul_y+fdpd_data[i].br_y)/2) > 200) &&
+                        //     (((fdpd_data[i].ul_y+fdpd_data[i].br_y)/2) < 1080 - 200) )
+                        #endif
+
+                        if ( (fr_state == FR_START && confidence > 0.85 && !thumbnail_snap) && ((fdpd_data[i].br_x-fdpd_data[i].ul_x) > 100) ) 
+                        {
+                            fr_state++;
+                            facial_data.flag = fdpd_data[i].flag;
+                            facial_data.classid = fdpd_data[i].classid;
+                            facial_data.trackid = fdpd_data[i].trackid;
+                            // face_track[face_crop_cnt] = facial_data.trackid;
+                            facial_data.confidence = fdpd_data[i].confidence;
+                            facial_data.ul_x = fdpd_data[i].ul_x;
+                            facial_data.ul_y = fdpd_data[i].ul_y;
+                            facial_data.br_x = fdpd_data[i].br_x;
+                            facial_data.br_y = fdpd_data[i].br_y;
+                            face_snap = true;
+                            dp("**************************************x:%d, y:%d, confidence:%f\n", facial_data.ul_x, facial_data.ul_y, facial_data.confidence);
+                        }
+                    }
+                    else { 
+                        if(r->faceperson[i].class_id == 1) {
+                            person_num++;
+                        }
+                    }
+                    
 
                     if (fdpd_data[i].classid == 0 && Mosaic_En) {
                         #if 0
@@ -553,63 +610,7 @@ void *fdpd_thread(void *args)
                     // dp("fdpd cnt: %d/%d class : %d track %d confidence : %f \n", i, r->count, class_id, track_id, confidence);
                     // dp("x:%d, y:%d, w:%d h:%d confidence:%f\n", fdpd_data[i].ul_x, fdpd_data[i].ul_y, (fdpd_data[i].br_x-fdpd_data[i].ul_x), (fdpd_data[i].br_y-fdpd_data[i].ul_y), fdpd_data[i].confidence);
                 
-                    if(class_id == 0 && confidence > 0) {
-                        if ( ((fdpd_data[i].ul_x >= move_det_xs && fdpd_data[i].ul_x <= move_det_xe) && 
-                              (fdpd_data[i].ul_y >= move_det_ys && fdpd_data[i].ul_y <= move_det_ye)) &&
-                             ((fdpd_data[i].br_x >= move_det_xs && fdpd_data[i].br_x <= move_det_xe) && 
-                              (fdpd_data[i].br_y >= move_det_ys && fdpd_data[i].br_y <= move_det_ye)) ) {
-                            // face_num++;
-                        }
-                        else {
-                            face_num++;
-                        }
-                        // dp("x:%d, y:%d, w:%d h:%d confidence:%f\n", fdpd_data[i].ul_x, fdpd_data[i].ul_y, (fdpd_data[i].br_x-fdpd_data[i].ul_x), (fdpd_data[i].br_y-fdpd_data[i].ul_y), fdpd_data[i].confidence);
-                        // dp("fdpd cnt: %d/%d class : %d track %d confidence : %f x : %d y : %d\n"
-                            // , i, r->count, class_id, track_id, confidence, fdpd_data[i].ul_x, fdpd_data[i].ul_y);
-                        // dp("fr:%d confidence:%f thumbnail_snap:%d\n", fr_state, confidence, thumbnail_snap);
-                        #if 0
-                        // if ((fr_state == 1 && track_id > 0 && confidence > 0.85) &&
-                        // if ((fr_state == FR_START && confidence > 0.90 && !thumbnail_snap) &&
-                        //     (((fdpd_data[i].ul_x+fdpd_data[i].br_x)/2) > 200) &&
-                        //     (((fdpd_data[i].ul_x+fdpd_data[i].br_x)/2) < 1920 - 100) &&
-                        //     (((fdpd_data[i].ul_y+fdpd_data[i].br_y)/2) > 200) &&
-                        //     (((fdpd_data[i].ul_y+fdpd_data[i].br_y)/2) < 1080 - 100) &&
-                        //     (face_track[0] != fdpd_data[i].trackid) &&
-                        //     (face_track[1] != fdpd_data[i].trackid) &&
-                        //     (face_track[2] != fdpd_data[i].trackid) &&
-                        //     (face_track[3] != fdpd_data[i].trackid) &&
-                        //     (face_track[4] != fdpd_data[i].trackid))
-                        #endif
-
-                        #if 0
-                        // if ( (fr_state == FR_START && confidence > 0.90 && !thumbnail_snap) &&
-                        //     (((fdpd_data[i].ul_x+fdpd_data[i].br_x)/2) > 200) &&
-                        //     (((fdpd_data[i].ul_x+fdpd_data[i].br_x)/2) < 1920 - 200) &&
-                        //     (((fdpd_data[i].ul_y+fdpd_data[i].br_y)/2) > 200) &&
-                        //     (((fdpd_data[i].ul_y+fdpd_data[i].br_y)/2) < 1080 - 200) )
-                        #endif
-
-                        if ( (fr_state == FR_START && confidence > 0.85 && !thumbnail_snap) && ((fdpd_data[i].br_x-fdpd_data[i].ul_x) > 100) ) 
-                        {
-                            fr_state++;
-                            facial_data.flag = fdpd_data[i].flag;
-                            facial_data.classid = fdpd_data[i].classid;
-                            facial_data.trackid = fdpd_data[i].trackid;
-                            // face_track[face_crop_cnt] = facial_data.trackid;
-                            facial_data.confidence = fdpd_data[i].confidence;
-                            facial_data.ul_x = fdpd_data[i].ul_x;
-                            facial_data.ul_y = fdpd_data[i].ul_y;
-                            facial_data.br_x = fdpd_data[i].br_x;
-                            facial_data.br_y = fdpd_data[i].br_y;
-                            face_snap = true;
-                            dp("**************************************x:%d, y:%d, confidence:%f\n", facial_data.ul_x, facial_data.ul_y, facial_data.confidence);
-                        }
-                    }
-                    else { 
-                        if(r->faceperson[i].class_id == 1) {
-                            person_num++;
-                        }
-                    }
+                    
                 }
                 else{
                     fdpd_data[i].flag = false;

@@ -253,6 +253,8 @@ void *unused_pin_low(void *argc) {
 			}
 		gpio_active_low(k) ;
 	}
+
+	return 0;
 }
 
 int gpio_init(void) {
@@ -373,7 +375,7 @@ void amp_on(void) {
 			dp("Fail set Value GPIO : %d\n", PORTD+21);
 		}
 
-		// Set_Vol(90,25,spk_vol_buf,spk_gain_buf);
+		// Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
 		en_ck = true;
 		dp("Set AMP On!\n");
 	}
@@ -388,7 +390,7 @@ void amp_off(void) {
 			dp("Fail set Value GPIO : %d\n", PORTD+21);
 		}
 
-		// Set_Vol(90,25,spk_vol_buf,spk_gain_buf);
+		// Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
 		en_ck = false;
 		dp("Set AMP On!\n");
 	}
@@ -1064,7 +1066,7 @@ int main(int argc, char **argv) {
 		// dp("Move Ex : %d %d %d %d\n", move_det_xs, move_det_ys, move_det_xe, move_det_ye);
     }
 
-    Set_Vol(90,25,spk_vol_buf,spk_gain_buf);
+    Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
 
 
 
@@ -1183,7 +1185,7 @@ int main(int argc, char **argv) {
 	            else if (ao_index == 5) effect_file = "/tmp/mnt/sdcard/effects/test5.wav";
 	            dp("play : %s\n", effect_file);
 	            for (int a=0; a<play_cnt; a++) {
-	            	Set_Vol(90,25,ao_vol,ao_gain);
+	            	Set_Vol(90,30,ao_vol,ao_gain);
 	            	ao_file_play_thread(effect_file);
 	            }
 	            dp("Audio Out Test End!!\n");
@@ -1274,7 +1276,7 @@ int main(int argc, char **argv) {
 
 				dp("cmd 7  Sound Test For 1KHz.\n");
 
-				Set_Vol(90,25,spk_vol_buf,spk_gain_buf);
+				Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
 
 				effect_file = "/tmp/mnt/sdcard/effects/test6.wav";
 	            
@@ -1714,7 +1716,6 @@ int clip_total(void) {
 	int64_t end_time = 0, total_time = 0;
 	int64_t start_time2 = 0, end_time2 = 0, total_time2 = 0;
 	int64_t start_time3 = 0, total_time3 = 0;
-	int64_t forced_live = 0;
 	// char file_path[128] = {0};
 	char file_sep[100] = {0};
 	int file_each_cnt[10] = {0};
@@ -1729,7 +1730,6 @@ int clip_total(void) {
     pthread_t tid_stream, tid_snap, tid_move, tim_osd, tid_fdpd;
     pthread_t tid_uart, tid_live;
     pthread_t tid_vmod;
-    pthread_t tid_dimming;
 
     int64_t make_start = 0;
 
@@ -1888,7 +1888,7 @@ int clip_total(void) {
 				Rec_type = CLIP_REC;
 				end_time = start_time + START_CHECK_TIME;
 				ExpVal = Get_Brightness();
-				set_parm_end();
+				
 				if (settings.SF.bits.led) {
 				    if (ExpVal > 30000) { // Noh Change 1000 -> 10000 20240530 -> 70000 20240712
 			    		gpio_LED_Set(1);
@@ -1998,7 +1998,7 @@ int clip_total(void) {
 									}
 								}
 								#ifdef __PHILL_REQ__
-									Set_Vol(90,25,spk_vol_buf,spk_gain_buf);
+									Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
 					            	ao_file_play_thread("/tmp/mnt/sdcard/effects/bell4.wav");
 					            #endif
 							}
@@ -2032,12 +2032,13 @@ int clip_total(void) {
 										}
 									}
 								}
+								set_parm_end();
 								bLiveFile = false;
 
 								if (face_crop_cnt > 0) {
 									// system("cp /dev/shm/face*.jpg /tmp/mnt/sdcard");
 									// #ifdef __PHILL_REQ__
-									// 	Set_Vol(90,25,spk_vol_buf,spk_gain_buf);
+									// 	Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
 						            // 	ao_file_play_thread("/tmp/mnt/sdcard/effects/bell1.wav");
 						            // #endif
 								}
@@ -2301,8 +2302,7 @@ int clip_total(void) {
 
 					stream_state = 1;
 					// data_sel = 4;
-
-					
+					box_send_flag = true;
 
 					bl_state = BSS_END;
 				}
@@ -2404,7 +2404,7 @@ int clip_total(void) {
 					if ((total_time2 > MAX_REC_TIME) && (bell_rec_state == REC_ING) && (bell_rec_state < REC_STOP)) {	// 60Sec Time Over -> Clip Stop
 						bell_rerecode_flag = true;
 						bell_rec_state = REC_STOP;
-						box_send_flag = true;
+						
 						dp("BELL END:Time Over! %lld\n", total_time2);
 						
 						// dp("0:%d t3:%lld s3:%lld\n", bell_stream_flag, total_time3, start_time3);
@@ -2444,7 +2444,7 @@ int clip_total(void) {
 						}
 					}
 
-					if ((total_time2 > BELL_TIME_MIN) && (person_cnt == 0) && (main_motion_detect == 0) && (bell_rec_state < REC_STOP)) {
+					if ((total_time2 > BELL_TIME_MIN) && (person_cnt == 0) && (main_motion_detect == 0) && (bell_rec_state < REC_STOP) && (bellend_sound == 1)) {
 						if ((sample_gettimeus() - end_time2) > CLIP_CLOSE_TIME) {
 							bell_rerecode_flag = true;
 							dp("BELL END:Move End! %lld\n", total_time2);
@@ -3492,6 +3492,7 @@ int clip_total(void) {
 					bLiveFile = false;
 
 					stream_state = 1;
+					box_send_flag = true;
 				}
 				else {
 					rebell = false;
@@ -3514,7 +3515,7 @@ int clip_total(void) {
 				if ((total_time2 > MAX_REC_TIME) && (bell_rec_state == REC_ING) && (bell_rec_state < REC_STOP)) {	// 60Sec Time Over -> Clip Stop
 					bell_rerecode_flag = true;
 					bell_rec_state = REC_STOP;
-					box_send_flag = true;
+					
 					dp("BELL END:Time Over! %lld\n", total_time);
 
 					if (bell_stream_flag == false) {
@@ -3553,7 +3554,7 @@ int clip_total(void) {
 					}
 				}
 
-				if ((total_time2 > BELL_TIME_MIN) && (person_cnt == 0) && (main_motion_detect == 0) && (bell_rec_state < REC_STOP)) {
+				if ((total_time2 > BELL_TIME_MIN) && (person_cnt == 0) && (main_motion_detect == 0) && (bell_rec_state < REC_STOP) && (bellend_sound == 1)) {
 					if ((sample_gettimeus() - end_time2) > CLIP_CLOSE_TIME) {
 						bell_rerecode_flag = true;
 						bell_rec_state = REC_STOP;
@@ -3602,7 +3603,7 @@ int clip_total(void) {
 			}
 
 			if (Rec_type == MAKE_FILE) {
-				streaming_rec_state == REC_SENDEND;
+				streaming_rec_state = REC_SENDEND;
 			}
 
 			// if (bl_state == BSS_MAKE) {

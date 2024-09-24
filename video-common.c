@@ -1999,8 +1999,8 @@ static int save_stream(int fd, IMPEncoderStream *stream)
 	return 0;
 }
 
-int32_t main_frame_cnt = 0;
-int32_t bott_frame_cnt = 0;
+int32_t main1_frame_cnt = 0;
+int32_t bott2_frame_cnt = 0;
 
 static int save_stream1(int fd, IMPEncoderStream *stream, int ch)
 {
@@ -2037,7 +2037,7 @@ static int save_stream1(int fd, IMPEncoderStream *stream, int ch)
 	}
 
 	#ifdef __FRAME_SYNC__
-		if (bott_frame_cnt < (main_frame_cnt-10) && (stream->pack[nr_pack-1].sliceType != IMP_ENC_SLICE_I)) {
+		if (bott2_frame_cnt < (main1_frame_cnt-10) && (stream->pack[nr_pack-1].sliceType != IMP_ENC_SLICE_I)) {
 	 		// return 0;
 	 		if (!frm_sync) {
 	 			frm_sync = true;
@@ -2051,13 +2051,13 @@ static int save_stream1(int fd, IMPEncoderStream *stream, int ch)
 	 			frm_sync = false;
 	 		}
 	 	}
-	 	main_frame_cnt++;
+	 	main1_frame_cnt++;
 
 	 	
 	 #endif
 
-	if (main_frame_cnt < bott_frame_cnt) {
- 		frame_ck = main_frame_cnt;
+	if (main1_frame_cnt < bott2_frame_cnt) {
+ 		frame_ck = main1_frame_cnt;
  	}
 
   	//IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u start----------\n", stream->packCount, stream->seq);
@@ -2135,7 +2135,7 @@ static int save_stream2(int fd, IMPEncoderStream *stream, int ch)
 	}
 
 	#ifdef __FRAME_SYNC__
-	 	if (main_frame_cnt < (bott_frame_cnt-10) && (stream->pack[nr_pack-1].sliceType != IMP_ENC_SLICE_I)) {
+	 	if (main1_frame_cnt < (bott2_frame_cnt-10) && (stream->pack[nr_pack-1].sliceType != IMP_ENC_SLICE_I)) {
 	 		// return 0;
 	 		if (!frm_sync) {
 	 			frm_sync = true;
@@ -2149,13 +2149,13 @@ static int save_stream2(int fd, IMPEncoderStream *stream, int ch)
 	 			frm_sync = false;
 	 		}
 	 	}
-	 	bott_frame_cnt++;
+	 	bott2_frame_cnt++;
 
 	 	
 	 #endif
 
-	if (bott_frame_cnt < main_frame_cnt) {
- 		frame_ck = bott_frame_cnt;
+	if (bott2_frame_cnt < main1_frame_cnt) {
+ 		frame_ck = bott2_frame_cnt;
  	}
 	
   	//IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u start----------\n", stream->packCount, stream->seq);
@@ -2194,11 +2194,17 @@ static int save_stream2(int fd, IMPEncoderStream *stream, int ch)
 	return 0;
 }
 
+int32_t main3_frame_cnt = 0;
+int32_t bott4_frame_cnt = 0;
+
 static int save_stream3(int fd, IMPEncoderStream *stream, int ch)
 {
 	int ret, i, nr_pack = stream->packCount;
 	static bool start_flag = false;
 	static int old_cnt = -1;
+	#ifdef __FRAME_SYNC__
+		static bool frm_sync = false;
+	#endif
 
 	if (old_cnt != rec_cnt) {
 		// dp("3 new file!\n");
@@ -2221,6 +2227,31 @@ static int save_stream3(int fd, IMPEncoderStream *stream, int ch)
 			return 0;
 		}
 	}
+
+	#ifdef __FRAME_SYNC__
+		if (bott4_frame_cnt < (main3_frame_cnt-10) && (stream->pack[nr_pack-1].sliceType != IMP_ENC_SLICE_I)) {
+	 		// return 0;
+	 		if (!frm_sync) {
+	 			frm_sync = true;
+	 		}
+	 	}
+	 	if (frm_sync) {
+	 		if (stream->pack[nr_pack-1].sliceType != IMP_ENC_SLICE_I) {
+	 			return 0;
+	 		}
+	 		else {
+	 			frm_sync = false;
+	 		}
+	 	}
+	 	main3_frame_cnt++;
+
+	 	
+	#endif
+
+	if (main3_frame_cnt < bott4_frame_cnt) {
+ 		frame_ck2 = main3_frame_cnt;
+ 	}
+
  
  	
   //IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u start----------\n", stream->packCount, stream->seq);
@@ -2262,6 +2293,9 @@ static int save_stream4(int fd, IMPEncoderStream *stream, int ch)
 	int ret, i, nr_pack = stream->packCount;
 	static bool start_flag = false;
 	static int old_cnt = -1;
+	#ifdef __FRAME_SYNC__
+		static bool frm_sync = false;
+	#endif
 
 	if (old_cnt != rec_cnt) {
 		dp("2 new file!\n");
@@ -2284,6 +2318,30 @@ static int save_stream4(int fd, IMPEncoderStream *stream, int ch)
 			return 0;
 		}
 	}
+
+	#ifdef __FRAME_SYNC__
+	 	if (main3_frame_cnt < (bott4_frame_cnt-10) && (stream->pack[nr_pack-1].sliceType != IMP_ENC_SLICE_I)) {
+	 		// return 0;
+	 		if (!frm_sync) {
+	 			frm_sync = true;
+	 		}
+	 	}
+	 	if (frm_sync) {
+	 		if (stream->pack[nr_pack-1].sliceType != IMP_ENC_SLICE_I) {
+	 			return 0;
+	 		}
+	 		else {
+	 			frm_sync = false;
+	 		}
+	 	}
+	 	bott4_frame_cnt++;
+
+	 	
+	#endif
+
+	if (bott4_frame_cnt < main3_frame_cnt) {
+ 		frame_ck = bott4_frame_cnt;
+ 	}
  
   //IMP_LOG_DBG(TAG, "----------packCount=%d, stream->seq=%u start----------\n", stream->packCount, stream->seq);
 	for (i = 0; i < nr_pack; i++) {
@@ -2810,7 +2868,7 @@ static void *get_video_stream_user(void *args)
 			// if (bfm_cnt%20 == 0) dp("Bottom polling : %d\n", bfm_cnt);
 		}
 
-		if (stream_state == 1) {
+		if (stream_state == 1 && fdpd_En) {
 			if (chnNum == 0) Send_Frame_Main_UDP(&stream);
 			else if (chnNum == 3) Send_Frame_Box_UDP(&stream);
 		}
