@@ -13,7 +13,7 @@ extern "C" {
 #ifndef __PHILL_REQ__
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"b"
-	#define CAHR_VER	"o"
+	#define CAHR_VER	"s"
 #else
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"z"	
@@ -160,6 +160,7 @@ typedef struct FDPD_DATA
 	int ul_y;
 	int br_x;
 	int br_y;
+	int cnt;
 } Fdpd_Data_t;
 
 int face_cnt_mosaic;
@@ -253,6 +254,7 @@ int64_t rec_each_time[10];
 int64_t audio_timeout;
 int64_t mosaic_time[10];
 int64_t frame_ck, frame_ck2;
+int64_t cap_test_time;
 
 int stream_state;
 int thumbnail_state;
@@ -341,6 +343,7 @@ bool bBLed;
 bool ao_clear_flag;
 bool rebell;
 bool bMove, move_start_flag;
+bool face_end_f[5];
 
 
 extern int bExit;

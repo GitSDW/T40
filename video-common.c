@@ -3534,7 +3534,8 @@ static void *sample_get_jpeg_snap(void *args)
 
 			if (thumbnail_snap) {
 				for (i=0;i<10;i++){
-					if (fdpd_data[i].flag && fdpd_data[i].classid == 0 && fdpd_data[i].trackid >= 0)
+					// if (fdpd_data[i].flag && fdpd_data[i].classid == 0 && fdpd_data[i].trackid >= 0)
+					if (fdpd_data[i].flag && fdpd_data[i].classid == 0)
 						thum_face_data.flag[i] = fdpd_data[i].flag;
 					thum_face_data.flag[i] = false;
 					thum_face_data.x[i] = fdpd_data[i].ul_x;
@@ -3553,7 +3554,7 @@ static void *sample_get_jpeg_snap(void *args)
 		if (face_snap && chnNum == 2) {
 			memset(snap_path, 0, 64);
 			if(face_snap) {
-				sprintf(snap_path, "%s/face.jpg",SNAP_FILE_PATH_PREFIX);
+				sprintf(snap_path, "%s/face%d.jpg",SNAP_FILE_PATH_PREFIX, facial_data.cnt);
 			}
 			IMP_LOG_ERR(TAG, "Open Snap file %s ", snap_path);
 			int snap_fd = open(snap_path, O_RDWR | O_CREAT | O_TRUNC, 0777);
@@ -3571,6 +3572,7 @@ static void *sample_get_jpeg_snap(void *args)
 			close(snap_fd);
 			face_snap = false;
 			fr_state++;
+
 		}
 
 		if (bell_snap_m && chnNum == 2) {

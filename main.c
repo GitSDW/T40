@@ -192,6 +192,9 @@ int global_value_init(void) {
 	bMove = false;
 	move_start_flag = false;
 
+	for(i=0;i<5;i++){
+		face_end_f[i] = false;
+	}
 	for(i=0;i<10;i++){
 		fdpd_data[i].flag = false;
         fdpd_data[i].classid = 0;
@@ -1730,6 +1733,7 @@ int clip_total(void) {
     pthread_t tid_stream, tid_snap, tid_move, tim_osd, tid_fdpd;
     pthread_t tid_uart, tid_live;
     pthread_t tid_vmod;
+    pthread_t tid_facecap[5];
 
     int64_t make_start = 0;
 
@@ -1740,6 +1744,7 @@ int clip_total(void) {
     bool redimming = false;
     bool thum_send_flag = false;
 
+    int64_t face_test_t = 0;
 
     // Init_Audio_Out();
 	// Init_Audio_In();
@@ -1949,23 +1954,47 @@ int clip_total(void) {
 					(thumbnail_state == THUMB_WAIT || thumbnail_state == THUMB_END)) {
 					dp("Thumb state : %d\n", thumbnail_state);
 					fr_state++;
+					face_test_t = sample_gettimeus();
 				}
-				else if(fr_state == FR_SNAPSHOT) {
-					fr_state++;
-					dp("Face Data Send!!\n");
-					ret = facecrop_make(facial_data);
-					if (ret < 0 && fpdp_cnt < 5) {
-						dp("Facial Fail. Retry.\n");
-						memset(file_sep, 0, 100);
-						sprintf(file_sep, "rm /dev/shm/face.jpg");
-						dp("%s\n", file_sep);
-						system(file_sep);
-						fr_state = FR_WAIT;
-						fpdp_cnt++;
+				else if(fr_state == FR_SNAPSHOT && total_time < (FACE_FIND_END_TIME-300000) && !face_snap) {
+					dp("Fcae_Det <-> Cap End : %lld\n", sample_gettimeus()-cap_test_time);
+					memset(file_sep, 0, 64);
+					sprintf(file_sep, "/dev/shm/face%d.jpg", facial_data.cnt);
+					dp("FR_START <-> FR_SNAPSHOT : %lld\n", sample_gettimeus()-face_test_t);
+					while (file_exsist_size_check(file_sep)<0); 
+					ret = pthread_create(&tid_facecap[fpdp_cnt], NULL, facecrop_make_thread,(void*)&facial_data);
+					if(ret != 0) {
+						IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create facecrop_make_thread failed\n", __func__);
+						return -1;
 					}
-					else if (fpdp_cnt >= 5){
+					usleep(200*1000);
+					fr_state++;
+					// ret = facecrop_make(facial_data);
+					// if (ret < 0 && fpdp_cnt < 5) {
+					// 	dp("Facial Fail. Retry.\n");
+					// 	memset(file_sep, 0, 100);
+					// 	sprintf(file_sep, "rm /dev/shm/face.jpg");
+					// 	dp("%s\n", file_sep);
+					// 	system(file_sep);
+					// 	fr_state = FR_WAIT;
+					// 	fpdp_cnt++;
+					// }
+					// if (facial_data.cnt < 5) {
+					// 	
+					// 	dp("Face Find :%d\n", fpdp_cnt);
+					// 	// fpdp_cnt++;
+					// }
+					// else if (facial_data.cnt >= 5){
+					// 	dp("Face Find end!!");
+					// 	fr_state = FR_END; // facecrop_make fail x 5
+					// }
+					if (facial_data.cnt >= 4){
+						dp("Face Find end!!\n");
 						fr_state = FR_END; // facecrop_make fail x 5
 					}
+				}
+				else if (fr_state == FR_SNAPSHOT && total_time > (FACE_FIND_END_TIME-300000)) {
+					fr_state = FR_END;
 				}
 				else if(fr_state == FR_SUCCESS) {
 					if (face_crop_cnt < 5)
@@ -1981,69 +2010,50 @@ int clip_total(void) {
 					thum_send_flag = true;
 					// Make File Send
 					if (stream_state == 0) {
-						#if 0
-							if (Ready_Busy_Check() > 0 && face_crop_cnt > 0){
-								send_retry_flag = false;
-								ret = spi_send_file_face(REC_FACESHOT, face_crop_cnt);
-								if (ret < 0) {
-									retry_time = sample_gettimeus();
-									while (!send_retry_flag) {
-										if (send_retry_flag) {
-											spi_send_file_face(REC_FACESHOT, face_crop_cnt);
-										}
-										if ((sample_gettimeus() - retry_time) > 15000000) {
-											dp("Motion Cap Faile!\n");
-											break;
-										}
+						if (Ready_Busy_Check() > 0 && thumbnail_state == THUMB_END) {
+							dp("sss");
+							while(face_end_f[0] || face_end_f[1] || face_end_f[2] || face_end_f[3] || face_end_f[4]);
+							system("sync");
+							send_retry_flag = false;
+							uint8_t snap_minor = 0;
+							if (face_crop_cnt > 0) snap_minor = REC_FACESHOT;
+							else snap_minor = REC_SNAPSHOT;
+							bLiveFile = true;
+							ret = spi_send_file_face(snap_minor, face_crop_cnt);
+							if (ret < 0) {
+								int secss = 0;
+								retry_time = sample_gettimeus();
+								while (1) {
+									if (stream_state == 1) {
+										dp("streaming!!\n");
+										break;
+									}
+									if (send_retry_flag) {
+										spi_send_file_face(snap_minor, face_crop_cnt);
+										break;
+									}
+									if ((sample_gettimeus() - retry_time)%1000000 == 0){
+										secss++;
+										dp("sec:%d\n", secss);
+									}
+									if ((sample_gettimeus() - retry_time) > 15000000) {
+										dp("Motion Cap Faile!\n");
+										break;
 									}
 								}
-								#ifdef __PHILL_REQ__
-									Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
-					            	ao_file_play_thread("/tmp/mnt/sdcard/effects/bell4.wav");
-					            #endif
 							}
-						#else
-							if (Ready_Busy_Check() > 0 && thumbnail_state == THUMB_END) {
-								send_retry_flag = false;
-								uint8_t snap_minor = 0;
-								if (face_crop_cnt > 0) snap_minor = REC_FACESHOT;
-								else snap_minor = REC_SNAPSHOT;
-								bLiveFile = true;
-								ret = spi_send_file_face(snap_minor, face_crop_cnt);
-								if (ret < 0) {
-									int secss = 0;
-									retry_time = sample_gettimeus();
-									while (1) {
-										if (stream_state == 1) {
-											dp("streaming!!\n");
-											break;
-										}
-										if (send_retry_flag) {
-											spi_send_file_face(snap_minor, face_crop_cnt);
-											break;
-										}
-										if ((sample_gettimeus() - retry_time)%1000000 == 0){
-											secss++;
-											dp("sec:%d\n", secss);
-										}
-										if ((sample_gettimeus() - retry_time) > 15000000) {
-											dp("Motion Cap Faile!\n");
-											break;
-										}
-									}
-								}
-								set_parm_end();
-								bLiveFile = false;
+							set_parm_end();
+							// system("cp /dev/shm/face_crop* /tmp/mnt/sdcard/");
+							bLiveFile = false;
 
-								if (face_crop_cnt > 0) {
-									// system("cp /dev/shm/face*.jpg /tmp/mnt/sdcard");
-									// #ifdef __PHILL_REQ__
-									// 	Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
-						            // 	ao_file_play_thread("/tmp/mnt/sdcard/effects/bell1.wav");
-						            // #endif
-								}
+							if (face_crop_cnt > 0) {
+								// system("cp /dev/shm/face*.jpg /tmp/mnt/sdcard");
+								// #ifdef __PHILL_REQ__
+								// 	Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
+					            // 	ao_file_play_thread("/tmp/mnt/sdcard/effects/bell1.wav");
+					            // #endif
 							}
-						#endif
+						}
 
 						if (!face_send_flag) {
 							face_send_flag = true;

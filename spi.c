@@ -914,6 +914,36 @@ int Ready_Busy_Check(void) {
     return -1;
 }
 
+int file_exsist_size_check(char *file)
+{
+    int filed = -1;
+    struct stat file_info;
+    int sz_file;
+
+    filed = open(file, O_RDONLY);
+    if (filed == -1) {
+        dp("File %s Open Fail!\n", file);
+        return -1;
+    }
+    else {
+        close(filed);
+        dp("%s Exsist!!\n", file);
+        if ( 0 > stat(file, &file_info)) {
+            dp("File Size Not Check!!\n");
+            return -1;
+        }
+        sz_file = file_info.st_size;
+        if (sz_file <= 0) {
+            dp("File Zero!:%d\n", sz_file);
+            return -1;
+        }
+        else {
+            dp("File Check:%d\n", sz_file);
+            return sz_file;
+        }
+    }
+}
+
 int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, uint8_t camnum)
 {
     int filed = 0, ret = -1;
@@ -1139,7 +1169,13 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
             }
 
             sz_file[(cnt*2)]    += file_info1.st_size;
+            if (sz_file[(cnt*2)]%SPI_SEND_LENGTH == 0) {
+                total_size++;
+            }
             sz_file[(cnt*2)+1]  += file_info2.st_size;
+            if (sz_file[(cnt*2)+1]%SPI_SEND_LENGTH == 0) {
+                total_size++;
+            }
             total_size += (file_info1.st_size+file_info2.st_size);
 
         }
@@ -1241,7 +1277,7 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                     return -1;
                 }
                 dp("Data 0 Send!!\n");
-                Make_Spi_Packet(tx_buff, read_buff, 0, REC, fs->minor);
+                Make_Spi_Packet(tx_buff, read_buff, 1, REC, fs->minor);
                 tx_buff[8+V_SEND_RESERV] = wcnt&0xFF;
                 spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
                 // dp("E2 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", 
@@ -1344,7 +1380,7 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                     return -1;
                 }
                 dp("Data 0 Send!!\n");
-                Make_Spi_Packet(tx_buff, read_buff, 0, REC, fs->minor+1);
+                Make_Spi_Packet(tx_buff, read_buff, 1, REC, fs->minor+1);
                 tx_buff[8+V_SEND_RESERV] = wcnt&0xFF;
                 spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
                 // dp("E2 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", 
@@ -1457,8 +1493,16 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                 break;
             }
 
+            // sz_file[(cnt*2)]    += file_info1.st_size;
+            // sz_file[(cnt*2)+1]  += file_info2.st_size;
             sz_file[(cnt*2)]    += file_info1.st_size;
+            if (sz_file[(cnt*2)]%SPI_SEND_LENGTH == 0) {
+                total_size++;
+            }
             sz_file[(cnt*2)+1]  += file_info2.st_size;
+            if (sz_file[(cnt*2)+1]%SPI_SEND_LENGTH == 0) {
+                total_size++;
+            }
             total_size += (file_info1.st_size+file_info2.st_size);
 
         }
@@ -1535,7 +1579,7 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                     return -1;
                 }
                 dp("Data 0 Send!!\n");
-                Make_Spi_Packet(tx_buff, read_buff, 0, REC, fs->minor);
+                Make_Spi_Packet(tx_buff, read_buff, 1, REC, fs->minor);
                 tx_buff[8+V_SEND_RESERV] = wcnt&0xFF;
                 spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
                 // dp("E2 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", 
@@ -1610,7 +1654,7 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                     return -1;
                 }
                 dp("Data 0 Send!!\n");
-                Make_Spi_Packet(tx_buff, read_buff, 0, REC, fs->minor+1);
+                Make_Spi_Packet(tx_buff, read_buff, 1, REC, fs->minor+1);
                 tx_buff[8+V_SEND_RESERV] = wcnt&0xFF;
                 spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
                 // dp("E2 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n", 

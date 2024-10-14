@@ -205,6 +205,7 @@ void *OTA_Thread(void * argc);
 	int spi_send_total_clip(FileSend *fs);
 	int spi_send_total_stream_clip(FileSend *fs);
 #endif
+int file_exsist_size_check(char *file);
 
 #ifdef __cplusplus
 }

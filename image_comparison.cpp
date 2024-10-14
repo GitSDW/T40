@@ -972,6 +972,66 @@ int facecrop_make(Fdpd_Data_t cont) {
     }
 }
 
+void *facecrop_make_thread(void *argc) {
+    // int cx, cy, size, x, y;
+    // 이미지 파일 경로
+
+    Fdpd_Data_t *cont = (Fdpd_Data_t*)argc;
+    std::string inputImagePath = "/dev/shm/face" + std::to_string(cont->cnt) + ".jpg";
+    std::string outputImagePath = "/dev/shm/face_crop" + std::to_string(face_crop_cnt) + ".jpg";
+    face_crop_cnt++;
+
+    float s1cx = cont->ul_x + (cont->br_x-cont->ul_x) / 2.0;
+    float s1cy = cont->ul_y + (cont->br_y-cont->ul_y) / 2.0;
+    float m = std::max((cont->br_x-cont->ul_x), (cont->br_y-cont->ul_y));
+    int flag_cnt = cont->cnt;
+
+    face_end_f[flag_cnt] = true;
+
+
+    try {
+        // Define the source points
+        std::vector<cv::Point2f> src = {
+            cv::Point2f(s1cx - m, s1cy - m),
+            cv::Point2f(s1cx - m, s1cy + m),
+            cv::Point2f(s1cx + m, s1cy - m),
+            cv::Point2f(s1cx + m, s1cy + m)
+        };
+
+        // Define the destination points for 500x500 image
+        std::vector<cv::Point2f> dst = {
+            cv::Point2f(0, 0),
+            cv::Point2f(0, 500),
+            cv::Point2f(500, 0),
+            cv::Point2f(500, 500)
+        };
+
+        cv::Mat trans = cv::getAffineTransform(src.data(), dst.data());
+
+        Mat image = imread(inputImagePath);
+
+        cv::Mat wImg;
+        cv::warpAffine(image, wImg, trans, cv::Size(500, 500), cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar(0, 0, 0));
+
+        vector<int> compression_params;
+        compression_params.push_back(IMWRITE_JPEG_QUALITY);
+        compression_params.push_back(100);
+
+        imwrite(outputImagePath, wImg, compression_params);
+
+        
+        face_end_f[flag_cnt] = false;
+        return 0;
+
+    } catch (Exception& e) {
+        cerr << "Face Crop Fail!" << endl;
+        face_crop_cnt--;
+        cont->cnt--;
+        face_end_f[flag_cnt] = false;
+        return 0;
+    }
+}
+
 
 double calculateSharpness(const std::string& imagePath) {
     // 이미지 로드

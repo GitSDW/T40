@@ -470,7 +470,7 @@ void *fdpd_thread(void *args)
                         //     (((fdpd_data[i].ul_y+fdpd_data[i].br_y)/2) < 1080 - 200) )
                         #endif
 
-                        if ( (fr_state == FR_START && confidence > 0.85 && !thumbnail_snap) && ((fdpd_data[i].br_x-fdpd_data[i].ul_x) > 100) ) 
+                        if ( (fr_state == FR_START && confidence > 0.85 && !thumbnail_snap) && ((fdpd_data[i].br_x-fdpd_data[i].ul_x) > 50) ) 
                         {
                             fr_state++;
                             facial_data.flag = fdpd_data[i].flag;
@@ -482,7 +482,9 @@ void *fdpd_thread(void *args)
                             facial_data.ul_y = fdpd_data[i].ul_y;
                             facial_data.br_x = fdpd_data[i].br_x;
                             facial_data.br_y = fdpd_data[i].br_y;
+                            facial_data.cnt++;
                             face_snap = true;
+                            cap_test_time = sample_gettimeus();
                             dp("**************************************x:%d, y:%d, confidence:%f\n", facial_data.ul_x, facial_data.ul_y, facial_data.confidence);
                         }
                     }
@@ -491,7 +493,7 @@ void *fdpd_thread(void *args)
                             person_num++;
                         }
                     }
-                    
+
 
                     if (fdpd_data[i].classid == 0 && Mosaic_En) {
                         #if 0
