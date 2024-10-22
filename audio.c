@@ -1891,7 +1891,7 @@ void IMP_Audio_Test_InOut_Thread(void)
 		// 	break;
 		// }
 
-	}while(!bStrem);
+	}while(!BMicT);
 
 	dp("[MIC_Record] END!\n");
 	// pthread_exit(0);

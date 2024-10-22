@@ -13,10 +13,10 @@ extern "C" {
 #ifndef __PHILL_REQ__
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"b"
-	#define CAHR_VER	"s"
+	#define CAHR_VER	"w"
 #else
 	#define MAJOR_VER	"0"
-	#define MINOR_VER	"z"	
+	#define MINOR_VER	"z"
 	#define CAHR_VER	"e"
 #endif
 
@@ -344,7 +344,8 @@ bool ao_clear_flag;
 bool rebell;
 bool bMove, move_start_flag;
 bool face_end_f[5];
-
+bool DLedT, BLedT, BMicT;
+bool TestReset;
 
 extern int bExit;
 

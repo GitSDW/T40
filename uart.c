@@ -1097,38 +1097,70 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         }
     break;
     case DTEST_BACK:
+        BMicT = true;
+        // TestReset = true;
+        dim_st_stat = 3;
+        bled_st_stat = 3;
         switch(minor) {
         case TEST_BRIGTH:
             dp("Bright Test!!\n");
             brt_st_stat = 1;
         break;
         case TEST_DIMMING:
+            
+            #ifdef __TSET_CHANGE__
+                int index_D = rbuff[index+9];
+                if (index_D == 1) {
+                    dim_st_stat = 1;     
+                }
+                else if (index_D == 0) {
+                    if (dim_st_stat != 0)
+                        dim_st_stat = 3;
+                }
+                else {
+                    dp("[DIMMING]Invalid Index\n");
+                }
+            #else
+                // int index_D = rbuff[index+9];
+                // if (index_D == 1) {
+                    dim_st_stat = 1;     
+                // }
+                // else if (index_D == 0) {
+                //     dim_st_stat = 3;
+                // }
+                // else {
+                //     dp("[DIMMING]Invalid Index\n");
+                // }
+            #endif
             dp("Dimmint Test!!\n");
-            int index_D = rbuff[index+9];
-            if (index_D == 1) {
-                dim_st_stat = 1;     
-            }
-            else if (index_D == 0) {
-                if (dim_st_stat != 0)
-                    dim_st_stat = 3;
-            }
-            else {
-                dp("[DIMMING]Invalid Index\n");
-            }
         break;
         case TEST_BLED:
+            
+             #ifdef __TSET_CHANGE__
+                int index_B = rbuff[index+9];
+                if (index_B == 1) {
+                    bled_st_stat  = 1;
+                }
+                else if (index_B == 0) {
+                    if (bled_st_stat != 0)
+                        bled_st_stat  = 3;
+                }
+                else {
+                    dp("[BLT]Invalid Index\n");
+                }
+            #else
+                // int index_B = rbuff[index+9];
+                // if (index_B == 1) {
+                    bled_st_stat = 1;     
+                // }
+                // else if (index_B == 0) {
+                    // bled_st_stat = 3;
+                // }
+                // else {
+                   // dp("[BLT]Invalid Index\n");
+                // }
+            #endif
             dp("Bottom Led Test!!\n");
-            int index_B = rbuff[index+9];
-            if (index_B == 1) {
-                bled_st_stat  = 1;
-            }
-            else if (index_B == 0) {
-                if (bled_st_stat != 0)
-                    bled_st_stat  = 3;
-            }
-            else {
-                dp("[BLT]Invalid Index\n");
-            }
         break;
         case TEST_SPK:
             dp("Sound Test For 1KHz.\n");

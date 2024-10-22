@@ -1117,63 +1117,106 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
         usleep(300*1000);
 
         for (cnt=0; cnt<(fs->filecnt); cnt++) {
-            memset(file, 0, 128);
-            if (fs->tag1 == CLIP_CAUSE_BELL || fs->tag1 == CLIP_CAUSE_MOUNT) {
-                sprintf(file, "/dev/shm/bell_m%d.mp4", cnt);
-            }
-            else {
-                sprintf(file, "/dev/shm/main%d.mp4", cnt);
-            }
-        
+            #if 1
+                memset(file, 0, 128);
+                if (fs->tag1 == CLIP_CAUSE_BELL || fs->tag1 == CLIP_CAUSE_MOUNT) {
+                    sprintf(file, "/dev/shm/bell_m%d.mp4", cnt);
+                }
+                else {
+                    sprintf(file, "/dev/shm/main%d.mp4", cnt);
+                }
             
-            if ( 0 > stat(file, &file_info1)) {
-                dp("File Size Not Check!! :%s\n", file);
-                break;
-            }
+                
+                if ( 0 > stat(file, &file_info1)) {
+                    dp("File Size Not Check!! :%s\n", file);
+                    break;
+                }
 
-            filed[(cnt*2)] = open(file, O_RDONLY);
-            if (filed[(cnt*2)] == -1) {
-                dp("File %s Open Fail!\n", file);
-                break;
-            }
-            // dp("file[%d]:%s\n", (cnt*2), file);
+                filed[(cnt*2)] = open(file, O_RDONLY);
+                if (filed[(cnt*2)] == -1) {
+                    dp("File %s Open Fail!\n", file);
+                    break;
+                }
+                // dp("file[%d]:%s\n", (cnt*2), file);
+                
+                if (file_info1.st_size < 10*1024) {
+                    // dp("File Size Low!:%ld\n", file_info1.st_size);
+                    break;
+                }
+
+                memset(file, 0, 128);
+                if (fs->tag1 == CLIP_CAUSE_BELL || fs->tag1 == CLIP_CAUSE_MOUNT) {
+                    sprintf(file, "/dev/shm/bell_b%d.mp4", cnt);
+                }
+                else {
+                    sprintf(file, "/dev/shm/box%d.mp4", cnt);
+                }
             
-            if (file_info1.st_size < 10*1024) {
-                // dp("File Size Low!:%ld\n", file_info1.st_size);
-                break;
-            }
+                if ( 0 > stat(file, &file_info2)) {
+                    dp("File Size Not Check!! :%s\n", file);
+                    break;
+                }
 
-            memset(file, 0, 128);
-            if (fs->tag1 == CLIP_CAUSE_BELL || fs->tag1 == CLIP_CAUSE_MOUNT) {
-                sprintf(file, "/dev/shm/bell_b%d.mp4", cnt);
-            }
-            else {
-                sprintf(file, "/dev/shm/box%d.mp4", cnt);
-            }
-        
-            if ( 0 > stat(file, &file_info2)) {
-                dp("File Size Not Check!! :%s\n", file);
-                break;
-            }
+                filed[(cnt*2)+1] = open(file, O_RDONLY);
+                if (filed[(cnt*2)+1] == -1) {
+                    dp("File %s Open Fail!\n", file);
+                    break;
+                }
+                // dp("file[%d]:%s\n", (cnt*2)+1, file);
+                
+                if (file_info2.st_size < 10*1024) {
+                    // dp("File Size Low!:%ld\n", file_info2.st_size);
+                    break;
+                }
 
-            filed[(cnt*2)+1] = open(file, O_RDONLY);
-            if (filed[(cnt*2)+1] == -1) {
-                dp("File %s Open Fail!\n", file);
-                break;
-            }
-            // dp("file[%d]:%s\n", (cnt*2)+1, file);
+            #else
+                memset(file, 0, 128);
+                sprintf(file, "/tmp/mnt/sdcard/maintest.mp4", cnt);
+                            
+                if ( 0 > stat(file, &file_info1)) {
+                    dp("File Size Not Check!! :%s\n", file);
+                    break;
+                }
+
+                filed[(cnt*2)] = open(file, O_RDONLY);
+                if (filed[(cnt*2)] == -1) {
+                    dp("File %s Open Fail!\n", file);
+                    break;
+                }
+                // dp("file[%d]:%s\n", (cnt*2), file);
+                
+                if (file_info1.st_size < 10*1024) {
+                    // dp("File Size Low!:%ld\n", file_info1.st_size);
+                    break;
+                }
+
+                memset(file, 0, 128);
+                sprintf(file, "/tmp/mnt/sdcard/bottest.mp4", cnt);
             
-            if (file_info2.st_size < 10*1024) {
-                // dp("File Size Low!:%ld\n", file_info2.st_size);
-                break;
-            }
+                if ( 0 > stat(file, &file_info2)) {
+                    dp("File Size Not Check!! :%s\n", file);
+                    break;
+                }
+
+                filed[(cnt*2)+1] = open(file, O_RDONLY);
+                if (filed[(cnt*2)+1] == -1) {
+                    dp("File %s Open Fail!\n", file);
+                    break;
+                }
+                // dp("file[%d]:%s\n", (cnt*2)+1, file);
+                
+                if (file_info2.st_size < 10*1024) {
+                    // dp("File Size Low!:%ld\n", file_info2.st_size);
+                    break;
+                }
+            #endif
 
             sz_file[(cnt*2)]    += file_info1.st_size;
-            if (sz_file[(cnt*2)]%SPI_SEND_LENGTH == 0) {
+            if (sz_file[(cnt*2)]%FILE_READ_LENGTH == 0) {
                 total_size++;
             }
             sz_file[(cnt*2)+1]  += file_info2.st_size;
-            if (sz_file[(cnt*2)+1]%SPI_SEND_LENGTH == 0) {
+            if (sz_file[(cnt*2)+1]%FILE_READ_LENGTH == 0) {
                 total_size++;
             }
             total_size += (file_info1.st_size+file_info2.st_size);
@@ -1264,7 +1307,7 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                 // usleep(dly*1000);
             } while(ret != 0);
 
-            if (sz_file[(scnt*2)]%SPI_SEND_LENGTH == 0) {
+            if (sz_file[(scnt*2)]%FILE_READ_LENGTH == 0) {
                 if (stream_state == 1) {
                     dp("SPI Faile : Streaming\n");
                     return 2;
@@ -1367,7 +1410,7 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                 // usleep(dly*1000);
             } while(ret != 0);
 
-            if (sz_file[(scnt*2)+1]%SPI_SEND_LENGTH == 0) {
+            if (sz_file[(scnt*2)+1]%FILE_READ_LENGTH == 0) {
                 if (stream_state == 1) {
                     dp("SPI Faile : Streaming\n");
                     return 2;
@@ -2559,8 +2602,11 @@ void *spi_send_stream (void *arg)
 
     buf = (uint8_t*)malloc(2000);
 
-    // int save_fd = 0;
-    // save_fd = open("/tmp/mnt/sdcard/spi_ai.g726", O_RDWR | O_CREAT | O_TRUNC, 0777);
+    // int save_fd1 = 0;
+    // save_fd1 = open("/tmp/mnt/sdcard/main.h264", O_RDWR | O_CREAT | O_TRUNC, 0777);
+
+    // int save_fd2 = 0;
+    // save_fd2 = open("/tmp/mnt/sdcard/bott.h264", O_RDWR | O_CREAT | O_TRUNC, 0777);
   
     do {
         /////////// Vedio Main IN -> UDP Out //////////////////////////////////////////
@@ -2602,6 +2648,7 @@ void *spi_send_stream (void *arg)
             // dp("cnt:%d, total:%d, dsize:%d\n", frame_ptr1, framesize1, datasize);
             pthread_mutex_unlock(&buffMutex_vm);
             // dp("[CIR_BUFF_VM]datasize:%d WIndex:%d RIndex%d\n", datasize, VM_Cir_Buff.WIndex, VM_Cir_Buff.RIndex);
+            // ret = write(save_fd1, VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*frame_ptr1), datasize);
         #ifdef __H265__
             Make_Spi_Packet_live(tx_buff, VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*frame_ptr1), datasize, STREAMING, STREAM_VEDIO_M);
         #else
@@ -2629,6 +2676,7 @@ void *spi_send_stream (void *arg)
                     // dp("STX:0x%02x CMD:0x%02x%02x LEN:0x%02x%02x ETX:0x%02x\n", 
                         // tx_buff[0+5], tx_buff[1+5], tx_buff[2+5], tx_buff[3+5], tx_buff[4+5], tx_buff[1023-5]);
                     // dp("V1\n");
+
                     if (main_first < 10) main_first++;
                     usleep(mv_delay*1000);
                 }
@@ -2653,6 +2701,7 @@ void *spi_send_stream (void *arg)
             // dp("cnt:%d, total:%d, dsize:%d\n", frame_ptr2, framesize2, datasize);
             pthread_mutex_unlock(&buffMutex_vb);
             // dp("[CIR_BUFF_VM]datasize:%d WIndex:%d RIndex%d\n", datasize, VM_Cir_Buff.WIndex, VM_Cir_Buff.RIndex);
+            // ret = write(save_fd2, VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*frame_ptr2), datasize);
         #ifdef __H265__
             Make_Spi_Packet_live(tx_buff, VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*frame_ptr2), datasize, STREAMING, STREAM_VEDIO_B);
         #else
@@ -2679,6 +2728,7 @@ void *spi_send_stream (void *arg)
                     frame_ptr2++;
                     // dp("cnt:%d total:%d dsize%d\n", frame_ptr2, framesize2, datasize);
                     // dp("V2\n");
+                    
                     usleep(mv_delay*1000);
                 }
             }

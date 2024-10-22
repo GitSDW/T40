@@ -191,6 +191,10 @@ int global_value_init(void) {
 	rebell = false;
 	bMove = false;
 	move_start_flag = false;
+	DLedT = false;
+	BLedT = false;
+	BMicT = false;
+	TestReset = false;
 
 	for(i=0;i<5;i++){
 		face_end_f[i] = false;
@@ -506,6 +510,56 @@ int gpio_LED_dimming (int onoff) {
 	return 0;
 }
 
+// int gpio_LED_dimming_test (int onoff) {
+// 	static bool led_flag=false;
+// 	int led_duty = 0;
+// 	char file_sep[100] = {0};
+
+// 	if (!led_flag) {
+// 		system("echo 6 > /sys/class/pwm/pwmchip0/export");
+// 		usleep(30*1000);
+// 		led_flag = true;
+// 	}
+
+// 	if (onoff == 0) {
+// 		led_duty = 100;
+// 		system("echo normal > /sys/class/pwm/pwmchip0/pwm6/polarity");
+// 		usleep(100*1000);
+// 		system("echo 100000 > /sys/class/pwm/pwmchip0/pwm6/period");
+// 		usleep(100*1000);
+// 		memset(file_sep, 0, 100);
+// 		sprintf(file_sep, "echo %d > /sys/class/pwm/pwmchip0/pwm6/duty_cycle", 1000*(led_duty));
+// 		dp(file_sep);
+// 		dp("\n");
+// 		system(file_sep);
+// 		usleep(100*1000);
+// 		system("echo 0 > /sys/class/pwm/pwmchip0/pwm6/enable");
+// 		usleep(100*1000);
+// 		system("echo 1 > /sys/class/pwm/pwmchip0/pwm6/enable");
+// 		usleep(100*1000);
+// 	}
+// 	else {
+// 		led_duty = 0;
+// 		system("echo normal > /sys/class/pwm/pwmchip0/pwm6/polarity");
+// 		usleep(100*1000);
+// 		system("echo 100000 > /sys/class/pwm/pwmchip0/pwm6/period");
+// 		usleep(100*1000);
+// 		memset(file_sep, 0, 100);
+// 		sprintf(file_sep, "echo %d > /sys/class/pwm/pwmchip0/pwm6/duty_cycle", 1000*(led_duty));
+// 		dp(file_sep);
+// 		dp("\n");
+// 		system(file_sep);
+// 		usleep(100*1000);
+// 		system("echo 0 > /sys/class/pwm/pwmchip0/pwm6/enable");
+// 		usleep(100*1000);
+// 		system("echo 1 > /sys/class/pwm/pwmchip0/pwm6/enable");
+// 		usleep(100*1000);
+// 		// system("echo 0 > /sys/class/pwm/pwmchip0/pwm6/enable");
+// 	}
+
+// 	return 0;
+// }
+
 int LED_dimming (int duty) {
 	int led_duty = 0;
 	char file_sep[100] = {0};
@@ -603,6 +657,45 @@ int gpio_LED_Set (int onoff) {
 	return 0;
 }
 
+int gpio_LED_Set_test (int onoff) {
+	static bool led_flag=false;
+	int led_duty = 0, ret = 0;;
+	char file_sep[100] = {0};
+
+	if (!led_flag) {
+		system("echo 6 > /sys/class/pwm/pwmchip0/export");
+		led_flag = true;
+	}
+
+	if (onoff == 1) {
+		led_duty = 99;
+		system("echo inversed > /sys/class/pwm/pwmchip0/pwm6/polarity");
+		system("echo 0 > /sys/class/pwm/pwmchip0/pwm6/enable");
+		system("echo 1000000 > /sys/class/pwm/pwmchip0/pwm6/period");
+		memset(file_sep, 0, 100);
+		sprintf(file_sep, "echo %d > /sys/class/pwm/pwmchip0/pwm6/duty_cycle", 10000*(led_duty));
+		dp(file_sep);
+		dp("\n");
+		system(file_sep);
+		system("echo 1 > /sys/class/pwm/pwmchip0/pwm6/enable");
+		light_on = true;
+	}
+	else {
+		system("echo 0 > /sys/class/pwm/pwmchip0/pwm6/enable");
+		led_duty = 0;
+		system("echo inversed > /sys/class/pwm/pwmchip0/pwm6/polarity");
+		system("echo 1000000 > /sys/class/pwm/pwmchip0/pwm6/period");
+		memset(file_sep, 0, 100);
+		sprintf(file_sep, "echo %d > /sys/class/pwm/pwmchip0/pwm6/duty_cycle", 10000*(led_duty));
+		dp(file_sep);
+		dp("\n");
+		system(file_sep);
+		system("echo 1 > /sys/class/pwm/pwmchip0/pwm6/enable");
+		light_on = false;
+	}
+
+	return 0;
+}
 
 
 
@@ -1017,7 +1110,9 @@ int clip_total_fake(void);
 int stream_total(int mode);
 int Setting_Total(void);
 void *dimming_test(void *argc);
+void dimming_test2(int onoff);
 void *bottom_led_test(void *argc);
+void bottom_led_test2(int onoff);
 extern void *sample_soft_photosensitive_ctrl(void *p);
 
 int main(int argc, char **argv) {
@@ -1037,6 +1132,7 @@ int main(int argc, char **argv) {
 	Setting_Init();
 	spk_vol_buf = (10 * settings.spk_vol) + 55;
 	if (settings.spk_vol == 4){
+		spk_vol_buf = 86;
 		spk_gain_buf = 15;
 	}
 	else
@@ -1411,13 +1507,26 @@ int main(int argc, char **argv) {
 			// 	}
 			// }
 		#else
-			pthread_t tid_dimming, tid_spi, tid_stream, tid_move, tid_fdpd;
+			pthread_t tid_spi, tid_stream, tid_move, tid_fdpd;
 			int max_sharp = 0, max_foucs = 0;
 			double avr_sharp, avr_focus;
 			char file_name[128];
 			Focus_Sharpness fs_t[10];
 			uint16_t sh_m, fo_m, sh_b, fo_b;
 			uint16_t black_brt, white_brt;
+
+			// if (TestReset) {
+			// 	usleep(7*100*1000);
+			// 	if (dim_st_stat != 1){
+			// 		dp("Reset DLED\n");
+			// 		dim_st_stat = 3;
+			// 	}
+			// 	if (bled_st_stat != 1){
+			// 		dp("Reset BLED\n");
+			// 		bled_st_stat = 3;
+			// 	}
+			// 	TestReset = false;
+			// }
 
 			if (brt_st_stat > 0) {
 				if (brt_st_stat == 1) {
@@ -1459,59 +1568,96 @@ int main(int argc, char **argv) {
 				}
 			}
 
+			// BLedT
+			// pthread_t tid_dimming;
 			if (dim_st_stat > 0) {
-				if (dim_st_stat == 3) {
-					if (!bDimming) {
-						bDimming = true;
-						pthread_join(tid_dimming, NULL);
-						dim_st_stat = 0;
+				#ifdef __TSET_CHANGE__
+					if (dim_st_stat == 3) {
+						if (!bDimming) {
+							bDimming = true;
+							pthread_join(tid_dimming, NULL);
+							dim_st_stat = 0;
+						}
 					}
-				}
-				else if (dim_st_stat == 1) {
-					dp("cmd 5  Dimming Test!!\n");
-					bDimming = false;
-					ret = pthread_create(&tid_dimming, NULL, dimming_test, NULL);
-					if(ret != 0) {
-						IMP_LOG_ERR("[Udp]", "[ERROR] %s: pthread_create dimming_test failed\n", __func__);
-						return -1;
+					else if (dim_st_stat == 1) {
+						dp("cmd 5  Dimming Test!!\n");
+						bDimming = false;
+						ret = pthread_create(&tid_dimming, NULL, dimming_test, NULL);
+						if(ret != 0) {
+							IMP_LOG_ERR("[Udp]", "[ERROR] %s: pthread_create dimming_test failed\n", __func__);
+							return -1;
+						}
+						dim_st_stat = 2;
 					}
-					dim_st_stat = 2;
-				}
-				// else {
-					// dp("Invalid Index\n");
-				// }
+					// else {
+						// dp("Invalid Index\n");
+					// }
+				#else
+					if (dim_st_stat == 3) {
+						if (DLedT) {
+							// dimming_test2(0);
+							gpio_LED_Set_test(0);
+							DLedT = false;
+						}
+					}
+					else if (dim_st_stat == 1) {
+						if (!DLedT) {
+							// dimming_test2(1);
+							gpio_LED_Set_test(1);
+							DLedT = true;
+						}
+					}
+					dim_st_stat = 0;
+				#endif
 			}
 
-			pthread_t tid_BLed;
+			// pthread_t tid_BLed;
 			if (bled_st_stat > 0) {
-				if (bled_st_stat == 3) {
-					if (!bBLed) {
-						bBLed = true;
-						pthread_join(tid_BLed, NULL);
-						bled_st_stat = 0;
+				#ifdef __TSET_CHANGE__
+					if (bled_st_stat == 3) {
+						if (!bBLed) {
+							bBLed = true;
+							pthread_join(tid_BLed, NULL);
+							bled_st_stat = 0;
+						}
 					}
-				}
-				else if (bled_st_stat == 1) {
-					dp("cmd 6  Bottom LED Test!!\n");
-					bBLed = false;
-					ret = pthread_create(&tid_BLed, NULL, bottom_led_test, NULL);
-					if(ret != 0) {
-						IMP_LOG_ERR("[Udp]", "[ERROR] %s: pthread_create bottom_led_test failed\n", __func__);
-						return -1;
+					else if (bled_st_stat == 1) {
+						dp("cmd 6  Bottom LED Test!!\n");
+						bBLed = false;
+						ret = pthread_create(&tid_BLed, NULL, bottom_led_test, NULL);
+						if(ret != 0) {
+							IMP_LOG_ERR("[Udp]", "[ERROR] %s: pthread_create bottom_led_test failed\n", __func__);
+							return -1;
+						}
+						bled_st_stat = 2;
 					}
-					bled_st_stat = 2;
-				}
-				// else {
-					// dp("Invalid Index\n");
-				// }
+					// else {
+						// dp("Invalid Index\n");
+					// }
+				#else
+					if (bled_st_stat == 3) {
+						if (BLedT) {
+							bottom_led_test2(1);
+							BLedT = false;
+						}
+					}
+					else if (bled_st_stat == 1) {
+						if (!BLedT) {
+							bottom_led_test2(0);
+							BLedT = true;
+						}
+					}
+					bled_st_stat = 0;
+				#endif
 			}
 
 			if (mic_st_stat > 0) {
 				dp("cmd 8  MIC Test!!\n");
 				if (mic_st_stat == 1) {
+					BMicT = false;
 					IMP_Audio_Test_InOut_Thread();
-					mic_st_stat = 0;
 				}
+				mic_st_stat = 0;
 			}
 
 			if (video_st_stat > 0) {
@@ -1523,7 +1669,9 @@ int main(int argc, char **argv) {
 				    if(ret < 0){
 				        dp("spi init error\n");
 				        return 0;
-				    }
+				    } 
+
+				    usleep(500*1000);
 
 				    data_sel = 4;
 					if (data_sel <= 0 || data_sel > 4) {
@@ -2835,6 +2983,7 @@ int clip_total(void) {
 					fs.tag2 = clip_cause_t.Minor;
 					fs.filenum = 0;
 					fs.filecnt = file_cnt;
+					// fs.filecnt = 1;
 					send_retry_flag = false;
 					// ret = spi_send_total_clip(&fs);
 					// if(ret < 0) {
@@ -4508,6 +4657,14 @@ void *dimming_test(void *argc) {
 	return ((void*)0);
 }
 
+// void dimming_test2(int onoff) {
+//     if (onoff == 1)
+//     	gpio_LED_dimming_test(1);
+//     else
+//     	gpio_LED_dimming_test(0);
+//     usleep(5*100*1000);
+// }
+
 void *bottom_led_test(void *argc) {
 	int64_t onoff_time = 0;
     bool bled_onoff = true;
@@ -4540,4 +4697,15 @@ void *bottom_led_test(void *argc) {
 	}
 
 	return ((void*)0);
+}
+
+void bottom_led_test2(int onoff) {
+    int ret = -1;
+    dp("Led Test2 : %d\n", onoff);
+    ret = gpio_set_val(PORTD+6, onoff);
+    if(ret < 0){
+		dp("Fail set Value GPIO : %d\n", PORTD+6);
+		return;
+	}
+	usleep(5*100*1000);
 }
