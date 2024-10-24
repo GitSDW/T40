@@ -1143,6 +1143,8 @@ int main(int argc, char **argv) {
 	video_init();
 #endif
 
+	system("cp /tmp/mnt/sdcard/effects/bell*.wav /dev/shm/");
+
 	Init_Audio_In();
 	Init_Audio_Out();
 	ret = gpio_init();

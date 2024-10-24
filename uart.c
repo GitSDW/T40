@@ -405,10 +405,14 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
     case REC_BACK:
         switch(minor) {
         case UREC_BELL:
-            if (settings.bell_type == 0) effect_file = "/tmp/mnt/sdcard/effects/bell1.wav";
-            else if (settings.bell_type == 1) effect_file = "/tmp/mnt/sdcard/effects/bell2.wav";
-            else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/bell3.wav";
-            else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/bell4.wav";
+            // if (settings.bell_type == 0) effect_file = "/tmp/mnt/sdcard/effects/bell1.wav";
+            // else if (settings.bell_type == 1) effect_file = "/tmp/mnt/sdcard/effects/bell2.wav";
+            // else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/bell3.wav";
+            // else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/bell4.wav";
+             if (settings.bell_type == 0) effect_file = "/dev/shm/bell1.wav";
+            else if (settings.bell_type == 1) effect_file = "/dev/shm/bell2.wav";
+            else if (settings.bell_type == 2) effect_file = "/dev/shm/bell3.wav";
+            else if (settings.bell_type == 2) effect_file = "/dev/shm/bell4.wav";
             dp("play : %s\n", effect_file);
             // ao_file_play_thread(effect_file);
             // clip_cause_t.Major = CLIP_CAUSE_BOX;
@@ -773,10 +777,14 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 ack_len = 0;
                 // ack_flag = true;
 
-                if (settings.bell_type == 0) effect_file = "/tmp/mnt/sdcard/effects/bell1.wav";
-                else if (settings.bell_type == 1) effect_file = "/tmp/mnt/sdcard/effects/bell2.wav";
-                else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/bell3.wav";
-                else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/bell4.wav";
+                // if (settings.bell_type == 0) effect_file = "/tmp/mnt/sdcard/effects/bell1.wav";
+                // else if (settings.bell_type == 1) effect_file = "/tmp/mnt/sdcard/effects/bell2.wav";
+                // else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/bell3.wav";
+                // else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/bell4.wav";
+                if (settings.bell_type == 0) effect_file = "/dev/shm/bell1.wav";
+                else if (settings.bell_type == 1) effect_file = "/dev/shm/bell2.wav";
+                else if (settings.bell_type == 2) effect_file = "/dev/shm/bell3.wav";
+                else if (settings.bell_type == 2) effect_file = "/dev/shm/bell4.wav";
                 dp("play : %s\n", effect_file);
                 ao_file_play_thread(effect_file);
                 cmd_end_flag = true;

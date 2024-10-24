@@ -13,14 +13,14 @@ extern "C" {
 #ifndef __PHILL_REQ__
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"b"
-	#define CAHR_VER	"w"
+	#define CAHR_VER	"x"
 #else
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"z"
 	#define CAHR_VER	"e"
 #endif
 
-#define DeBug 			1
+#define DeBug 			0
 
 #if DeBug
 	#define		dp(...)	printf(__VA_ARGS__)

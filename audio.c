@@ -47,6 +47,8 @@ IMPAudioIOAttr ao_attr;
 int ao_devID = 0;
 int ao_chnID = 0;
 
+bool bPlayMusic = false;
+
 // IMPAudioAgcConfig ao_agc_attr;
 
 extern pthread_mutex_t buffMutex_ao;
@@ -1116,6 +1118,8 @@ void *IMP_Audio_Play_Thread_pcm(void *argv)
 	do {
 		if (bExit) break;
 
+		while(bPlayMusic);
+
 		if (ao_clear_flag) {
 			dp("Clear Flag!!\n");
 			ao_clear_flag = false;
@@ -1250,6 +1254,9 @@ void *IMP_Audio_Play_Thread_pcm(void *argv)
 	free(buf);
 	pthread_exit(0);
 }
+
+
+
 
 void *IMP_Audio_Play_Thread_g726(void *argv)
 {
@@ -1440,6 +1447,10 @@ void *IMP_Audio_Play_Thread_g726(void *argv)
 	pthread_exit(0);
 }
 
+bool file_play_flag = false;
+
+pthread_mutex_t PlayMutex = PTHREAD_MUTEX_INITIALIZER;
+
 void ao_file_play_thread(void *argv)
 {
 	unsigned char *buf = NULL;
@@ -1450,6 +1461,8 @@ void ao_file_play_thread(void *argv)
 	int amp_c = 0;
 	static bool amp_f = false;
 	// int total = 0;
+
+	pthread_mutex_lock(&PlayMutex);
 
 	buf = (unsigned char *)malloc(AUDIO_SAMPLE_BUF_SIZE);
 	if (buf == NULL) {
@@ -1467,6 +1480,8 @@ void ao_file_play_thread(void *argv)
 	if (size < 80)
 		return;
 	else dp("wav header read!!\n");
+
+	bPlayMusic = true;
 
 	do {
 		if (bExit) break;
@@ -1532,6 +1547,10 @@ void ao_file_play_thread(void *argv)
 		IMP_LOG_INFO(TAG, "Play: TotalNum %d, FreeNum %d, BusyNum %d\n",
 				play_status.chnTotalNum, play_status.chnFreeNum, play_status.chnBusyNum);
 	}while (1);
+
+	pthread_mutex_unlock(&PlayMutex);
+
+	bPlayMusic = false;
 
 	Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
 
