@@ -32,9 +32,18 @@ if [ -e "/dev/shm/mute_msg.sh" ]; then
 	cp /dev/shm/mute_msg.sh /tmp/mnt/sdcard
 fi
 
-if [ -d "/dev/shm/effects" ]; then
-	echo "Sound File Change!"
-	cp /dev/shm/effects/*.wav /tmp/mnt/sdcard/effects
+# if [ -d "/dev/shm/effects" ]; then
+# 	echo "Sound File Change!"
+# 	cp /dev/shm/effects/*.wav /tmp/mnt/sdcard/effects
+# fi
+
+if [ -e "/dev/shm/effects.zip" ]; then
+	echo "Sound File All Change!"
+	rm /tmp/mnt/sdcard/effects -rf
+	rm /dev/shm/effects -rf
+	mkdir /dev/shm/effects
+	unzip /dev/shm/effects.zip -d /dev/shm/effects
+	cp /dev/shm/effects /tmp/mnt/sdcard -r
 fi
 
 # if [ -e "/etc/vexe.sh" ]; then

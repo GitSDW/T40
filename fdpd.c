@@ -470,7 +470,7 @@ void *fdpd_thread(void *args)
                         //     (((fdpd_data[i].ul_y+fdpd_data[i].br_y)/2) < 1080 - 200) )
                         #endif
 
-                        if ( (fr_state == FR_START && confidence > 0.85 && !thumbnail_snap) && ((fdpd_data[i].br_x-fdpd_data[i].ul_x) > 50) ) 
+                        if ( (fr_state == FR_START && confidence > 0.85 && !thumbnail_snap) && ((fdpd_data[i].br_x-fdpd_data[i].ul_x) > 100) ) 
                         {
                             fr_state++;
                             facial_data.flag = fdpd_data[i].flag;

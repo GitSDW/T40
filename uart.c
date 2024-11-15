@@ -405,14 +405,14 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
     case REC_BACK:
         switch(minor) {
         case UREC_BELL:
-            // if (settings.bell_type == 0) effect_file = "/tmp/mnt/sdcard/effects/bell1.wav";
-            // else if (settings.bell_type == 1) effect_file = "/tmp/mnt/sdcard/effects/bell2.wav";
-            // else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/bell3.wav";
-            // else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/bell4.wav";
-             if (settings.bell_type == 0) effect_file = "/dev/shm/bell1.wav";
-            else if (settings.bell_type == 1) effect_file = "/dev/shm/bell2.wav";
-            else if (settings.bell_type == 2) effect_file = "/dev/shm/bell3.wav";
-            else if (settings.bell_type == 2) effect_file = "/dev/shm/bell4.wav";
+            // if (settings.bell_type == 0) effect_file = "/dev/shm/effects/bell1.wav";
+            // else if (settings.bell_type == 1) effect_file = "/dev/shm/effects/bell2.wav";
+            // else if (settings.bell_type == 2) effect_file = "/dev/shm/effects/bell3.wav";
+            // else if (settings.bell_type == 2) effect_file = "/dev/shm/effects/bell4.wav";
+             if (settings.bell_type == 0) effect_file = "/dev/shm/effects/bell1.wav";
+            else if (settings.bell_type == 1) effect_file = "/dev/shm/effects/bell2.wav";
+            else if (settings.bell_type == 2) effect_file = "/dev/shm/effects/bell3.wav";
+            else if (settings.bell_type == 2) effect_file = "/dev/shm/effects/bell4.wav";
             dp("play : %s\n", effect_file);
             // ao_file_play_thread(effect_file);
             // clip_cause_t.Major = CLIP_CAUSE_BOX;
@@ -539,11 +539,11 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         break;
         case UREC_TEMPER:
             if (rbuff[index+9] == 0)
-                effect_file = "/tmp/mnt/sdcard/effects/dev_takeoff.wav";
+                effect_file = "/dev/shm/effects/dev_takeoff.wav";
             else if (rbuff[index+9] == 1)
-                effect_file = "/tmp/mnt/sdcard/effects/dev_takeon.wav";
+                effect_file = "/dev/shm/effects/dev_takeon.wav";
             dp("play : %s\n", effect_file);
-            Set_Vol(90,30,(10 * 1) + 55,15);
+            Set_Vol(90,30,(5 * 1) + 55,15);
             ao_file_play_thread(effect_file);
 
             // clip_cause_t.Major = CLIP_CAUSE_MOUNT;
@@ -776,17 +776,18 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 system("sync");
                 ack_len = 0;
                 // ack_flag = true;
-
-                // if (settings.bell_type == 0) effect_file = "/tmp/mnt/sdcard/effects/bell1.wav";
-                // else if (settings.bell_type == 1) effect_file = "/tmp/mnt/sdcard/effects/bell2.wav";
-                // else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/bell3.wav";
-                // else if (settings.bell_type == 2) effect_file = "/tmp/mnt/sdcard/effects/bell4.wav";
-                if (settings.bell_type == 0) effect_file = "/dev/shm/bell1.wav";
-                else if (settings.bell_type == 1) effect_file = "/dev/shm/bell2.wav";
-                else if (settings.bell_type == 2) effect_file = "/dev/shm/bell3.wav";
-                else if (settings.bell_type == 2) effect_file = "/dev/shm/bell4.wav";
-                dp("play : %s\n", effect_file);
-                ao_file_play_thread(effect_file);
+                if (boot_mode == 3) {
+                    // if (settings.bell_type == 0) effect_file = "/dev/shm/effects/bell1.wav";
+                    // else if (settings.bell_type == 1) effect_file = "/dev/shm/effects/bell2.wav";
+                    // else if (settings.bell_type == 2) effect_file = "/dev/shm/effects/bell3.wav";
+                    // else if (settings.bell_type == 2) effect_file = "/dev/shm/effects/bell4.wav";
+                    if (settings.bell_type == 0) effect_file = "/dev/shm/effects/bell1.wav";
+                    else if (settings.bell_type == 1) effect_file = "/dev/shm/effects/bell2.wav";
+                    else if (settings.bell_type == 2) effect_file = "/dev/shm/effects/bell3.wav";
+                    else if (settings.bell_type == 2) effect_file = "/dev/shm/effects/bell4.wav";
+                    dp("play : %s\n", effect_file);
+                    ao_file_play_thread(effect_file);
+                }
                 cmd_end_flag = true;
 
 
@@ -799,8 +800,20 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 Setting_Save();
                 dp("Speaker Vol Setting Saved! %d\n", settings.spk_vol);
                 system("sync");
-                ack_len = 0;
+                
                 // ack_flag = true;
+                spk_vol_buf = (5 * settings.spk_vol) + 55;
+                spk_gain_buf = 15;
+                // if (settings.spk_vol == 4){
+                //     spk_vol_buf = 86;
+                //     spk_gain_buf = 15;
+                // }
+                // else
+                    
+
+                Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
+
+                ack_len = 0;
                 cmd_end_flag = true;
             }
         break;
@@ -945,8 +958,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         break;
         case SET_FACTORY:
             Setting_Reinit();
-            Set_Vol(90,30,(10 * 1) + 55,15);
-            effect_file = "/tmp/mnt/sdcard/effects/factory.wav";
+            Set_Vol(90,30,(5 * 1) + 55,15);
+            effect_file = "/dev/shm/effects/factory.wav";
             dp("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
             
@@ -963,16 +976,16 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             else  cmdbuf = 2;
             gpio_LED_dimming(cmdbuf);
             if (rbuff[index+9] == 1) {
-                ao_file_play_thread_mute("/tmp/mnt/sdcard/effects/pairing.wav");
-                Set_Vol(90,30,(10 * 1) + 55,15);
-                effect_file = "/tmp/mnt/sdcard/effects/dev_start.wav";
+                // ao_file_play_thread_mute("/dev/shm/effects/bellend.wav");
+                Set_Vol(90,30,(5 * 1) + 55,15);
+                effect_file = "/dev/shm/effects/dev_start.wav";
                 dp("play : %s\n", effect_file);
                 ao_file_play_thread(effect_file);
             }
             else if (rbuff[index+9] == 2) {
-                ao_file_play_thread_mute("/tmp/mnt/sdcard/effects/pairing.wav");
-                Set_Vol(90,30,(10 * 1) + 55,15);
-                effect_file = "/tmp/mnt/sdcard/effects/pairing.wav";
+                // ao_file_play_thread_mute("/dev/shm/effects/bellend.wav");
+                Set_Vol(90,30,(5 * 1) + 55,15);
+                effect_file = "/dev/shm/effects/pairing.wav";
                 dp("play : %s\n", effect_file);
                 ao_file_play_thread(effect_file);
             }
@@ -989,8 +1002,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         case SET_DEV_START:
             ack_len = 0;
             // ack_flag = true;
-            Set_Vol(90,30,(10 * 1) + 55,15);
-            effect_file = "/tmp/mnt/sdcard/effects/dev_start.wav";
+            Set_Vol(90,30,(5 * 1) + 55,15);
+            effect_file = "/dev/shm/effects/dev_start.wav";
             dp("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
             
@@ -999,8 +1012,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         case SET_DEV_OFF:
             ack_len = 0;
             // ack_flag = true;
-            Set_Vol(90,30,(10 * 1) + 55,15);
-            effect_file = "/tmp/mnt/sdcard/effects/dev_end.wav";
+            Set_Vol(90,30,(5 * 1) + 55,15);
+            effect_file = "/dev/shm/effects/dev_end.wav";
             dp("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
             
@@ -1011,7 +1024,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             ack_len = 0;
             // ack_flag = true;
 
-            effect_file = "/tmp/mnt/sdcard/effects/factory.wav";
+            effect_file = "/dev/shm/effects/factory.wav";
             dp("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
             // sleep(5);
@@ -1021,27 +1034,27 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             ack_len = 0;
             // ack_flag = true;
             
-            if (rbuff[index+9] == 1) effect_file = "/tmp/mnt/sdcard/effects/batt01.wav";
-            else if (rbuff[index+9] == 2) effect_file = "/tmp/mnt/sdcard/effects/batt02.wav";
-            else if (rbuff[index+9] == 3) effect_file = "/tmp/mnt/sdcard/effects/batt03.wav";
-            else if (rbuff[index+9] == 4) effect_file = "/tmp/mnt/sdcard/effects/batt04.wav";
-            else if (rbuff[index+9] == 5) effect_file = "/tmp/mnt/sdcard/effects/batt05.wav";
-            else if (rbuff[index+9] == 6) effect_file = "/tmp/mnt/sdcard/effects/batt06.wav";
-            else if (rbuff[index+9] == 7) effect_file = "/tmp/mnt/sdcard/effects/batt07.wav";
-            else if (rbuff[index+9] == 8) effect_file = "/tmp/mnt/sdcard/effects/batt08.wav";
-            else if (rbuff[index+9] == 9) effect_file = "/tmp/mnt/sdcard/effects/batt09.wav";
-            else if (rbuff[index+9] == 10) effect_file = "/tmp/mnt/sdcard/effects/batt10.wav";
-            else if (rbuff[index+9] == 11) effect_file = "/tmp/mnt/sdcard/effects/batt11.wav";
-            else if (rbuff[index+9] == 12) effect_file = "/tmp/mnt/sdcard/effects/batt12.wav";
-            else if (rbuff[index+9] == 13) effect_file = "/tmp/mnt/sdcard/effects/batt13.wav";
-            else if (rbuff[index+9] == 14) effect_file = "/tmp/mnt/sdcard/effects/batt14.wav";
-            else if (rbuff[index+9] == 15) effect_file = "/tmp/mnt/sdcard/effects/batt15.wav";
-            else if (rbuff[index+9] == 16) effect_file = "/tmp/mnt/sdcard/effects/batt16.wav";
-            else if (rbuff[index+9] == 17) effect_file = "/tmp/mnt/sdcard/effects/batt17.wav";
-            else if (rbuff[index+9] == 18) effect_file = "/tmp/mnt/sdcard/effects/batt18.wav";
-            else if (rbuff[index+9] == 19) effect_file = "/tmp/mnt/sdcard/effects/batt19.wav";
-            else if (rbuff[index+9] == 20) effect_file = "/tmp/mnt/sdcard/effects/batt20.wav";
-            else effect_file = "/tmp/mnt/sdcard/effects/batt01.wav";
+            if (rbuff[index+9] == 1) effect_file = "/dev/shm/effects/batt01.wav";
+            else if (rbuff[index+9] == 2) effect_file = "/dev/shm/effects/batt02.wav";
+            else if (rbuff[index+9] == 3) effect_file = "/dev/shm/effects/batt03.wav";
+            else if (rbuff[index+9] == 4) effect_file = "/dev/shm/effects/batt04.wav";
+            else if (rbuff[index+9] == 5) effect_file = "/dev/shm/effects/batt05.wav";
+            else if (rbuff[index+9] == 6) effect_file = "/dev/shm/effects/batt06.wav";
+            else if (rbuff[index+9] == 7) effect_file = "/dev/shm/effects/batt07.wav";
+            else if (rbuff[index+9] == 8) effect_file = "/dev/shm/effects/batt08.wav";
+            else if (rbuff[index+9] == 9) effect_file = "/dev/shm/effects/batt09.wav";
+            else if (rbuff[index+9] == 10) effect_file = "/dev/shm/effects/batt10.wav";
+            else if (rbuff[index+9] == 11) effect_file = "/dev/shm/effects/batt11.wav";
+            else if (rbuff[index+9] == 12) effect_file = "/dev/shm/effects/batt12.wav";
+            else if (rbuff[index+9] == 13) effect_file = "/dev/shm/effects/batt13.wav";
+            else if (rbuff[index+9] == 14) effect_file = "/dev/shm/effects/batt14.wav";
+            else if (rbuff[index+9] == 15) effect_file = "/dev/shm/effects/batt15.wav";
+            else if (rbuff[index+9] == 16) effect_file = "/dev/shm/effects/batt16.wav";
+            else if (rbuff[index+9] == 17) effect_file = "/dev/shm/effects/batt17.wav";
+            else if (rbuff[index+9] == 18) effect_file = "/dev/shm/effects/batt18.wav";
+            else if (rbuff[index+9] == 19) effect_file = "/dev/shm/effects/batt19.wav";
+            else if (rbuff[index+9] == 20) effect_file = "/dev/shm/effects/batt20.wav";
+            else effect_file = "/dev/shm/effects/batt01.wav";
             dp("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
             sleep(5);
@@ -1173,7 +1186,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         case TEST_SPK:
             dp("Sound Test For 1KHz.\n");
             Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
-            effect_file = "/tmp/mnt/sdcard/effects/dev_takeoff.wav";
+            effect_file = "/dev/shm/effects/dev_takeoff.wav";
             dp("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
         break;

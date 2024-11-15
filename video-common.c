@@ -842,7 +842,7 @@ int sample_jpeg_init(int ch)
 	memset(&channel_attr, 0, sizeof(IMPEncoderChnAttr));
 	ret = IMP_Encoder_SetDefaultParam(&channel_attr, IMP_ENC_PROFILE_JPEG, IMP_ENC_RC_MODE_FIXQP,
 			imp_chn_attr_tmp->picWidth, imp_chn_attr_tmp->picHeight,
-			imp_chn_attr_tmp->outFrmRateNum, imp_chn_attr_tmp->outFrmRateDen, 0, 0, 35, 0);
+			imp_chn_attr_tmp->outFrmRateNum, imp_chn_attr_tmp->outFrmRateDen, 0, 0, 50, 0);
 
 	/* Create Channel */
 	ret = IMP_Encoder_CreateChn(chn[i].index, &channel_attr);
@@ -3968,19 +3968,22 @@ void *sample_soft_photosensitive_ctrl(void *p)
 	int i = 0;
 	float gb_gain,gr_gain;
 	float iso_buf;
-	bool ircut_status = true;
+	// bool ircut_status = true;
 	g_soft_ps_running = 1;
 	int night_count = 0;
 	int day_count = 0;
 	//int day_oth_count = 0;
 	//bayer domain's (g component/b component) statistic value.
 	float gb_gain_record = 200;
-	//float gr_gain_record = 200;
+	float gr_gain_record = 200;
 	float gb_gain_buf = 200, gr_gain_buf = 200;
+	uint32_t ae_mean, aetime, oldaetime;
+	int aecnt = 0;
 	IMPVI_NUM vinum = 0;
 	IMPISPRunningMode pmode;
 	IMPISPAEExprInfo ExpInfo;
 	IMPISPAWBGlobalStatisInfo wb;
+	IMPISPAEScenceAttr meaninfo;
 	IMP_ISP_Tuning_SetISPRunningMode(vinum, IMPISP_RUNNING_MODE_DAY);
 	IMP_ISP_Tuning_SetISPRunningMode(vinum+1, IMPISP_RUNNING_MODE_DAY);
 	sample_SetIRCUT(1);
@@ -3997,6 +4000,10 @@ void *sample_soft_photosensitive_ctrl(void *p)
 		}
 		iso_buf = ExpInfo.ExposureValue;
 		// dp(" iso buf ==%f\n",iso_buf);
+		IMP_ISP_Tuning_GetAeScenceAttr(vinum, &meaninfo);
+		ae_mean = meaninfo.ae_mean;
+		aetime = ExpInfo.AeIntegrationTime;
+		// dp(" mean ==%d  aetime ==%d\n", ae_mean, aetime);
 		ret = IMP_ISP_Tuning_GetAwbGlobalStatistics(vinum, &wb);
 		if (ret == 0) {
 			gr_gain =wb.statis_gol_gain.rgain;
@@ -4009,18 +4016,18 @@ void *sample_soft_photosensitive_ctrl(void *p)
 		}
 
 		//If the average brightness is less than 20, switches to night vision mode
-		if (iso_buf >1900000) {
+		if (iso_buf >1900000 || ae_mean <= 20) {
 			night_count++;
-			dp("night_count==%d\n",night_count);
+			// dp("night_count==%d\n",night_count);
 			if (night_count>5) {
 				IMP_ISP_Tuning_GetISPRunningMode(vinum, &pmode);
 				if (pmode!=IMPISP_RUNNING_MODE_NIGHT) {
-					dp("### entry night mode ###\n");
+					// dp("### entry night mode ###\n");
 					IMPISPRunningMode mode = IMPISP_RUNNING_MODE_NIGHT;
 					IMP_ISP_Tuning_SetISPRunningMode(vinum, &mode);
 					IMP_ISP_Tuning_SetISPRunningMode(vinum+1, &mode);
-					sample_SetIRCUT(0);
-					ircut_status = true;
+					// sample_SetIRCUT(0);
+					// ircut_status = true;
 				}
 				//After switching to night vision, take the minimum value of 20 gb_gain as the reference value for switching day gb_gain_record, and gb_gain it is bayer's G/B
 				for (i=0; i<20; i++) {
@@ -4035,7 +4042,7 @@ void *sample_soft_photosensitive_ctrl(void *p)
 					gr_gain_buf = ((gr_gain_buf>gr_gain)?gr_gain:gr_gain_buf);
 					usleep(300000);
 					gb_gain_record = gb_gain_buf;
-					//gr_gain_record = gr_gain_buf;
+					gr_gain_record = gr_gain_buf;
 					// dp("gb_gain == %f,iso_buf=%f",gb_gain,iso_buf);
 					// dp("gr_gain_record == %f\n ",gr_gain_record);
 				}
@@ -4044,7 +4051,8 @@ void *sample_soft_photosensitive_ctrl(void *p)
 			night_count = 0;
 		}
 		//Meet these three conditions, enter the daytime switching judgment condition
-		if (((int)iso_buf < 479832) &&(ircut_status == true) &&(gb_gain>gb_gain_record+15)) {
+		// if (((int)iso_buf < 479832) &&(ircut_status == true) &&(gb_gain>gb_gain_record+15)) {
+		if (((int)iso_buf < 479832) &&(gb_gain>gb_gain_record+15)) {
 			if ((iso_buf<361880)||(gb_gain >145)) {
 				day_count++;
 			} else {
@@ -4053,18 +4061,49 @@ void *sample_soft_photosensitive_ctrl(void *p)
 			// dp("gr_gain_record == %f gr_gain =%f line=%d\n",gr_gain_record,gr_gain,__LINE__);
 			// dp("day_count == %d\n",day_count);
 			if (day_count>3) {
-				dp("### entry day mode ###\n");
+				// dp("### entry day mode ###\n");
 				IMP_ISP_Tuning_GetISPRunningMode(vinum, &pmode);
 				if (pmode!=IMPISP_RUNNING_MODE_DAY) {
 					IMPISPRunningMode mode = IMPISP_RUNNING_MODE_DAY;
 					IMP_ISP_Tuning_SetISPRunningMode(vinum, &mode);
 					IMP_ISP_Tuning_SetISPRunningMode(vinum+1, &mode);
-					sample_SetIRCUT(1);
-					ircut_status = false;
+					// sample_SetIRCUT(1);
+					// ircut_status = false;
 				}
 			}
 		} else {
 			day_count = 0;
+		}
+
+		IMP_ISP_Tuning_GetISPRunningMode(vinum, &pmode);
+		if (pmode == IMPISP_RUNNING_MODE_DAY && ae_mean > 120) {
+			if (oldaetime == aetime) {
+				aecnt++;
+			}
+			else {
+				aecnt = 0;
+				oldaetime = aetime;
+			}
+			if (aecnt > 0) {
+				// dp("bright Down\n");
+				ExpInfo.AeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+				ExpInfo.AeIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
+				if (ae_mean > 200)
+					ExpInfo.AeIntegrationTime = aetime/2;
+				else if (ae_mean > 160)
+					ExpInfo.AeIntegrationTime = aetime - 10;
+				else
+					ExpInfo.AeIntegrationTime = aetime - 3;
+				IMP_ISP_Tuning_SetAeExprInfo(vinum, &ExpInfo);
+				IMP_ISP_Tuning_SetAeExprInfo(vinum+1, &ExpInfo);
+			}
+		}
+		else if (ExpInfo.AeMode == IMPISP_TUNING_OPS_TYPE_MANUAL && ae_mean < 30) {
+			// dp("bright recovery\n");
+			ExpInfo.AeMode = IMPISP_TUNING_OPS_TYPE_AUTO;
+			ExpInfo.AeIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_AUTO;
+			IMP_ISP_Tuning_SetAeExprInfo(vinum, &ExpInfo);
+			IMP_ISP_Tuning_SetAeExprInfo(vinum+1, &ExpInfo);
 		}
 		sleep(1);
 	}

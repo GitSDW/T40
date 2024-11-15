@@ -2088,6 +2088,17 @@ int spi_send_file_dual(uint8_t minor1, uint8_t minor2, char *file1, char *file2)
     }
     dp("**********FILE SEND START CMD************\n");
     // dp("d %s,s %d,d %d,b %d,m %d,f %s, size:%d\n",device,speed,delay,bits,mode,file,sz_file);
+    memset(tx_buff, 0xff, SPI_SEND_LENGTH);
+
+    spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
+
+    if (Ready_Busy_Check() > 0){
+        // dp("RB Checked!\n");
+    }
+    else{
+        dp("F1:%d\n",wcnt);
+        return -1;
+    }
 
     read_buff[0] = minor1;
     read_buff[1] = (sz_file>>24)&0xFF;

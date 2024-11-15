@@ -140,6 +140,8 @@ int global_value_init(void) {
 	bell_rec_state = REC_READY;
 	bl_state = BSS_WAIT;
 
+	// net_wait_st = NET_WAIT_START;
+
 	main_snap = false;
 	box_snap = false;
 	thumbnail_snap = false;
@@ -659,7 +661,7 @@ int gpio_LED_Set (int onoff) {
 
 int gpio_LED_Set_test (int onoff) {
 	static bool led_flag=false;
-	int led_duty = 0, ret = 0;;
+	int led_duty = 0;
 	char file_sep[100] = {0};
 
 	if (!led_flag) {
@@ -1130,20 +1132,17 @@ int main(int argc, char **argv) {
 	global_value_init();
 
 	Setting_Init();
-	spk_vol_buf = (10 * settings.spk_vol) + 55;
-	if (settings.spk_vol == 4){
-		spk_vol_buf = 86;
-		spk_gain_buf = 15;
-	}
-	else
-		spk_gain_buf = 15;
+	spk_vol_buf = (5* settings.spk_vol) + 55;
+	spk_gain_buf = 15;
+	// if (settings.spk_vol == 4)
+		// spk_vol_buf = 86;
     Mosaic_En = settings.SF.bits.per_face;
 
 #ifndef	__TEST_FAKE_VEDIO__
 	video_init();
 #endif
 
-	system("cp /tmp/mnt/sdcard/effects/bell*.wav /dev/shm/");
+	system("cp /tmp/mnt/sdcard/effects /dev/shm/ -r &");
 
 	Init_Audio_In();
 	Init_Audio_Out();
@@ -1279,11 +1278,11 @@ int main(int argc, char **argv) {
 				play_cnt = scanf_index();
 				if (play_cnt < 1) play_cnt = 1;
 
-				if (ao_index == 1) effect_file = "/tmp/mnt/sdcard/effects/test1.wav";
-	            else if (ao_index == 2) effect_file = "/tmp/mnt/sdcard/effects/test2.wav";
-	            else if (ao_index == 3) effect_file = "/tmp/mnt/sdcard/effects/test3.wav";
-	            else if (ao_index == 4) effect_file = "/tmp/mnt/sdcard/effects/test4.wav";
-	            else if (ao_index == 5) effect_file = "/tmp/mnt/sdcard/effects/test5.wav";
+				if (ao_index == 1) effect_file = "/dev/shm/effects/test1.wav";
+	            else if (ao_index == 2) effect_file = "/dev/shm/effects/test2.wav";
+	            else if (ao_index == 3) effect_file = "/dev/shm/effects/test3.wav";
+	            else if (ao_index == 4) effect_file = "/dev/shm/effects/test4.wav";
+	            else if (ao_index == 5) effect_file = "/dev/shm/effects/test5.wav";
 	            dp("play : %s\n", effect_file);
 	            for (int a=0; a<play_cnt; a++) {
 	            	Set_Vol(90,30,ao_vol,ao_gain);
@@ -1379,7 +1378,7 @@ int main(int argc, char **argv) {
 
 				Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
 
-				effect_file = "/tmp/mnt/sdcard/effects/test6.wav";
+				effect_file = "/dev/shm/effects/test6.wav";
 	            
 	            dp("play : %s\n", effect_file);
 	            ao_file_play_thread(effect_file);
@@ -1498,16 +1497,6 @@ int main(int argc, char **argv) {
 			}
 			dp("cmd:%d\n", cmd);
 			
-			// if (save_pcm == 2) {
-			// 	dp("pcm cp %d %d\n", pcm_in);
-			// 	if (pcm_in){
-			// 		save_pcm = 3;
-			// 		system("cp /dev/shm/test_in.pcm /tmp/mnt/sdcard/effects");
-			// 		system("cp /dev/shm/test_out.pcm /tmp/mnt/sdcard/effects");
-			// 		system("sync");
-			// 		dp("pcm Test Copy end!\n");
-			// 	}
-			// }
 		#else
 			pthread_t tid_spi, tid_stream, tid_move, tid_fdpd;
 			int max_sharp = 0, max_foucs = 0;
@@ -2192,6 +2181,7 @@ int clip_total(void) {
 									}
 								}
 							}
+							// system("cp /dev/shm/face*.jpg /tmp/mnt/sdcard/");
 							set_parm_end();
 							// system("cp /dev/shm/face_crop* /tmp/mnt/sdcard/");
 							bLiveFile = false;
@@ -2200,7 +2190,7 @@ int clip_total(void) {
 								// system("cp /dev/shm/face*.jpg /tmp/mnt/sdcard");
 								// #ifdef __PHILL_REQ__
 								// 	Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
-					            // 	ao_file_play_thread("/tmp/mnt/sdcard/effects/bell1.wav");
+					            // 	ao_file_play_thread("/dev/shm/effects/bell1.wav");
 					            // #endif
 							}
 						}
@@ -2473,7 +2463,7 @@ int clip_total(void) {
 						dimming = false;
 						gpio_LED_dimming(1);
 						if (bellend_sound == 1)
-							ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
+							ao_file_play_thread("/dev/shm/effects/bellend.wav");
 					}
 
 					if (total_time2 > BELL_TIME_MIN && rebell) {
@@ -2552,7 +2542,7 @@ int clip_total(void) {
 							// box_snap = true;
 						}
 						if (bellend_sound == 2)  {
-			                ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
+			                ao_file_play_thread("/dev/shm/effects/bellend.wav");
 			                bellend_sound++;
 						}
 						else {
@@ -2586,7 +2576,7 @@ int clip_total(void) {
 						}
 
 						// if (bellend_sound == 2)  {
-			            //     ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
+			            //     ao_file_play_thread("/dev/shm/effects/bellend.wav");
 			            //     bellend_sound++;
 						// }
 						// else {
@@ -2616,7 +2606,7 @@ int clip_total(void) {
 							}
 
 							if (bellend_sound == 2)  {
-				                ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
+				                ao_file_play_thread("/dev/shm/effects/bellend.wav");
 				                bellend_sound++;
 							}
 							// else {
@@ -2637,7 +2627,7 @@ int clip_total(void) {
 								bell_rerecode_flag = true;
 								Rec_type = MAKE_FILE;
 								if (bellend_sound == 1)  {
-					                ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
+					                ao_file_play_thread("/dev/shm/effects/bellend.wav");
 					                bellend_sound++;
 								}
 							}
@@ -2649,7 +2639,7 @@ int clip_total(void) {
 							bell_rerecode_flag = true;
 							Rec_type = MAKE_FILE;
 							if (bellend_sound == 2)  {
-				                ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
+				                ao_file_play_thread("/dev/shm/effects/bellend.wav");
 				                bellend_sound++;
 							}
 						}
@@ -3596,7 +3586,7 @@ int clip_total(void) {
 					dimming = false;
 					gpio_LED_dimming(1);
 					if (bellend_sound == 1)
-						ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
+						ao_file_play_thread("/dev/shm/effects/bellend.wav");
 				}
 
 				if (total_time2 > BELL_TIME_MIN && rebell) {
@@ -3665,7 +3655,7 @@ int clip_total(void) {
 					dp("BELL END:Steaming End! %lld\n", total_time);
 					bell_rec_state =REC_STOP;
 					if (bellend_sound == 2)  {
-		                ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
+		                ao_file_play_thread("/dev/shm/effects/bellend.wav");
 		                bellend_sound++;
 					}
 					else {
@@ -3697,7 +3687,7 @@ int clip_total(void) {
 					}
 
 					// if (bellend_sound == 2)  {
-		            //     ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
+		            //     ao_file_play_thread("/dev/shm/effects/bellend.wav");
 		            //     bellend_sound++;
 					// }
 					// else {
@@ -3727,7 +3717,7 @@ int clip_total(void) {
 
 
 						if (bellend_sound == 2)  {
-			                ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
+			                ao_file_play_thread("/dev/shm/effects/bellend.wav");
 			                bellend_sound++;
 						}
 						// else {
@@ -3748,7 +3738,7 @@ int clip_total(void) {
 							bell_rerecode_flag = true;
 							Rec_type = MAKE_FILE;
 							if (bellend_sound == 1)  {
-				                ao_file_play_thread("/tmp/mnt/sdcard/effects/bellend.wav");
+				                ao_file_play_thread("/dev/shm/effects/bellend.wav");
 				                bellend_sound++;
 							}
 						}
@@ -3817,6 +3807,42 @@ int clip_total(void) {
 			// 	Rec_type = MAKE_FILE;
 			// }
 		}
+		// if (Rec_type == NET_WAIT) {
+		// 	int64_t  net_wait_t;
+		// 	if (net_wait_st == NET_WAIT_START) {
+		// 		net_wait_t = sample_gettimeus();
+		// 		net_wait_st = NET_WAIT_WAIT;
+		// 		dp("Net Wait Start : %lld\n", net_wait_t);
+		// 	}
+		// 	else if (net_wait_st == NET_WAIT_WAIT) {
+		// 		if ((sample_gettimeus()-net_wait_t) > 60000000) {
+		// 			net_wait_st = NET_WAIT_TIMTOUT;
+		// 			dp("Net Wait Timeout : %lld\n", sample_gettimeus()-net_wait_t);
+		// 		}
+		// 		else if (netwaitrecover) {
+		// 			net_wait_st = NET_WAIT_RECOVER;
+		// 			dp("Net Wait Recovery : %lld\n", sample_gettimeus()-net_wait_t);
+		// 		}
+
+		// 	}
+		// 	else if (net_wait_st == NET_WAIT_RECOVER) {
+		// 		Rec_type = SEND_FILE;
+		// 		net_wait_st = NET_WAIT_START;
+		// 		dp("Net Wait End : Recovery.\n");
+		// 	}
+		// 	else if (net_wait_st == NET_WAIT_TIMTOUT) {
+		// 		system("sync");
+		// 		device_end(REC);
+		// 		dp("Net Wait End : Timeout.\n");
+		// 		break;
+		// 	}
+		// 	else {
+		// 		system("sync");
+		// 		device_end(REC);
+		// 		dp("Net Wait End : Critical.\n");
+		// 		break;
+		// 	}
+		// }
 	}while(1);
 
 	bExit = true;
@@ -4139,6 +4165,40 @@ int stream_total(int mode) {
 				}
 			}
 		}
+		else if (cmd == 2) {
+			int x, y, w, h, c;
+			printf("cmd 9 Box Camera Crop Test\n");
+			printf("Set X:");
+			x = scanf_index();
+			printf("Set Y:");
+			y = scanf_index();
+			printf("Set Width:");
+			w = scanf_index();
+			printf("Set Height:");
+			h = scanf_index();
+			printf("Cam select[0:main/1:box]:");
+			c = scanf_index();
+
+			isd_crop(x, y, w, h, c);
+		}
+		else if (cmd == 3) {
+			int x, y, w, h, str, c;
+			printf("cmd 10 Distortion Test\n");
+			printf("Set Center X:");
+			x = scanf_index();
+			printf("Set Center Y:");
+			y = scanf_index();
+			printf("Set Width:");
+			w = scanf_index();
+			printf("Set Height:");
+			h = scanf_index();
+			printf("Set strength:");
+			str = scanf_index();
+			printf("Cam select[0:main/1:box]:");
+			c = scanf_index();
+
+			isd_distortion(x, y, w, h, str, c);
+		}
 	
 		else if (cmd == 90) {
 			dp("cmd 90 Reset Test\n");
@@ -4179,6 +4239,7 @@ int stream_total(int mode) {
 
 		if (streaming_rec_state == REC_READY) {
 			if (rec_end) {
+				spi_deinit();
 				device_end(STREAMING);
 				dp("Streaming Mode End!!\n");
 				bUart = true;
@@ -4219,6 +4280,7 @@ int stream_total(int mode) {
 	            	streaming_rec_end(CAUSE_MEM);
 	            }
 	            else {
+	            	spi_deinit();
 	            	device_end(STREAMING);
 					dp("Streaming Mode End!!\n");
 					bUart = true;
@@ -4311,6 +4373,7 @@ int stream_total(int mode) {
 				continue;
 			}
 			else {
+				spi_deinit();
 				device_end(STREAMING);
 				dp("Streaming Mode End!!\n");
 				bUart = true;

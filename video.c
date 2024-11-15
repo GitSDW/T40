@@ -497,11 +497,9 @@ uint8_t bright_set(uint8_t bright) {
 uint32_t AeIntegrationTime_1;
 
 uint32_t Get_Brightness(void) {
-	IMPISPAEScenceAttr sceneattr;
 	IMPISPAEExprInfo expose_inf;
 	uint8_t ae_mean = 0;
 	uint32_t expose_val = 0;
-	uint32_t AeIntegrationTime = AeIntegrationTime_1;
 
 	// expose_inf.AeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
 	// expose_inf.AeIntegrationTimeMode = IMPISP_TUNING_OPS_TYPE_MANUAL;
@@ -1247,7 +1245,6 @@ void *OSD_thread(void *args)
 
 	int64_t total_time = 0;
 	int64_t oldt_time = 0;//, BLC_time = 0;//, mean_time = 0;;
-	int mosaic_test_cnt = 0;
 
 	// int f_cnt=0;
 	
@@ -1256,7 +1253,6 @@ void *OSD_thread(void *args)
 
 	// IMPOSDRgnAttr rect_rAttr;
 	// IMPOSDRgnAttr cover_rAttr;
-	IMPOSDRgnAttr mosaic_rAttr;
 	// int mosaic_index = 0;
 	
 	// int64_t now_mosaic_time = 0;

@@ -471,6 +471,8 @@ int get_parm(void) {
 
 	dp("Get Param Sens : %d\n", settings.move_sensitivty);
 	dp("Get Param Lvls : %f\n", param.level);
+
+	return 0;
 }
 
 int set_parm_end(void) {
@@ -498,5 +500,7 @@ int set_parm_end(void) {
 
 	dp("Set Param Sens : %d\n", param.sense);
 	dp("Set Param Lvls : %f\n", param.level);
+
+	return 0;
 }
 

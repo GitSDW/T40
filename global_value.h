@@ -12,8 +12,8 @@ extern "C" {
 
 #ifndef __PHILL_REQ__
 	#define MAJOR_VER	"0"
-	#define MINOR_VER	"b"
-	#define CAHR_VER	"x"
+	#define MINOR_VER	"c"
+	#define CAHR_VER	"b"
 #else
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"z"
@@ -287,6 +287,8 @@ int mic_st_stat;
 int shfo_st_stat;
 int bellend_sound;
 
+// int net_wait_st;
+
 bool main_snap;
 bool box_snap;
 bool thumbnail_snap;
@@ -301,6 +303,7 @@ bool bLiveFile;
 
 // pcm test
 int save_pcm;
+
 bool pcm_in, pcm_out;
 bool Mosaic_En, fdpd_En, fdpd_ck;
 bool dot_En;
@@ -346,6 +349,7 @@ bool bMove, move_start_flag;
 bool face_end_f[5];
 bool DLedT, BLedT, BMicT;
 bool TestReset;
+bool netwaitstar, netwaitrecover;
 
 extern int bExit;
 
@@ -453,7 +457,15 @@ enum REC_TYPE {
 	SEND_FILE 		= 3,
 	STRM_REC 		= 4,
 	BELL_REREC 		= 5,
+	// NET_WAIT		= 6,
 };
+
+// enum NET_WAIT_STATE {
+// 	NET_WAIT_START	 = 0,	// 0
+// 	NET_WAIT_WAIT	 = 1,  	// 1
+// 	NET_WAIT_RECOVER = 2,
+// 	NET_WAIT_TIMTOUT = 3,
+// };
 
 // #define __TEST_FAKE_VEDIO__
 // #define __STREAMING_CMD__

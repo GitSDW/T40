@@ -1450,6 +1450,9 @@ void *IMP_Audio_Play_Thread_g726(void *argv)
 bool file_play_flag = false;
 
 pthread_mutex_t PlayMutex = PTHREAD_MUTEX_INITIALIZER;
+int wait_cnt = 10;
+
+void ao_file_play_thread_mute(void *argv);
 
 void ao_file_play_thread(void *argv)
 {
@@ -1482,6 +1485,9 @@ void ao_file_play_thread(void *argv)
 	else dp("wav header read!!\n");
 
 	bPlayMusic = true;
+
+	if (!amp_f)
+		ao_file_play_thread_mute("/dev/shm/effects/bellend.wav");
 
 	do {
 		if (bExit) break;
@@ -1529,13 +1535,13 @@ void ao_file_play_thread(void *argv)
 		usleep(18*1000);
 
 		if (!amp_f) {
-			if (amp_c == 20) {
+			if (amp_c == wait_cnt) {
 				Get_Vol();
 				Set_Vol(-30,0,-30,0);
 				Set_Mute(0);
 				amp_off();
 			}
-			else if (amp_c == 22) {
+			else if (amp_c == wait_cnt+2) {
 				amp_f = true;
 				amp_on();
 				Set_Mute(1);
@@ -1547,6 +1553,20 @@ void ao_file_play_thread(void *argv)
 		IMP_LOG_INFO(TAG, "Play: TotalNum %d, FreeNum %d, BusyNum %d\n",
 				play_status.chnTotalNum, play_status.chnFreeNum, play_status.chnBusyNum);
 	}while (1);
+
+	memset(buf, 0, AUDIO_SAMPLE_BUF_SIZE);
+	IMPAudioFrame frm;
+	frm.virAddr = (uint32_t *)buf;
+	frm.len = AUDIO_SAMPLE_BUF_SIZE;
+	for (int i=0;i<30;i++) {
+		ret = IMP_AO_SendFrame(ao_devID, ao_chnID, &frm, BLOCK);
+		if (ret != 0) {
+			IMP_LOG_ERR(TAG, "send Frame Data error\n");
+			return;
+		}
+		usleep(18*1000);
+	}
+
 
 	pthread_mutex_unlock(&PlayMutex);
 
@@ -1588,6 +1608,9 @@ void ao_file_play_thread_mute(void *argv)
 	else dp("wav header read!!\n");
 
 	amp_off();
+
+	if (wait_cnt < 20)
+		wait_cnt += 10;
 
 	do {
 		if (bExit) break;
@@ -1638,6 +1661,19 @@ void ao_file_play_thread_mute(void *argv)
 		IMP_LOG_INFO(TAG, "Play: TotalNum %d, FreeNum %d, BusyNum %d\n",
 				play_status.chnTotalNum, play_status.chnFreeNum, play_status.chnBusyNum);
 	}while (1);
+
+	// memset(buf, 0, AUDIO_SAMPLE_BUF_SIZE);
+	// IMPAudioFrame frm;
+	// frm.virAddr = (uint32_t *)buf;
+	// frm.len = AUDIO_SAMPLE_BUF_SIZE;
+	// for (int i=0;i<10;i++) {
+	// 	ret = IMP_AO_SendFrame(ao_devID, ao_chnID, &frm, BLOCK);
+	// 	if (ret != 0) {
+	// 		IMP_LOG_ERR(TAG, "send Frame Data error\n");
+	// 		return;
+	// 	}
+	// 	usleep(18*1000);
+	// }
 
 	dp("[Audio File] Thread End!\n");
 	fclose(play_file);
@@ -1916,4 +1952,3 @@ void IMP_Audio_Test_InOut_Thread(void)
 	// pthread_exit(0);
 
 }
-
