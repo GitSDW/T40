@@ -1486,8 +1486,8 @@ void ao_file_play_thread(void *argv)
 
 	bPlayMusic = true;
 
-	if (!amp_f)
-		ao_file_play_thread_mute("/dev/shm/effects/bellend.wav");
+	// if (!amp_f)
+	// 	ao_file_play_thread_mute("/dev/shm/effects/bellend.wav");
 
 	do {
 		if (bExit) break;

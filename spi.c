@@ -973,6 +973,17 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
     }
     dp("**********FILE SEND START CMD************\n");
     // dp("d %s,s %d,d %d,b %d,m %d,f %s, size:%d\n",device,speed,delay,bits,mode,file,sz_file);
+    memset(tx_buff, 0xff, SPI_SEND_LENGTH);
+    dp("%s dummy send!\n", __func__);
+    spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
+
+    if (Ready_Busy_Check() > 0){
+        // dp("RB Checked!\n");
+    }
+    else{
+        dp("F1:%d\n",wcnt);
+        return -1;
+    }
     len = 10;
 
     read_buff[0] = minor;
@@ -1227,6 +1238,19 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
       
         dp("**********FILE SEND START CMD : %d ************\n", cnt);
         // dp("d %s,s %d,d %d,b %d,m %d,f %s, size:%d\n",device,speed,delay,bits,mode,file,sz_file);
+        memset(tx_buff, 0xff, SPI_SEND_LENGTH);
+        dp("%s dummy send!\n", __func__);
+        spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
+
+        if (Ready_Busy_Check() > 0){
+            // dp("RB Checked!\n");
+        }
+        else{
+            dp("F1:%d\n",wcnt);
+            return -1;
+        }
+        memset(tx_buff, 0xff, SPI_SEND_LENGTH);
+
         len = 8;
 
         read_buff[0] = fs->minor;
@@ -1554,6 +1578,20 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
       
         dp("**********FILE SEND START CMD : %d ************\n", cnt);
         // dp("d %s,s %d,d %d,b %d,m %d,f %s, size:%d\n",device,speed,delay,bits,mode,file,sz_file);
+        memset(tx_buff, 0xff, SPI_SEND_LENGTH);
+        dp("%s dummy send!\n", __func__);
+        spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
+
+        if (Ready_Busy_Check() > 0){
+            // dp("RB Checked!\n");
+        }
+        else{
+            dp("F1:%d\n",wcnt);
+            return -1;
+        }
+
+        memset(tx_buff, 0xff, SPI_SEND_LENGTH);
+
         len = 8;
 
         read_buff[0] = fs->minor;
@@ -1917,7 +1955,20 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
             sz_file += file_info.st_size;
         }
         dp("**********FACE SEND START %d %d ************\n", sz_file, fcnt);
+        
         // dp("d %s,s %d,d %d,b %d,m %d,f %s, size:%d\n",device,speed,delay,bits,mode,file,sz_file);
+        memset(tx_buff, 0xff, SPI_SEND_LENGTH);
+        dp("%s dummy send!\n", __func__);
+        spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
+
+        if (Ready_Busy_Check() > 0){
+            // dp("RB Checked!\n");
+        }
+        else{
+            dp("F1:%d\n",wcnt);
+            return -1;
+        }
+
         memset(read_buff, 0, 7);
 
         read_buff[0] = minor;
@@ -2089,7 +2140,7 @@ int spi_send_file_dual(uint8_t minor1, uint8_t minor2, char *file1, char *file2)
     dp("**********FILE SEND START CMD************\n");
     // dp("d %s,s %d,d %d,b %d,m %d,f %s, size:%d\n",device,speed,delay,bits,mode,file,sz_file);
     memset(tx_buff, 0xff, SPI_SEND_LENGTH);
-
+    dp("%s dummy send!\n", __func__);
     spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
 
     if (Ready_Busy_Check() > 0){
@@ -2099,6 +2150,8 @@ int spi_send_file_dual(uint8_t minor1, uint8_t minor2, char *file1, char *file2)
         dp("F1:%d\n",wcnt);
         return -1;
     }
+
+    memset(tx_buff, 0xff, SPI_SEND_LENGTH);
 
     read_buff[0] = minor1;
     read_buff[1] = (sz_file>>24)&0xFF;
@@ -2252,6 +2305,19 @@ int spi_send_fake_file(uint8_t minor)
     // sz_file = 900*20 + 450;
     dp("**********SPI FILE SEND************\n");
     dp("d %s,s %d,d %d,b %d,m %d\n",device,speed,delay,bits,mode);
+
+    memset(tx_buff, 0xff, SPI_SEND_LENGTH);
+    dp("%s dummy send!\n", __func__);
+    spi_write_bytes(fd, tx_buff, SPI_SEND_LENGTH);
+
+    if (Ready_Busy_Check() > 0){
+        // dp("RB Checked!\n");
+    }
+    else{
+        return -1;
+    }
+
+    memset(tx_buff, 0xff, SPI_SEND_LENGTH);
 
     read_buff[0] = minor;
     read_buff[1] = (sz_file>>24)&0xFF;

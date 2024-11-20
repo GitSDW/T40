@@ -132,6 +132,8 @@ int global_value_init(void) {
 
 	spk_vol_buf = 80;
 	spk_gain_buf = 14;
+	bell_vol_buf = 75;
+	bell_gain_buf = 14;
 
 	// rec_state = REC_READY;
 	clip_rec_state = REC_READY;
@@ -1132,8 +1134,10 @@ int main(int argc, char **argv) {
 	global_value_init();
 
 	Setting_Init();
-	spk_vol_buf = (5* settings.spk_vol) + 55;
+	spk_vol_buf = (10 * settings.spk_vol) + 55;
 	spk_gain_buf = 15;
+	bell_vol_buf = (5 * settings.spk_vol) + 55;
+	bell_gain_buf = 15;
 	// if (settings.spk_vol == 4)
 		// spk_vol_buf = 86;
     Mosaic_En = settings.SF.bits.per_face;

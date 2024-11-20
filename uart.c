@@ -425,6 +425,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             if (stream_state == 1) {
                 rebell = true;
                 dp("Bell Stream : %d\n", stream_state);
+                Set_Vol(90,30,bell_vol_buf,bell_gain_buf);
                 ao_file_play_thread(effect_file);
                 break;
             }
@@ -453,7 +454,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 // else                        dn_g726_falg = true;
                 dn_g726_falg = false;
             }
-
+            Set_Vol(90,30,bell_vol_buf,bell_gain_buf);
             ao_file_play_thread(effect_file);
         break;
         case UREC_BELL_MUTE:
@@ -543,7 +544,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             else if (rbuff[index+9] == 1)
                 effect_file = "/dev/shm/effects/dev_takeon.wav";
             dp("play : %s\n", effect_file);
-            Set_Vol(90,30,(5 * 1) + 55,15);
+            Set_Vol(90,30,(10 * 1) + 55,15);
             ao_file_play_thread(effect_file);
 
             // clip_cause_t.Major = CLIP_CAUSE_MOUNT;
@@ -786,6 +787,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                     else if (settings.bell_type == 2) effect_file = "/dev/shm/effects/bell3.wav";
                     else if (settings.bell_type == 2) effect_file = "/dev/shm/effects/bell4.wav";
                     dp("play : %s\n", effect_file);
+                    Set_Vol(90,30,bell_vol_buf,bell_gain_buf);
                     ao_file_play_thread(effect_file);
                 }
                 cmd_end_flag = true;
@@ -802,8 +804,10 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 system("sync");
                 
                 // ack_flag = true;
-                spk_vol_buf = (5 * settings.spk_vol) + 55;
+                spk_vol_buf = (10 * settings.spk_vol) + 55;
                 spk_gain_buf = 15;
+                bell_vol_buf = (5 * settings.spk_vol) + 55;
+                bell_gain_buf = 15;
                 // if (settings.spk_vol == 4){
                 //     spk_vol_buf = 86;
                 //     spk_gain_buf = 15;
@@ -958,7 +962,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         break;
         case SET_FACTORY:
             Setting_Reinit();
-            Set_Vol(90,30,(5 * 1) + 55,15);
+            Set_Vol(90,30,(10 * 1) + 55,15);
             effect_file = "/dev/shm/effects/factory.wav";
             dp("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
@@ -976,15 +980,15 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             else  cmdbuf = 2;
             gpio_LED_dimming(cmdbuf);
             if (rbuff[index+9] == 1) {
-                // ao_file_play_thread_mute("/dev/shm/effects/bellend.wav");
-                Set_Vol(90,30,(5 * 1) + 55,15);
+                ao_file_play_thread_mute("/dev/shm/effects/bellend.wav");
+                Set_Vol(90,30,(10 * 1) + 55,15);
                 effect_file = "/dev/shm/effects/dev_start.wav";
                 dp("play : %s\n", effect_file);
                 ao_file_play_thread(effect_file);
             }
             else if (rbuff[index+9] == 2) {
-                // ao_file_play_thread_mute("/dev/shm/effects/bellend.wav");
-                Set_Vol(90,30,(5 * 1) + 55,15);
+                ao_file_play_thread_mute("/dev/shm/effects/bellend.wav");
+                Set_Vol(90,30,(10 * 1) + 55,15);
                 effect_file = "/dev/shm/effects/pairing.wav";
                 dp("play : %s\n", effect_file);
                 ao_file_play_thread(effect_file);
@@ -1002,7 +1006,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         case SET_DEV_START:
             ack_len = 0;
             // ack_flag = true;
-            Set_Vol(90,30,(5 * 1) + 55,15);
+            Set_Vol(90,30,(10 * 1) + 55,15);
             effect_file = "/dev/shm/effects/dev_start.wav";
             dp("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
@@ -1012,7 +1016,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         case SET_DEV_OFF:
             ack_len = 0;
             // ack_flag = true;
-            Set_Vol(90,30,(5 * 1) + 55,15);
+            Set_Vol(90,30,(10 * 1) + 55,15);
             effect_file = "/dev/shm/effects/dev_end.wav";
             dp("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);

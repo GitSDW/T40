@@ -13,7 +13,7 @@ extern "C" {
 #ifndef __PHILL_REQ__
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"c"
-	#define CAHR_VER	"b"
+	#define CAHR_VER	"e"
 #else
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"z"
@@ -276,6 +276,8 @@ int bl_state;
 
 int spk_vol_buf;
 int spk_gain_buf;
+int bell_vol_buf;
+int bell_gain_buf;
 int send_retry;
 
 
