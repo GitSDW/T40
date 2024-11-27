@@ -900,6 +900,9 @@ int Ready_Busy_Check(void) {
         if (stream_state == 1) {
             return -2;
         }
+        if (bell_flag) {
+            return -3;
+        }
         if (ret == 1) {
             // dp("Ready Busy Check!!\n");
             return ret;
@@ -1284,7 +1287,8 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
         //     dp("FS\n");
         //     return -1;
         // }
-        if (stream_state == 1) {
+        // if (stream_state == 1) {
+        if (stream_state == 1 && bell_flag) {
             dp("SPI Faile : Streaming\n");
             return 2;
         }
@@ -1297,7 +1301,8 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                 ret = read(filed[(scnt*2)], read_buff, FILE_READ_LENGTH);
                 // dp("RC:%d\n", ret);
                 if(ret != 0) {
-                    if (stream_state == 1) {
+                    // if (stream_state == 1) {
+                    if (stream_state == 1 || bell_flag) {
                         dp("SPI Faile : Streaming\n");
                         return 2;
                     }
@@ -1332,7 +1337,8 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
             } while(ret != 0);
 
             if (sz_file[(scnt*2)]%FILE_READ_LENGTH == 0) {
-                if (stream_state == 1) {
+                // if (stream_state == 1) {
+                if (stream_state == 1 || bell_flag) {
                     dp("SPI Faile : Streaming\n");
                     return 2;
                 }
@@ -1381,7 +1387,8 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
             // }
             // memset(tx_buff, 0, 1033);
             // memcpy(&tx_buff[6], read_buff,1);
-            if (stream_state == 1) {
+            // if (stream_state == 1) {
+            if (stream_state == 1 || bell_flag) {
                 dp("SPI Faile : Streaming\n");
                 return 2;
             }
@@ -1400,7 +1407,8 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                 ret = read(filed[(scnt*2)+1], read_buff, FILE_READ_LENGTH);
                 // dp("RC:%d\n", ret);
                 if(ret != 0) {
-                    if (stream_state == 1) {
+                    // if (stream_state == 1) {
+                    if (stream_state == 1 || bell_flag) {
                         dp("SPI Faile : Streaming\n");
                         return 2;
                     }
@@ -1435,7 +1443,8 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
             } while(ret != 0);
 
             if (sz_file[(scnt*2)+1]%FILE_READ_LENGTH == 0) {
-                if (stream_state == 1) {
+                // if (stream_state == 1) {
+                if (stream_state == 1 || bell_flag) {
                     dp("SPI Faile : Streaming\n");
                     return 2;
                 }
@@ -1614,7 +1623,8 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
         //     dp("FS\n");
         //     return -1;
         // }
-        if (stream_state == 1) {
+        // if (stream_state == 1) {
+        if (stream_state == 1 || bell_flag) {
             dp("SPI Faile : Streaming\n");
             return 2;
         }
@@ -1628,7 +1638,8 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                 ret = read(filed[(scnt*2)], read_buff, FILE_READ_LENGTH);
                 // dp("RC:%d\n", ret);
                 if(ret != 0) {
-                    if (stream_state == 1) {
+                    // if (stream_state == 1) {
+                    if (stream_state == 1 || bell_flag) {
                         dp("SPI Faile : Streaming\n");
                         return 2;
                     }
@@ -1648,7 +1659,8 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
             } while(ret != 0);
 
             if (sz_file[(scnt*2)]%SPI_SEND_LENGTH == 0) {
-                if (stream_state == 1) {
+                // if (stream_state == 1) {
+                if (stream_state == 1 || bell_flag) {
                     dp("SPI Faile : Streaming\n");
                     return 2;
                 }
@@ -1703,7 +1715,8 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
                 ret = read(filed[(scnt*2)+1], read_buff, FILE_READ_LENGTH);
                 // dp("RC:%d\n", ret);
                 if(ret != 0) {
-                    if (stream_state == 1) {
+                    // if (stream_state == 1) {
+                    if (stream_state == 1 || bell_flag) {
                         dp("SPI Faile : Streaming\n");
                         return 2;
                     }
@@ -1723,7 +1736,8 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
             } while(ret != 0);
 
             if (sz_file[(scnt*2)+1]%SPI_SEND_LENGTH == 0) {
-                if (stream_state == 1) {
+                // if (stream_state == 1) {
+                if (stream_state == 1 || bell_flag) {
                     dp("SPI Faile : Streaming\n");
                     return 2;
                 }
@@ -1759,7 +1773,8 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
             Make_Spi_Packet(tx_buff, read_buff, len, REC, REC_STREAM_END);
             // memset(tx_buff, 0, 1033);
             // memcpy(&tx_buff[6], read_buff,1);
-            if (stream_state == 1) {
+            // if (stream_state == 1) {
+            if (stream_state == 1 || bell_flag) {
                 dp("SPI Faile : Streaming\n");
                 return 2;
             }

@@ -2042,11 +2042,11 @@ int clip_total(void) {
 			    		gpio_LED_Set(1);
 				    }
 				    else {
-			    		gpio_LED_Set(2);
+			    		gpio_LED_Set(0);
 				    }
 				}
 				else {
-					gpio_LED_Set(2);
+					gpio_LED_Set(0);
 				}
 			}
 			else if ((sample_gettimeus() - start_time) > START_CHECK_TIME) {
@@ -2950,18 +2950,19 @@ int clip_total(void) {
 
 			bLive = true;
 
-			if (file_cnt == 1 && cfile_flag1 && cfile_flag2 && file_cnt2 == 0) {
-				pthread_t tid_avoff;
+			// if (file_cnt == 1 && cfile_flag1 && cfile_flag2 && file_cnt2 == 0) {
+			// 	pthread_t tid_avoff;
 
-				av_off_flag = false;
+			// 	av_off_flag = false;
+			// 	bell_rerecode_flag = true;
 
-				ret = pthread_create(&tid_avoff, NULL, AV_Off, NULL);
-				if(ret != 0) {
-					IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create AV_Off failed\n", __func__);
-					return -1;
-				}
+			// 	ret = pthread_create(&tid_avoff, NULL, AV_Off, NULL);
+			// 	if(ret != 0) {
+			// 		IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create AV_Off failed\n", __func__);
+			// 		return -1;
+			// 	}
 				
-			}
+			// }
 			// dp("%d %d %d\n", file_cnt, cfile_flag1, cfile_flag2);
 
 			////// Fine Spi Send /////////
@@ -3005,6 +3006,10 @@ int clip_total(void) {
 									while(1) {
 										if (stream_state == 1) {
 											dp("streaming!!\n");
+											break;
+										}
+										if (bell_flag) {
+											dp("ReBell Stop!!\n");
 											break;
 										}
 										if (send_retry_flag) {
@@ -3155,6 +3160,10 @@ int clip_total(void) {
 											dp("streaming!!\n");
 											break;
 										}
+										if (bell_flag) {
+											dp("ReBell!!\n");
+											break;
+										}
 										if (send_retry_flag) {
 											send_retry++;
 											dp("Clip Retry : %d\n", send_retry);
@@ -3291,6 +3300,10 @@ int clip_total(void) {
 									while(1) {
 										if (stream_state == 1) {
 											dp("streaming!!\n");
+											break;
+										}
+										if (bell_flag) {
+											dp("ReBell!!\n");
 											break;
 										}
 										if (send_retry_flag) {
@@ -3538,7 +3551,7 @@ int clip_total(void) {
 
 				av_off_flag = false;
 
-				if (Ready_Busy_Check() > 0){
+				// if (Ready_Busy_Check() > 0){
 					dp("Bell/Temp Dual JPG Send!\n");
 					// memset(file_path, 0, 64);
 					// sprintf(file_path, "/dev/shm/bell_m.jpg");
@@ -3569,10 +3582,10 @@ int clip_total(void) {
 							}
 						}
 					}
-				}
-				else {
-					dp("Fail to Dual Bell JPG Send.\n");
-				}
+				// }
+				// else {
+				// 	dp("Fail to Dual Bell JPG Send.\n");
+				// }
 
 				gpio_LED_dimming(2);
 				dimming_val = 20;

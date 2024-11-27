@@ -794,10 +794,16 @@ int video_init(void) {
 	///////////////////////////// LDC ISP /////////////////////////////
 	IMPISPHLDCAttr hldc;
 	hldc.strength = 180;     			/**< Distortion correction intensity [range: 0 to 255, default: 128]*/
-    hldc.width = 1920;          		/**< Image width */
+	 hldc.width = 1920;          		/**< Image width */
     hldc.height = 1080;         		/**< Image height */
     hldc.center_w = hldc.width/2;       /**< Image distortion horizontal optical center range:[width/2-120, width/2+120] */
     hldc.center_h = hldc.height/2;      /**< Image distortion vertical optical center range:[height/2-120, height/2+120] */
+    // hldc.strength = 200;
+    // hldc.width = 1920;
+    // hldc.height = 1080;
+    // hldc.center_w = 1920/2;
+    // hldc.center_h = 1080/2;
+   
 
 	IMP_ISP_Tuning_SetHLDCAttr(IMPVI_MAIN, &hldc);
 	///////////////////////////////////////////////////////////////////

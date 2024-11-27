@@ -978,8 +978,9 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             else if (rbuff[index+9] == 1) cmdbuf = 1;
             else if (rbuff[index+9] == 2) cmdbuf = 2;
             else  cmdbuf = 2;
-            gpio_LED_dimming(cmdbuf);
+            
             if (rbuff[index+9] == 1) {
+                gpio_LED_dimming(cmdbuf);
                 ao_file_play_thread_mute("/dev/shm/effects/bellend.wav");
                 Set_Vol(90,30,(10 * 1) + 55,15);
                 effect_file = "/dev/shm/effects/dev_start.wav";
@@ -1459,6 +1460,8 @@ int rec_enable_ack(void) {
     uart_tx[7] = 0x00;
     uart_tx[8] = 0x00;
     uart_tx[9] = 0x03;
+
+    usleep(10*1000);
 
     uart_send(fd_uart, uart_tx, 10);
     
