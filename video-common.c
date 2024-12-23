@@ -2845,9 +2845,12 @@ static void *get_video_stream_user(void *args)
 		ret = IMP_Encoder_PollingStream(chnNum, 500);
 		if (ret < 0 && stream_state == 1) {
 			IMP_LOG_ERR(TAG, "IMP_Encoder_PollingStream(%d) timeout\n", chnNum);
-			dp("[Enc%d] Polling Error\n", chnNum);
 			polling_err_cnt++;
+			dp("[Enc%d] Polling Error %d\n", chnNum, polling_err_cnt);
 			continue;
+		}
+		else {
+			polling_err_cnt = 0;
 		}
 
 		IMPEncoderStream stream;
@@ -3444,9 +3447,12 @@ static void *sample_get_jpeg_snap(void *args)
 		ret = IMP_Encoder_PollingStream(chnNum, 10000);
 		if (ret < 0 && stream_state == 1) {
 			IMP_LOG_ERR(TAG, "Polling stream timeout\n");
-			dp("[snap] %d Polling Error\n", chnNum);
 			polling_err_cnt++;
+			dp("[snap] %d Polling Error %d\n", chnNum, polling_err_cnt);
 			continue;
+		}
+		else {
+			polling_err_cnt = 0;
 		}
 
 		IMPEncoderStream stream;

@@ -69,15 +69,17 @@ bool loadCRC(uint32_t *crc, const char *filename) {
 }
 
 // 설정 값을 파일에 저장
-void saveSettings(Settings *settings, const char *filename) {
+int saveSettings(Settings *settings, const char *filename) {
     dp("save! :%s\n", filename);
     FILE *file = fopen(filename, "wb");
     dp("open!\n");
     if (file != NULL) {
         fwrite(settings, sizeof(Settings), 1, file);
         fclose(file);
+        return 1;
     } else {
         dp("Error: Unable to open file for writing.\n");
+        return -1;
     }
 }
 
@@ -166,10 +168,17 @@ void Setting_Init(void) {
     dp("Setting Load Success!!\n");
 }
 
-void Setting_Save(void) {
-     saveSettings(&settings, setting_file);
+int Setting_Save(void) {
+    int ret = 0;
+    ret = saveSettings(&settings, setting_file);
+    if (ret < 0) {
+        dp("Fail Setting Saved!\n");
+        return -1;
+    }
     // 파일의 CRC 값 저장
     saveCRC(calculateCRC(fopen(setting_file, "rb")), setting_crc);
+
+    return 0;
 }
 
 // int main() {

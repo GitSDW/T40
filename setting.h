@@ -48,7 +48,7 @@ Settings settings;
 
 void Setting_Reinit(void);
 void Setting_Init(void);
-void Setting_Save(void);
+int Setting_Save(void);
 
 
 #ifdef __cplusplus

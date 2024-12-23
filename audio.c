@@ -1467,6 +1467,8 @@ void ao_file_play_thread(void *argv)
 
 	pthread_mutex_lock(&PlayMutex);
 
+	
+
 	buf = (unsigned char *)malloc(AUDIO_SAMPLE_BUF_SIZE);
 	if (buf == NULL) {
 		IMP_LOG_ERR(TAG, "[ERROR] %s: malloc audio buf error\n", __func__);
@@ -1577,6 +1579,8 @@ void ao_file_play_thread(void *argv)
 	dp("[Audio File] Thread End!\n");
 	fclose(play_file);
 	free(buf);
+
+	bpflag = false;
 	
 	// pthread_exit(0);
 }

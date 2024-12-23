@@ -645,6 +645,8 @@ extern pthread_mutex_t buffMutex_ao;
 //     return 0;
 // }
 
+int AIN_CNT = 0;
+
 static int Recv_Spi_Packet_live(uint8_t *rbuff) {
     int index, len;
     uint8_t major, minor;
@@ -796,6 +798,11 @@ static int Recv_Spi_Packet_live(uint8_t *rbuff) {
                     // dp("[SPIAO]buff_space:%d WIndex:%d RIndex%d\n", buff_space, AO_Cir_Buff.WIndex, AO_Cir_Buff.RIndex);
                     // dp("M : 0x%02x m : 0x%02x len : %d seq : %d\n", major, minor, len, rbuff[index+8]);
                     // dp("Rindex : %d Windex : %d space : %d\n", AO_Cir_Buff.RIndex, AO_Cir_Buff.WIndex, buff_space);
+                    // AIN_CNT++;
+                    // if (AIN_CNT>10) {
+                    //     AIN_CNT = 0;
+                    //     dp("AIN\n");    
+                    // }
                 }
                 else {
                     dp("AO Cir Buff Overflow!1\n");
@@ -1115,6 +1122,8 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
         return size_ret;
     }
 
+    extern int AV_Off_Thread(void);
+
     int spi_send_total_clip(FileSend *fs)
     {
         struct stat file_info1, file_info2;
@@ -1297,6 +1306,11 @@ int spi_send_file(uint8_t minor, char *file, uint8_t recnum, uint8_t clipnum, ui
         for (scnt=0; scnt<cnt; scnt++) {
             dp("SendFile:%d-1\n", scnt+1);
             wcnt = 0;
+            dp("rcnt : %d, cflg1 : %d cflag2 : %d bflag : %d\n", cnt-scnt, cfile_flag1, cfile_flag2, bfile_flag);
+            if ((cnt - scnt == 1) && (cfile_flag1 && cfile_flag2 && !bfile_flag) && (!bell_rerecode_flag)) {
+                dp("Total : %d, Cnt : %d AV Thread Off!\n", cnt, scnt+1);
+                AV_Off_Thread();
+            }
             do {
                 ret = read(filed[(scnt*2)], read_buff, FILE_READ_LENGTH);
                 // dp("RC:%d\n", ret);
@@ -2674,7 +2688,7 @@ extern pthread_mutex_t buffMutex_vb;
 //     return ((void*)0);
 // }
 
-
+int v1c = 0, v2c = 0, aoc = 0;
 
 
 void *spi_send_stream (void *arg)
@@ -2767,8 +2781,12 @@ void *spi_send_stream (void *arg)
                     
                     // dp("STX:0x%02x CMD:0x%02x%02x LEN:0x%02x%02x ETX:0x%02x\n", 
                         // tx_buff[0+5], tx_buff[1+5], tx_buff[2+5], tx_buff[3+5], tx_buff[4+5], tx_buff[1023-5]);
-                    // dp("V1\n");
-
+                    
+                    // v1c++;
+                    // if (v1c>10) {
+                    //     v1c = 0;
+                    //     dp("V1\n");    
+                    // }
                     if (main_first < 10) main_first++;
                     usleep(mv_delay*1000);
                 }
@@ -2820,6 +2838,11 @@ void *spi_send_stream (void *arg)
                     frame_ptr2++;
                     // dp("cnt:%d total:%d dsize%d\n", frame_ptr2, framesize2, datasize);
                     // dp("V2\n");
+                    // v2c++;
+                    // if (v2c>10) {
+                    //     v2c = 0;
+                    //     dp("V2\n");    
+                    // }
                     
                     usleep(mv_delay*1000);
                 }
@@ -2883,8 +2906,13 @@ void *spi_send_stream (void *arg)
                         }
                         else {
                             // dp("AUDIO Send Data : 0x%02X%02X\n", tx_buff[3+5], tx_buff[4+5]);
-                            // dp("A\n");
+                            // dp("AOUT\n");
                             // ret = write(save_fd, buf, datasize);
+                            aoc++;
+                            if (aoc>10) {
+                                aoc = 0;
+                                dp("AO\n");    
+                            }
                             datasize = 0;
                             usleep(mv_delay*1000);
                         }
@@ -3395,6 +3423,12 @@ void *OTA_Thread(void * argc) {
             ret = spi_rw_bytes(fd, tx_buff, rx_buff, SPI_SEND_LENGTH);
             if (ret != 0) {
                 dp("Fail Send SPI Start!\n");
+            }
+            else {
+                for (int i=0; i<20; i++) {
+                    dp("%02X ", tx_buff[i]);
+                }
+                dp("\n");
             }
             ret = OTA_Recv_Packet(rx_buff);
             if (ret == 1) {

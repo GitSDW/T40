@@ -210,7 +210,7 @@ const int uart_send(int fd,uint8_t *send_buf,int data_len)
     int len = 0;
 
     pthread_mutex_lock(&uart_vm);
-    // dp("UART:");
+    // dp("UART -> :");
     // for(int i=0; i<data_len; i++) {
     //     dp("0x%02x ", send_buf[i]);
     // }
@@ -368,6 +368,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
     int64_t rec_time_e = 0;
     uint32_t br_buf;
     char* effect_file = NULL;
+    bool bell_play_flag = false;
+    int save_ret = 0;
 
     index = 0;
 
@@ -405,14 +407,15 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
     case REC_BACK:
         switch(minor) {
         case UREC_BELL:
+            bpflag = true;
             // if (settings.bell_type == 0) effect_file = "/dev/shm/effects/bell1.wav";
             // else if (settings.bell_type == 1) effect_file = "/dev/shm/effects/bell2.wav";
             // else if (settings.bell_type == 2) effect_file = "/dev/shm/effects/bell3.wav";
             // else if (settings.bell_type == 2) effect_file = "/dev/shm/effects/bell4.wav";
-             if (settings.bell_type == 0) effect_file = "/dev/shm/effects/bell1.wav";
+            if (settings.bell_type == 0) effect_file = "/dev/shm/effects/bell1.wav";
             else if (settings.bell_type == 1) effect_file = "/dev/shm/effects/bell2.wav";
             else if (settings.bell_type == 2) effect_file = "/dev/shm/effects/bell3.wav";
-            else if (settings.bell_type == 2) effect_file = "/dev/shm/effects/bell4.wav";
+            // else if (settings.bell_type == 2) effect_file = "/dev/shm/effects/bell4.wav";
             dp("play : %s\n", effect_file);
             // ao_file_play_thread(effect_file);
             // clip_cause_t.Major = CLIP_CAUSE_BOX;
@@ -539,25 +542,112 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             }
         break;
         case UREC_TEMPER:
-            if (rbuff[index+9] == 0)
-                effect_file = "/dev/shm/effects/dev_takeoff.wav";
-            else if (rbuff[index+9] == 1)
-                effect_file = "/dev/shm/effects/dev_takeon.wav";
+            bpflag = true;
+            if (rbuff[index+9] == 0) effect_file = "/dev/shm/effects/dev_takeoff.wav";
+            else if (rbuff[index+9] == 1) effect_file = "/dev/shm/effects/dev_takeon.wav";
             dp("play : %s\n", effect_file);
-            Set_Vol(90,30,(10 * 1) + 55,15);
-            ao_file_play_thread(effect_file);
 
-            // clip_cause_t.Major = CLIP_CAUSE_MOUNT;
-            // clip_cause_t.Minor = CLIP_MOUNT_DISMT;
-            if (Rec_type != BELL_REC)
-                bell_flag = true;
-            temp_flag = true;
-            if (rbuff[index+9] > 0)     temp_unmount_flag = true;
-            else                        temp_unmount_flag = 0;
-            ack_len = 0;
-            // ack_flag = true;
+            #if 0
+                Set_Vol(90,30,(10 * 1) + 55,15);
+                ao_file_play_thread(effect_file);
+
+                // clip_cause_t.Major = CLIP_CAUSE_MOUNT;
+                // clip_cause_t.Minor = CLIP_MOUNT_DISMT;
+                if (Rec_type != BELL_REC)
+                    bell_flag = true;
+                temp_flag = true;
+                if (rbuff[index+9] > 0)     temp_unmount_flag = true;
+                else                        temp_unmount_flag = 0;
+                ack_len = 0;
+                // ack_flag = true;
+
+            #else
+                if (bellend_sound == 0) bellend_sound++;
+
+                if (stream_state == 1) {
+                    rebell = true;
+                    dp("Temp Stream : %d\n", stream_state);
+                    Set_Vol(90,30,bell_vol_buf,bell_gain_buf);
+                    ao_file_play_thread(effect_file);
+                    break;
+                }
+                temp_flag = true;
+                if (rbuff[index+9] > 0)     temp_unmount_flag = true;
+                else                        temp_unmount_flag = false;
+                ack_len = 0;
+                // ack_flag = true;
+                // dp("av_off : %d\n", av_off_flag);
+                if (av_off_flag) {
+                    if (bl_state == BSS_WAIT) {
+                        dp("Bell by Temp Flag!!\n");
+                        bell_flag = true;
+                        bell_call_flag = false;
+                        // bell_rec_state = REC_START;
+                    }
+                }
+                else if (bell_rerecode_flag) {
+                    rec_enable_ack();
+                }
+                else {
+                    dp("ReBell Temp!\n");
+                }
+
+                if (!get_audio) {
+                    get_audio = true;
+                    // if (rbuff[index+9] > 0)     dn_g726_falg = false;
+                    // else                        dn_g726_falg = true;
+                    dn_g726_falg = false;
+                }
+                Set_Vol(90,30,bell_vol_buf,bell_gain_buf);
+                ao_file_play_thread(effect_file);
+            #endif
         break;
-        
+        case UREC_MUTE_TEMP:
+            bpflag = true;
+            // if (rbuff[index+9] == 0) effect_file = "/dev/shm/effects/dev_takeoff.wav";
+            // else if (rbuff[index+9] == 1) effect_file = "/dev/shm/effects/dev_takeon.wav";
+            // dp("play : %s\n", effect_file);
+
+
+            if (bellend_sound == 0) bellend_sound++;
+
+                if (stream_state == 1) {
+                    rebell = true;
+                    dp("Mute Temp Stream : %d\n", stream_state);
+                    // Set_Vol(90,30,bell_vol_buf,bell_gain_buf);
+                    // ao_file_play_thread(effect_file);
+                    break;
+                }
+                temp_flag = true;
+                if (rbuff[index+9] > 0)     temp_unmount_flag = true;
+                else                        temp_unmount_flag = false;
+                ack_len = 0;
+                // ack_flag = true;
+                // dp("av_off : %d\n", av_off_flag);
+                if (av_off_flag) {
+                    if (bl_state == BSS_WAIT) {
+                        dp("Mute Bell by Temp Flag!!\n");
+                        bell_flag = true;
+                        bell_call_flag = false;
+                        // bell_rec_state = REC_START;
+                    }
+                }
+                else if (bell_rerecode_flag) {
+                    rec_enable_ack();
+                }
+                else {
+                    dp("Mute ReBell Temp!\n");
+                }
+
+                if (!get_audio) {
+                    get_audio = true;
+                    // if (rbuff[index+9] > 0)     dn_g726_falg = false;
+                    // else                        dn_g726_falg = true;
+                    dn_g726_falg = false;
+                }
+                // Set_Vol(90,30,bell_vol_buf,bell_gain_buf);
+                // ao_file_play_thread(effect_file);
+        break;        
         case REC_DATE:
             if (!get_audio) {
                 get_audio = true;
@@ -766,6 +856,9 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 ack_len = 0;
                 // ack_flag = true;
                 cmd_end_flag = true;
+                setting_end_time = sample_gettimeus();
+                setting_end_delay = 3000000;
+
             }
         break;
         case SET_BELL_VOL:
@@ -791,6 +884,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                     ao_file_play_thread(effect_file);
                 }
                 cmd_end_flag = true;
+                setting_end_time = sample_gettimeus();
+                setting_end_delay = 3000000;
 
 
             }
@@ -819,6 +914,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
 
                 ack_len = 0;
                 cmd_end_flag = true;
+                setting_end_time = sample_gettimeus();
+                setting_end_delay = 3000000;
             }
         break;
         case SET_BACK_LIGHT:
@@ -832,6 +929,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 ack_len = 0;
                 // ack_flag = true;
                 cmd_end_flag = true;
+                setting_end_time = sample_gettimeus();
+                setting_end_delay = 3000000;
             }
         break;
         case SET_FLICKER:
@@ -845,6 +944,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 ack_len = 0;
                 // ack_flag = true;
                 cmd_end_flag = true;
+                setting_end_time = sample_gettimeus();
+                setting_end_delay = 3000000;
             }
         break;
         case SET_MOVE_SENSI:
@@ -857,6 +958,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 ack_len = 0;
                 // ack_flag = true;
                 cmd_end_flag = true;
+                setting_end_time = sample_gettimeus();
+                setting_end_delay = 3000000;
             }
         break;
         case SET_EX_ONOF:
@@ -870,6 +973,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 ack_len = 0;
                 // ack_flag = true;
                 cmd_end_flag = true;
+                setting_end_time = sample_gettimeus();
+                setting_end_delay = 3000000;
             }
         break;
         case SET_FACE_MOSAIC:
@@ -883,6 +988,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 ack_len = 0;
                 // ack_flag = true;
                 cmd_end_flag = true;
+                setting_end_time = sample_gettimeus();
+                setting_end_delay = 3000000;
             }
         break;
         case SET_DOOR_ONOF:
@@ -896,6 +1003,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 ack_len = 0;
                 // ack_flag = true;
                 cmd_end_flag = true;
+                setting_end_time = sample_gettimeus();
+                setting_end_delay = 3000000;
             }
         break;
         case SET_USER_ONOF:
@@ -909,6 +1018,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 ack_len = 0;
                 // ack_flag = true;
                 cmd_end_flag = true;
+                setting_end_time = sample_gettimeus();
+                setting_end_delay = 3000000;
             }
         break;
         case SET_EX_AREA:
@@ -920,6 +1031,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             ack_len = 0;
             // ack_flag = true;
             cmd_end_flag = true;
+            setting_end_time = sample_gettimeus();
+            setting_end_delay = 3000000;
         break;
         case SET_DOOR_GRID:
             memcpy(settings.door_grid, &rbuff[index+9], 27);
@@ -927,6 +1040,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             ack_len = 0;
             // ack_flag = true;
             cmd_end_flag = true;
+            setting_end_time = sample_gettimeus();
+            setting_end_delay = 3000000;
         break;
         case SET_USER_GRID:
             memcpy(settings.user_grid, &rbuff[index+9], 27);
@@ -935,6 +1050,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             // ack_flag = true;
 
             cmd_end_flag = true;
+            setting_end_time = sample_gettimeus();
+            setting_end_delay = 3000000;
         break;
         case SET_DOOR_CAP:
             if (boot_mode != 0x03)  {
@@ -970,6 +1087,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             ack_len = 0;
             // ack_flag = true;
             cmd_end_flag = true;
+            setting_end_time = sample_gettimeus();
+            setting_end_delay = 3000000;
         break;
         case SET_BLE_LT:
             dp("Ble Light Set!\n");
@@ -1013,6 +1132,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             ao_file_play_thread(effect_file);
             
             cmd_end_flag = true;
+            setting_end_time = sample_gettimeus();
+            setting_end_delay = 3000000;
         break;
         case SET_DEV_OFF:
             ack_len = 0;
@@ -1024,6 +1145,9 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             
             sleep(5);
             cmd_end_flag = true;
+            cmd_end_flag = true;
+            setting_end_time = sample_gettimeus();
+            setting_end_delay = 3000000;
         break;
         case SET_FACTORY_SND:
             ack_len = 0;
@@ -1064,8 +1188,12 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             ao_file_play_thread(effect_file);
             sleep(5);
             cmd_end_flag = true;
+            cmd_end_flag = true;
+            setting_end_time = sample_gettimeus();
+            setting_end_delay = 3000000;
         break;
         case SET_SET_TOTAL:
+            
             // SA = (Setting_All*)&rbuff[index+9];
             // rbuff[index+9+0];
             // rbuff[index+9+1];
@@ -1081,7 +1209,12 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             // rbuff[index+9+10+27];
             // rbuff[index+9+10+27+27];
             settings.SF.bits.led = rbuff[index+9+SA_LED];
-            settings.bell_type =  rbuff[index+9+SA_BELL_TYPE];
+            if (rbuff[index+9+SA_BELL_TYPE] < 3)
+                settings.bell_type =  rbuff[index+9+SA_BELL_TYPE];
+            else {
+                settings.bell_type =  rbuff[index+9+SA_BELL_TYPE]-3;
+                bell_play_flag = true;
+            }
             settings.spk_vol =  rbuff[index+9+SA_SPK_VOL];
             settings.SF.bits.per_face =  rbuff[index+9+SA_FACE_MOSAIC];
             settings.SF.bits.door_g = rbuff[index+9+SA_DOOR];
@@ -1115,10 +1248,38 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             dp("moveexarea: \n     start X : %d Y : %d\n     end : X : %d Y : %d\n", settings.move_ex_s_x, settings.move_ex_s_y, settings.move_ex_e_x, settings.move_ex_e_y);
 
 
-            Setting_Save();
+            save_ret = Setting_Save();
+            if (save_ret < 0) {
+                cmd_end_flag = true;
+                setting_end_time = sample_gettimeus();
+                setting_end_delay = 1000000;
+            }
+
+            if (bell_play_flag) {
+                bell_play_flag = false;
+                spk_vol_buf = (10 * settings.spk_vol) + 55;
+                spk_gain_buf = 15;
+                bell_vol_buf = (5 * settings.spk_vol) + 55;
+                bell_gain_buf = 15;
+                if (settings.bell_type == 0) effect_file = "/dev/shm/effects/bell1.wav";
+                else if (settings.bell_type == 1) effect_file = "/dev/shm/effects/bell2.wav";
+                else if (settings.bell_type == 2) effect_file = "/dev/shm/effects/bell3.wav";
+                else if (settings.bell_type == 2) effect_file = "/dev/shm/effects/bell4.wav";
+                dp("play : %s\n", effect_file);
+                cmd_end_flag = true;
+                setting_end_time = sample_gettimeus();
+                setting_end_delay = 9000000;
+                Set_Vol(90,30,bell_vol_buf,bell_gain_buf);
+                ao_file_play_thread(effect_file);
+            }
+            else {
+                cmd_end_flag = true;
+                setting_end_time = sample_gettimeus();
+                setting_end_delay = 3000000;
+            }
             ack_len = 0;
             ack_flag = true;
-            cmd_end_flag = true;
+            
         break;
         }
     break;
@@ -1463,7 +1624,7 @@ int rec_enable_ack(void) {
 
     usleep(10*1000);
 
-    uart_send(fd_uart, uart_tx, 10);
+    // uart_send(fd_uart, uart_tx, 10);
     
     dp("REA\n");
     
@@ -1573,6 +1734,34 @@ int realvedio_ack(uint8_t success) {
     return 0;
 }
 
+int setting_nack(void) {
+    uint8_t *uart_tx;
+
+    uart_tx = malloc(20);
+
+    memset(uart_tx, 0, 20);
+    uart_tx[0] = 0x02;
+    uart_tx[1] = 0x03;
+    uart_tx[2] = 0x7C;
+    uart_tx[3] = 0;
+    uart_tx[4] = 0;
+    uart_tx[5] = 0x00;
+    uart_tx[6] = 0x00;
+    uart_tx[7] = 0x00;
+    uart_tx[8] = 0x00;
+    uart_tx[9] = 0x03;
+
+    uart_send(fd_uart, uart_tx, 18);
+    
+    dp("Setting NACK\n");
+    
+    free(uart_tx);
+
+    
+
+    return 0;
+}
+
 
 /*
  * 串口接收函数
@@ -1617,8 +1806,8 @@ void *uart_thread(void *argc)
     uint8_t *uart_rx;
     uint8_t *cmd_rx;
 
-    uart_rx = malloc(128);
-    cmd_rx = malloc(128);
+    uart_rx = malloc(256);
+    cmd_rx = malloc(256);
     
     // dp("/dev/ttyS2 115200 8 1 N\n"); 
 
@@ -1664,8 +1853,12 @@ void *uart_thread(void *argc)
      * test code
      */
     do {
-        res = read(fd_uart, uart_rx, 512);
-        // dp("res : %d\n", res);
+        res = read(fd_uart, uart_rx, 256);
+        // dp("UART <- : %d ", res);
+        // for (int i=0; i<res; i++) {
+        //     dp("0x%02x ", uart_rx[i]);
+        // }
+        // dp("\n");
         if (res > 0) {
            
             dp("\n");
@@ -1676,6 +1869,13 @@ void *uart_thread(void *argc)
                 memcpy(cmd_rx, uart_rx, res);
                 if (res == len+10) {
                     cmd_state = 2;
+                }
+                else if (res > len+10) {
+                    dp("PKT Error!!\n");
+                    setting_nack();
+                    cmd_end_flag = true;
+                    setting_end_time = sample_gettimeus();
+                    setting_end_delay = 3000000;
                 }
                 len_p = res;
                 // dp("0UART RX: ");
@@ -1690,9 +1890,16 @@ void *uart_thread(void *argc)
                     memcpy(&cmd_rx[len_p], uart_rx, res);
                     cmd_state = 2;
                 }
-                else {
+                else if (len_p + res < len + 10) {
                     memcpy(&cmd_rx[len_p], uart_rx, res);
                     len_p += res;
+                }
+                else {
+                    dp("PKT Error!!\n");
+                    setting_nack();
+                    cmd_end_flag = true;
+                    setting_end_time = sample_gettimeus();
+                    setting_end_delay = 3000000;
                 }
                 // dp("1UART RX: ");
                 // for (int i=0; i<len_p; i++) {

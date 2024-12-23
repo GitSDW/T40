@@ -199,6 +199,7 @@ int global_value_init(void) {
 	BLedT = false;
 	BMicT = false;
 	TestReset = false;
+	bpflag = false;
 
 	for(i=0;i<5;i++){
 		face_end_f[i] = false;
@@ -1108,6 +1109,22 @@ void *AV_Off(void *argc) {
 	return (void*) 0;
 }
 
+int AV_Off_Thread(void) 
+{
+	pthread_t tid_avoff;
+	int ret = -1;
+
+	av_off_flag = false;
+	bell_rerecode_flag = true;
+
+	ret = pthread_create(&tid_avoff, NULL, AV_Off, NULL);
+	if(ret != 0) {
+		IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create AV_Off failed\n", __func__);
+		return -1;
+	}
+	return ret;			
+}
+
 
 int clip_total(void);
 int clip_total_fake(void);
@@ -1851,6 +1868,9 @@ int main(int argc, char **argv) {
 
 extern int set_parm_end(void);
 
+
+
+
 int clip_total(void) {
 	int ret = 0;
 	int file_cnt = 0, file_cnt2 = 0;
@@ -2154,7 +2174,6 @@ int clip_total(void) {
 					// Make File Send
 					if (stream_state == 0) {
 						if (Ready_Busy_Check() > 0 && thumbnail_state == THUMB_END) {
-							dp("sss");
 							while(face_end_f[0] || face_end_f[1] || face_end_f[2] || face_end_f[3] || face_end_f[4]);
 							system("sync");
 							send_retry_flag = false;
@@ -2169,6 +2188,10 @@ int clip_total(void) {
 								while (1) {
 									if (stream_state == 1) {
 										dp("streaming!!\n");
+										break;
+									}
+									if (bell_flag) {
+										dp("Thum stop Bell Start!!\n");
 										break;
 									}
 									if (send_retry_flag) {
@@ -2201,6 +2224,7 @@ int clip_total(void) {
 
 						if (!face_send_flag) {
 							face_send_flag = true;
+							usleep(500*1000);
 							face_end(REC);
 						}
 					}
@@ -2410,6 +2434,7 @@ int clip_total(void) {
 					bLiveFile = true;
 						if (Ready_Busy_Check() > 0){
 							dp("Bell/Temp Dual JPG Send!\n");
+							usleep(500*1000);
 							// memset(file_path, 0, 64);
 							// sprintf(file_path, "/dev/shm/bell_m.jpg");
 							// memset(file_sep, 0, 64);
@@ -2470,7 +2495,7 @@ int clip_total(void) {
 							ao_file_play_thread("/dev/shm/effects/bellend.wav");
 					}
 
-					if (total_time2 > BELL_TIME_MIN && rebell) {
+					if (total_time2 > BELL_TIME_MIN && rebell && !redimming) {
 						rebell = false;
 						bell_snap_m = true;
 						bell_snap_b = true;
@@ -2859,9 +2884,14 @@ int clip_total(void) {
 			    			if (ret < 0) {
 								int secss = 0;
 								retry_time = sample_gettimeus();
+								send_retry_flag = false;
 								while (1) {
 									if (stream_state == 1) {
 										dp("streaming!!\n");
+										break;
+									}
+									if (bell_flag) {
+										dp("BOX Stop Bell Start!!\n");
 										break;
 									}
 									if (send_retry_flag) {
@@ -2950,19 +2980,22 @@ int clip_total(void) {
 
 			bLive = true;
 
-			// if (file_cnt == 1 && cfile_flag1 && cfile_flag2 && file_cnt2 == 0) {
-			// 	pthread_t tid_avoff;
+			if (file_cnt == 1 && cfile_flag1 && cfile_flag2 && file_cnt2 == 0) {
+				// pthread_t tid_avoff;
 
-			// 	av_off_flag = false;
-			// 	bell_rerecode_flag = true;
+				// av_off_flag = false;
+				// bell_rerecode_flag = true;
 
-			// 	ret = pthread_create(&tid_avoff, NULL, AV_Off, NULL);
-			// 	if(ret != 0) {
-			// 		IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create AV_Off failed\n", __func__);
-			// 		return -1;
-			// 	}
-				
-			// }
+				// ret = pthread_create(&tid_avoff, NULL, AV_Off, NULL);
+				// if(ret != 0) {
+				// 	IMP_LOG_ERR("[Audio]", "[ERROR] %s: pthread_create AV_Off failed\n", __func__);
+				// 	return -1;
+				// }
+				AV_Off_Thread();
+			}
+			else if (file_cnt2 == 0) {
+				bfile_flag = false;
+			}
 			// dp("%d %d %d\n", file_cnt, cfile_flag1, cfile_flag2);
 
 			////// Fine Spi Send /////////
@@ -3355,11 +3388,17 @@ int clip_total(void) {
 			// system("rm /tmp/mnt/sdcard/mp4/*");
 
 			// system("cp /dev/shm/*.mp4 /tmp/mnt/sdcard/mp4");
-
-			device_end(REC);
+			while(1) {
+				if (!bpflag)
+					break;
+			}
+			
 			dp("File Send End!!\n");
 
 			dp("Make Time : %lld\n", sample_gettimeus() - make_start);
+
+			device_end(REC);
+			
 
 			break;
 		}
@@ -3553,6 +3592,7 @@ int clip_total(void) {
 
 				// if (Ready_Busy_Check() > 0){
 					dp("Bell/Temp Dual JPG Send!\n");
+					usleep(500*1000);
 					// memset(file_path, 0, 64);
 					// sprintf(file_path, "/dev/shm/bell_m.jpg");
 					// memset(file_sep, 0, 64);
@@ -3606,7 +3646,7 @@ int clip_total(void) {
 						ao_file_play_thread("/dev/shm/effects/bellend.wav");
 				}
 
-				if (total_time2 > BELL_TIME_MIN && rebell) {
+				if (total_time2 > BELL_TIME_MIN && rebell && !redimming) {
 					rebell = false;
 					bell_snap_m = true;
 					bell_snap_b = true;
@@ -4677,12 +4717,14 @@ int Setting_Total(void) {
 		}
 
 		if (cmd_end_flag) {
-			system("sync");
-			usleep(1000*1000);
-			dp("[END] CMD Send!\n");
-			device_end(SETTING);
-			cmd_end_flag = false;
-			break;
+			if (sample_gettimeus() - setting_end_time >= setting_end_delay) {
+				system("sync");
+				usleep(2000*1000);
+				dp("[END] CMD Send!\n");
+				device_end(SETTING);
+				cmd_end_flag = false;
+				break;
+			}
 		}
 
 			

@@ -13,14 +13,14 @@ extern "C" {
 #ifndef __PHILL_REQ__
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"c"
-	#define CAHR_VER	"f"
+	#define CAHR_VER	"l"
 #else
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"z"
 	#define CAHR_VER	"e"
 #endif
 
-#define DeBug 			0
+#define DeBug 			1
 
 #if DeBug
 	#define		dp(...)	printf(__VA_ARGS__)
@@ -102,7 +102,7 @@ int move_det_xs, move_det_ys, move_det_xe, move_det_ye;
 // #define THUMBNAIL_TIME 				5500000
 #define FACE_FIND_END_TIME 			6000000
 #define BELL_START_TIME				5000000
-#define BELL_TIME_MIN				30000000
+#define BELL_TIME_MIN				34000000
 #define TEMP_TIME_MIN				6000000
 #define CLIP_CLOSE_TIME  			1500000
 #define LIVE_MESSAGE_TIME  			1000000	// 1 * 1000 * 1000 usec
@@ -255,6 +255,7 @@ int64_t audio_timeout;
 int64_t mosaic_time[10];
 int64_t frame_ck, frame_ck2;
 int64_t cap_test_time;
+int64_t setting_end_time, setting_end_delay;
 
 int stream_state;
 int thumbnail_state;
@@ -352,6 +353,7 @@ bool face_end_f[5];
 bool DLedT, BLedT, BMicT;
 bool TestReset;
 bool netwaitstar, netwaitrecover;
+bool bpflag;
 
 extern int bExit;
 

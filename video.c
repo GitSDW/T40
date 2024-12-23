@@ -1333,7 +1333,7 @@ void *OSD_thread(void *args)
 		// 	BLC_time = total_time/200000;
 		// 	BLC_User();
 		// }
-		if (polling_err_cnt > 6) {
+		if (polling_err_cnt > 16) {
 			func_reboot();
 		}
 
