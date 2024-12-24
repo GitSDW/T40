@@ -3400,7 +3400,7 @@ void *OTA_Thread(void * argc) {
     // static int end_pkt_cnt = 0;
 
     ret = spi_init();
-    if(ret < 0){
+    if(ret < 0) {
         dp("[OTA]spi init error\n");
         return NULL;
     }
@@ -3415,7 +3415,8 @@ void *OTA_Thread(void * argc) {
         }
         else if (ota_state == OTA_STATE_START) {
             dp("OTA Start!\n");
-            ret = Make_OTA_Dummy_Packet(tx_buff, ota_type_u, ota_state, 0);
+            // ret = Make_OTA_Dummy_Packet(tx_buff, ota_type_u, ota_state, 0);
+            ret = Make_OTA_Dummy_Packet(tx_buff, 0, ota_state, 0);
             if (ret < 0) {
                 // ota_state = OTA_STATE_END;
                 // err_state = OTA_END_DISCON;
@@ -3424,12 +3425,12 @@ void *OTA_Thread(void * argc) {
             if (ret != 0) {
                 dp("Fail Send SPI Start!\n");
             }
-            else {
-                for (int i=0; i<20; i++) {
-                    dp("%02X ", tx_buff[i]);
-                }
-                dp("\n");
-            }
+            // else {
+            //     for (int i=0; i<20; i++) {
+            //         dp("%02X ", tx_buff[i]);
+            //     }
+            //     dp("\n");
+            // }
             ret = OTA_Recv_Packet(rx_buff);
             if (ret == 1) {
                 ota_state = OTA_STATE_DATA;

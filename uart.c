@@ -1055,7 +1055,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         break;
         case SET_DOOR_CAP:
             if (boot_mode != 0x03)  {
-                usleep(10*1000);
+                usleep(500*1000);
                 door_set_fail();
                 break;
             }

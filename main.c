@@ -2652,7 +2652,8 @@ int clip_total(void) {
 							// dp("4 t3:%lld s3:%lld\n", total_time3, start_time3);
 							if (total_time3 > BELL_TIME_MIN) {
 								dp("5 t3:%lld s3:%lld\n", total_time3, start_time3);
-								stream_state = 0;
+								if (rec_streaming_state == 0)
+									stream_state = 0;
 								bell_rerecode_flag = true;
 								Rec_type = MAKE_FILE;
 								if (bellend_sound == 1)  {
