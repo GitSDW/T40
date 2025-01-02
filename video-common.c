@@ -3981,7 +3981,7 @@ void *sample_soft_photosensitive_ctrl(void *p)
 	//int day_oth_count = 0;
 	//bayer domain's (g component/b component) statistic value.
 	float gb_gain_record = 200;
-	float gr_gain_record = 200;
+	// float gr_gain_record = 200;
 	float gb_gain_buf = 200, gr_gain_buf = 200;
 	uint32_t ae_mean, aetime, oldaetime;
 	int aecnt = 0;
@@ -4048,7 +4048,7 @@ void *sample_soft_photosensitive_ctrl(void *p)
 					gr_gain_buf = ((gr_gain_buf>gr_gain)?gr_gain:gr_gain_buf);
 					usleep(300000);
 					gb_gain_record = gb_gain_buf;
-					gr_gain_record = gr_gain_buf;
+					// gr_gain_record = gr_gain_buf;
 					// dp("gb_gain == %f,iso_buf=%f",gb_gain,iso_buf);
 					// dp("gr_gain_record == %f\n ",gr_gain_record);
 				}

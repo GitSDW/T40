@@ -1153,8 +1153,10 @@ int main(int argc, char **argv) {
 	Setting_Init();
 	spk_vol_buf = (10 * settings.spk_vol) + 55;
 	spk_gain_buf = 15;
+	if (spk_vol_buf > 95) spk_vol_buf = 75;
 	bell_vol_buf = (5 * settings.spk_vol) + 55;
 	bell_gain_buf = 15;
+	if (bell_vol_buf > 95) bell_vol_buf = 65;
 	// if (settings.spk_vol == 4)
 		// spk_vol_buf = 86;
     Mosaic_En = settings.SF.bits.per_face;
@@ -4634,6 +4636,10 @@ int Setting_Total(void) {
 					return -1;
 				}
 
+				cmd_end_flag = true;
+            	setting_end_time = sample_gettimeus();
+            	setting_end_delay = 10000000;
+
 				usleep(100*1000);
 
 				main_snap = true;
@@ -4668,8 +4674,12 @@ int Setting_Total(void) {
 
 			if (!door1 && !door2) {
 				dp("[END] Door Shot!\n");
-				device_end(SETTING);
+				// device_end(SETTING);
 				door_cap_flag = false;
+
+				cmd_end_flag = true;
+            	setting_end_time = sample_gettimeus();
+            	setting_end_delay = 3000000;
 			}
 		}
 

@@ -195,7 +195,6 @@ void *spi_send_stream (void *arg);
 // void *spi_test_send_stream (void *arg);
 int spi_device_off(uint8_t minor);
 void test_spi_rw(void);
-void test_spi_onekbytes(int dly);
 int Ready_Busy_Check(void);
 int spi_send_file_dual(uint8_t minor1, uint8_t minor2, char *file1, char *file2);
 int spi_send_save_file(char *path, char *file);

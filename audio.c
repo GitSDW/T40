@@ -1884,13 +1884,13 @@ void IMP_Audio_Test_Out_Thread(void)
 void IMP_Audio_Test_InOut_Thread(void)
 {
 	int ret = -1;
-	int64_t mic_test_time = 0;
+	// int64_t mic_test_time = 0;
 
 	// int size = 0;
 	int old_chnbusy=0, old_busy_cnt=0;
 	bool stop_flag = false;
 
-	mic_test_time = sample_gettimeus();
+	// mic_test_time = sample_gettimeus();
 	do {
 
 		// dp("Test Audio Record Thread!! %lld\n", );

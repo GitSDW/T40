@@ -218,7 +218,7 @@ const int uart_send(int fd,uint8_t *send_buf,int data_len)
     len = write(fd,send_buf,data_len);
     if(len == data_len){
         pthread_mutex_unlock(&uart_vm);
-        usleep(100*1000);
+        usleep(200*1000);
         return len;
     } else{
         tcflush(fd,TCIOFLUSH);
@@ -445,6 +445,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 }
             }
             else if (bell_rerecode_flag) {
+                usleep(500*1000);
                 rec_enable_ack();
             }
             else {
@@ -586,6 +587,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                     }
                 }
                 else if (bell_rerecode_flag) {
+                    usleep(500*1000);
                     rec_enable_ack();
                 }
                 else {
@@ -633,6 +635,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                     }
                 }
                 else if (bell_rerecode_flag) {
+                    usleep(500*1000);
                     rec_enable_ack();
                 }
                 else {
@@ -691,6 +694,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 ack_len = 1;
                 ack_data[0] = 3;
                 // ack_flag = true;
+                usleep(500*1000);
                 streaming_rec_end(CAUSE_MEM);
             }
             else {
@@ -734,11 +738,11 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                     if (bellend_sound == 1) bellend_sound++;
                     
                     if (rec_total > 57000000) {
-                        usleep(10*1000);
+                        usleep(500*1000);
                         streaming_rec_end(CAUSE_MEM);
                     }
                     else if (rec_cnt >= 9) {
-                        usleep(10*1000);
+                        usleep(500*1000);
                         streaming_rec_end(CAUSE_FILE);
                     }
                 }
@@ -760,6 +764,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 ack_len = 1;
                 ack_data[0] = 3;
                 // ack_flag = true;
+                usleep(500*1000);
                 streaming_rec_end(CAUSE_MEM);
             }
             else {
@@ -812,7 +817,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
 
         break;
         case USTREAM_BITRATE:
-            if (rbuff[index+9] > 0 && rbuff[index+9] < 6) {
+            if (len == 1 && rbuff[index+9] > 0 && rbuff[index+9] < 6) {
                 br_buf = rbuff[index+9]*100;
                 Set_Target_Bit(br_buf);
             }
@@ -1255,6 +1260,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 setting_end_delay = 1000000;
             }
 
+            system("sync");
+
             if (bell_play_flag) {
                 bell_play_flag = false;
                 spk_vol_buf = (10 * settings.spk_vol) + 55;
@@ -1376,7 +1383,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
     }
 
     if (ack_flag) {
-        usleep(50*1000);
+        usleep(200*1000);
         uart_tx = malloc(ack_len+10);
         res = Make_Uart_Ack(uart_tx, ack_len, ack_data, ack_major, ack_minor);
         uart_send(fd_uart, uart_tx, res);
@@ -1862,57 +1869,62 @@ void *uart_thread(void *argc)
         if (res > 0) {
            
             dp("\n");
-            if (uart_rx[0] == 0x02) {
+            if (uart_rx[0] == 0x02 && (uart_rx[1] == 0x80 || uart_rx[1] == 0x81 || uart_rx[1] == 0x82 || uart_rx[1] == 0x83)) {
                 cmd_state = 1;
                 len = (uart_rx[3] * 0x100) + (uart_rx[4]);
-                memset(cmd_rx, 0x00, 128);
+                memset(cmd_rx, 0x00, 256);
                 memcpy(cmd_rx, uart_rx, res);
                 if (res == len+10) {
                     cmd_state = 2;
                 }
                 else if (res > len+10) {
-                    dp("PKT Error!!\n");
+                    // dp("1 PKT Error!! cmd_state : %d len : %d %x %x %x %x\n", cmd_state, len, uart_rx[3], uart_rx[4], uart_rx[1], uart_rx[2]);
                     setting_nack();
                     cmd_end_flag = true;
                     setting_end_time = sample_gettimeus();
                     setting_end_delay = 3000000;
+                    cmd_state = 0;
                 }
                 len_p = res;
                 // dp("0UART RX: ");
-                // for (int i=0; i<res; i++) {
+                // for (int i=0; i<5; i++) {
                 //     dp("0x%02x ", cmd_rx[i]);
                 // }
                 // dp("\n");
-                // dp("len : %d\n", len);
+                // dp("1 len : %d res : %d\n", len, res);
             }
             else if (cmd_state == 1) {
                 if (len_p + res == len + 10) {
                     memcpy(&cmd_rx[len_p], uart_rx, res);
                     cmd_state = 2;
+                    // dp("3 res : %d\n", res);
                 }
                 else if (len_p + res < len + 10) {
                     memcpy(&cmd_rx[len_p], uart_rx, res);
                     len_p += res;
+                    // dp("2 res : %d\n", res);
                 }
                 else {
-                    dp("PKT Error!!\n");
+                    // dp("2 PKT Error!! cmd_state : %d len : %d \n", cmd_state, len);
                     setting_nack();
                     cmd_end_flag = true;
                     setting_end_time = sample_gettimeus();
                     setting_end_delay = 3000000;
+                    cmd_state = 0;
                 }
                 // dp("1UART RX: ");
                 // for (int i=0; i<len_p; i++) {
                 //     dp("0x%02x ", cmd_rx[i]);
                 // }
                 // dp("\n");
+                // dp("2 len : %d res : %d len_p : %d\n", len, res, len_p);
             }
 
             if (cmd_state == 2) {
                 dp("\nUART RX[%d]: ", len);
-                for (int i=0; i<len_p; i++) {
-                    dp("0x%02x ", cmd_rx[i]);
-                }
+                // for (int i=0; i<len_p; i++) {
+                //     dp("0x%02x ", cmd_rx[i]);
+                // }
                 dp("\n");
                 Recv_Uart_Packet_live(cmd_rx);
                 cmd_state = 0;

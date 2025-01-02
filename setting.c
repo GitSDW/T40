@@ -129,6 +129,7 @@ void Setting_Reinit(void) {
 }
 
 void Setting_Init(void) {
+    int reset_flag = false;
     crc_init();
     
      // 파일 경로
@@ -161,10 +162,37 @@ void Setting_Init(void) {
         Setting_Reinit();
     }
 
+    if (settings.spk_vol > 4) {
+        reset_flag = true;
+    } 
+    else if (settings.bell_type > 2) {
+        reset_flag = true;
+    }
+    else if (settings.move_sensitivty > 4) {
+        reset_flag = true;
+    }
+
+    if (reset_flag) {
+        dp("Settings Value Invalid.\n");
+        Setting_Reinit();
+    }
+
     // 현재 설정값 출력
-    // dp("Current settings:\n");
-    // dp("Spk Vol: %d\n", settings.spk_vol);
-    // dp("Setting Flag : 0x%04X\n", settings.SF.bytes);
+    dp("Current settings:\n");
+    dp("led:%d belltype:%d spkvol:%d facemosaic:%d\n", settings.SF.bits.led, settings.bell_type, settings.spk_vol, settings.SF.bits.per_face);
+    dp("door:%d user:%d moveex:%d flicker:%d sensi:%d backlight:%d\n", settings.SF.bits.door_g, settings.SF.bits.user_g, settings.SF.bits.move_ex, settings.SF.bits.flicker,
+                                                                                                                        settings.move_sensitivty, settings.SF.bits.backlight);
+    for(int k=0; k<27; k++) {
+        dp("0x%02x ", settings.door_grid[k]);
+    }
+    dp("\n");
+    dp("usergrid:");
+    for(int k=0; k<27; k++) {
+        dp("0x%02x ", settings.user_grid[k]);
+    }
+    dp("\n");
+    dp("moveexarea: \n     start X : %d Y : %d\n     end : X : %d Y : %d\n", settings.move_ex_s_x, settings.move_ex_s_y, settings.move_ex_e_x, settings.move_ex_e_y);
+
     dp("Setting Load Success!!\n");
 }
 

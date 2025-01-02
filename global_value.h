@@ -13,14 +13,14 @@ extern "C" {
 #ifndef __PHILL_REQ__
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"c"
-	#define CAHR_VER	"m"
+	#define CAHR_VER	"p"
 #else
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"z"
 	#define CAHR_VER	"e"
 #endif
 
-#define DeBug 			0
+#define DeBug 			1
 
 #if DeBug
 	#define		dp(...)	printf(__VA_ARGS__)
@@ -89,7 +89,8 @@ int move_det_xs, move_det_ys, move_det_xe, move_det_ye;
 #else
 	// #define V_SEND_SIZE 					868
 	// #define V_SEND_SIZE 					992
-	#define V_SEND_SIZE 					978 // Ver 0.5.l
+	// #define V_SEND_SIZE 					978 // Ver 0.5.l
+	#define V_SEND_SIZE 					673 // Ver 0.c.o
 	// #define V_SEND_SIZE 					974	// Test Pack Error!
 #endif
 
@@ -105,7 +106,7 @@ int move_det_xs, move_det_ys, move_det_xe, move_det_ye;
 #define BELL_TIME_MIN				34000000
 #define TEMP_TIME_MIN				6000000
 #define CLIP_CLOSE_TIME  			1500000
-#define LIVE_MESSAGE_TIME  			1000000	// 1 * 1000 * 1000 usec
+#define LIVE_MESSAGE_TIME  			5000000	// 1 * 1000 * 1000 usec
 
 int data_sel;
 char ip[30];
@@ -479,6 +480,7 @@ enum REC_TYPE {
 #define __FILE_SEND_CHANGE__
 #define __PRIVERCE_SIZE_UP__
 #define __FRAME_SYNC__
+// #define __IOT_CORE__
 
 #ifdef __TEST_FAKE_VEDIO__
 	int led_cnt;

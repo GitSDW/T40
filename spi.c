@@ -446,7 +446,7 @@ int64_t bitrate_cnt = 0;
 
 extern int Set_Target_Bit2(uint32_t targetbit);
 
-int Make_Spi_Packet_live_rtp(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t major, uint8_t minor, int64_t time, bool fm_end)
+int Make_Spi_Packet_live_rtp(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t major, uint8_t minor, int64_t time, bool fm_end, bool header_ex)
 {
     int reserv_cnt = V_SEND_RESERV;
     // uint8_t endchar[4] = {0};
@@ -467,48 +467,97 @@ int Make_Spi_Packet_live_rtp(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_
     // static int64_t real_time_gap = 0;
     // int64_t gap_time = 0;
 
-    header.version_padding_extension_cc = 0x80;
-    if (fm_end)
-        header.marker_payload_type = 0xE1;
-    else
-        header.marker_payload_type = 0x61;
+    #ifdef __IOT_CORE__
+        if (!header_ex) {
+            header.version_padding_extension_cc = 0x80;
+            if (fm_end)
+                header.marker_payload_type = 0xE1;
+            else
+                header.marker_payload_type = 0x61;
 
-    if (minor == STREAM_VEDIO_M) {
-        header.sequence_number[0] = (seq_num0&0xFF00) >> 8;;
-        header.sequence_number[1] = seq_num0&0xFF;
-    }
-    else if (minor == STREAM_VEDIO_B) {
-        header.sequence_number[0] = (seq_num3&0xFF00) >> 8;;
-        header.sequence_number[1] = seq_num3&0xFF;
-    }
-    // header.timestamp = sample_gettimeus();
-    header.timestamp[0] = (time&0xFF000000) >> 24;
-    header.timestamp[1] = (time&0x00FF0000) >> 16;
-    header.timestamp[2] = (time&0x0000FF00) >> 8;
-    header.timestamp[3] = (time&0x000000FF);
-    // if (minor == STREAM_VEDIO_M) {
-    //     header.timestamp[0] = 0x51;
-    //     header.timestamp[1] = 0x79;
-    //     header.timestamp[2] = 0x42;
-    //     header.timestamp[3] = 0x00;
-    // }
-    // else if (minor == STREAM_VEDIO_B) {
-    //     header.timestamp[0] = 0x51;
-    //     header.timestamp[1] = 0x79;
-    //     header.timestamp[2] = 0x42;
-    //     header.timestamp[3] = 0x01;
-    // }
-    // header.ssrc = 123465879;
-    header.ssrc[0] = 0x20;
-    header.ssrc[1] = 0x24;
-    header.ssrc[2] = major;
-    header.ssrc[3] = minor;
+            if (minor == STREAM_VEDIO_M) {
+                header.sequence_number[0] = (seq_num0&0xFF00) >> 8;;
+                header.sequence_number[1] = seq_num0&0xFF;
+            }
+            else if (minor == STREAM_VEDIO_B) {
+                header.sequence_number[0] = (seq_num3&0xFF00) >> 8;;
+                header.sequence_number[1] = seq_num3&0xFF;
+            }
+            // header.timestamp = sample_gettimeus();
+            header.timestamp[0] = (time&0xFF000000) >> 24;
+            header.timestamp[1] = (time&0x00FF0000) >> 16;
+            header.timestamp[2] = (time&0x0000FF00) >> 8;
+            header.timestamp[3] = (time&0x000000FF);
+            // if (minor == STREAM_VEDIO_M) {
+            //     header.timestamp[0] = 0x51;
+            //     header.timestamp[1] = 0x79;
+            //     header.timestamp[2] = 0x42;
+            //     header.timestamp[3] = 0x00;
+            // }
+            // else if (minor == STREAM_VEDIO_B) {
+            //     header.timestamp[0] = 0x51;
+            //     header.timestamp[1] = 0x79;
+            //     header.timestamp[2] = 0x42;
+            //     header.timestamp[3] = 0x01;
+            // }
+            // header.ssrc = 123465879;
+            header.ssrc[0] = 0x20;
+            header.ssrc[1] = 0x24;
+            header.ssrc[2] = major;
+            header.ssrc[3] = minor;
 
-    // memcpy(&tbuff[reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
-    if (minor == STREAM_VEDIO_M) seq_num0++;
-    else if (minor == STREAM_VEDIO_B) seq_num3++;
+            // memcpy(&tbuff[reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
+            if (minor == STREAM_VEDIO_M) seq_num0++;
+            else if (minor == STREAM_VEDIO_B) seq_num3++;
 
-    len += sizeof(RTPHeader);
+            len += sizeof(RTPHeader); 
+            // if (STREAM_VEDIO_M) dp("R\n");
+        }
+    #else
+        header.version_padding_extension_cc = 0x80;
+        if (fm_end)
+            header.marker_payload_type = 0xE1;
+        else
+            header.marker_payload_type = 0x61;
+
+        if (minor == STREAM_VEDIO_M) {
+            header.sequence_number[0] = (seq_num0&0xFF00) >> 8;;
+            header.sequence_number[1] = seq_num0&0xFF;
+        }
+        else if (minor == STREAM_VEDIO_B) {
+            header.sequence_number[0] = (seq_num3&0xFF00) >> 8;;
+            header.sequence_number[1] = seq_num3&0xFF;
+        }
+        // header.timestamp = sample_gettimeus();
+        header.timestamp[0] = (time&0xFF000000) >> 24;
+        header.timestamp[1] = (time&0x00FF0000) >> 16;
+        header.timestamp[2] = (time&0x0000FF00) >> 8;
+        header.timestamp[3] = (time&0x000000FF);
+        // if (minor == STREAM_VEDIO_M) {
+        //     header.timestamp[0] = 0x51;
+        //     header.timestamp[1] = 0x79;
+        //     header.timestamp[2] = 0x42;
+        //     header.timestamp[3] = 0x00;
+        // }
+        // else if (minor == STREAM_VEDIO_B) {
+        //     header.timestamp[0] = 0x51;
+        //     header.timestamp[1] = 0x79;
+        //     header.timestamp[2] = 0x42;
+        //     header.timestamp[3] = 0x01;
+        // }
+        // header.ssrc = 123465879;
+        header.ssrc[0] = 0x20;
+        header.ssrc[1] = 0x24;
+        header.ssrc[2] = major;
+        header.ssrc[3] = minor;
+
+        // memcpy(&tbuff[reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
+        if (minor == STREAM_VEDIO_M) seq_num0++;
+        else if (minor == STREAM_VEDIO_B) seq_num3++;
+
+        len += sizeof(RTPHeader); 
+        // if (STREAM_VEDIO_M) dp("R\n");
+    #endif
 
     tbuff[0+reserv_cnt] = 0x02;
     tbuff[1+reserv_cnt] = major & 0xFF;
@@ -517,11 +566,20 @@ int Make_Spi_Packet_live_rtp(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_
     tbuff[4+reserv_cnt] = len & 0xFF;
     tbuff[5+reserv_cnt] = 0x00;
     tbuff[6+reserv_cnt] = 0x00;
-    tbuff[7+reserv_cnt] = 0x00;
+    #ifdef __IOT_CORE__
+        tbuff[7+reserv_cnt] = header_ex+1;
+    #else
+        tbuff[7+reserv_cnt] = 0x00;
+    #endif
+    
     // tbuff[8+reserv_cnt] = 0x00;
     tbuff[8+reserv_cnt] = a_pkt_cnt;
 
+
     if (minor == STREAM_VEDIO_M) {
+        #ifdef __IOT_CORE__
+            dp("L:%d S:%d\n", len, seq_num0);
+        #endif
         // gap_time = sample_gettimeus()-real_time_gap;
         cal_time = (time - test_time);
         if ((cal_time > 80000) && fm_end){
@@ -583,26 +641,40 @@ int Make_Spi_Packet_live_rtp(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_
                 case STREAM_REV:
                     break;
                 case STREAM_VEDIO_M:
-                    memcpy(&tbuff[9+reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
-                    // dp("tbuf: %d\n    0x%02x 0x%02x 0x%02x%02x \n    0x%02x%02x%02x%02x \n    0x%02x%02x%02x%02x \n", len,
-                    //          tbuff[0+reserv_cnt+9], tbuff[1+reserv_cnt+9], tbuff[2+reserv_cnt+9],tbuff[3+reserv_cnt+9],
-                    //          tbuff[4+reserv_cnt+9], tbuff[5+reserv_cnt+9], tbuff[6+reserv_cnt+9],tbuff[7+reserv_cnt+9],
-                    //          tbuff[8+reserv_cnt+9], tbuff[9+reserv_cnt+9], tbuff[10+reserv_cnt+9],tbuff[11+reserv_cnt+9]);
-                    
-                    reserv_cnt += sizeof(RTPHeader);
-                    memcpy(&tbuff[9+reserv_cnt], data, len);
-                    // endchar[0] = 0x45;  //   'E'
-                    // endchar[1] = 0x4E;  //   'N'
-                    // endchar[2] = 0x44;  //   'D'
-                    // endchar[3] = 0x03;  //   0x03
-                    // memcpy(&tbuff[9+reserv_cnt+len], endchar, 4);
-                    // dp("tbuf len:%d\n", len);
+                    #ifdef __IOT_CORE__
+                        if (!header_ex) {
+                            memcpy(&tbuff[9+reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
+                            reserv_cnt += sizeof(RTPHeader);
+                            memcpy(&tbuff[9+reserv_cnt], data, len);
+                        }
+                        else {
+                            // memcpy(&tbuff[9+reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
+                            // reserv_cnt += sizeof(RTPHeader);
+                            memcpy(&tbuff[9+reserv_cnt], data, len);
+                        }
+                    #else
+                        memcpy(&tbuff[9+reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
+                        reserv_cnt += sizeof(RTPHeader);
+                        memcpy(&tbuff[9+reserv_cnt], data, len);
+                    #endif
                     break;
                 case STREAM_VEDIO_B:
-                    memcpy(&tbuff[9+reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
-                    reserv_cnt += sizeof(RTPHeader);
-
-                	memcpy(&tbuff[9+reserv_cnt], data, len);
+                    #ifdef __IOT_CORE__
+                        if (!header_ex) {
+                            memcpy(&tbuff[9+reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
+                            reserv_cnt += sizeof(RTPHeader);
+                        	memcpy(&tbuff[9+reserv_cnt], data, len);
+                        }
+                        else {
+                            // memcpy(&tbuff[9+reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
+                            // reserv_cnt += sizeof(RTPHeader);
+                            memcpy(&tbuff[9+reserv_cnt], data, len);
+                        }
+                    #else
+                        memcpy(&tbuff[9+reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
+                        reserv_cnt += sizeof(RTPHeader);
+                        memcpy(&tbuff[9+reserv_cnt], data, len);
+                    #endif
                     break;
                 case STREAM_FACE:
                     break;
@@ -2688,7 +2760,7 @@ extern pthread_mutex_t buffMutex_vb;
 //     return ((void*)0);
 // }
 
-int v1c = 0, v2c = 0, aoc = 0;
+// int v1c = 0, v2c = 0, aoc = 0;
 
 
 void *spi_send_stream (void *arg)
@@ -2705,6 +2777,19 @@ void *spi_send_stream (void *arg)
     int main_first = 0;
     int mv_delay = 2;
     // bool stream_start1 = false;
+
+    
+    bool str_ex_1 = false, str_ex_2 = false;
+    #ifdef __IOT_CORE__
+        int ndatasize = 0;
+    #endif
+
+    // int64_t interval_v1 = 0, savetime_v1 = sample_gettimeus(), avr_v1 = 0;
+    // int cnt_v1 = 0;
+    // int64_t interval_v2 = 0, savetime_v2 =  sample_gettimeus(), avr_v2 = 0;
+    // int cnt_v2 = 0;
+    // int64_t interval_ai = 0, savetime_ai =  sample_gettimeus(), avr_ai = 0;
+    // int cnt_ai = 0;
 
     buf = (uint8_t*)malloc(2000);
 
@@ -2758,15 +2843,34 @@ void *spi_send_stream (void *arg)
         #ifdef __H265__
             Make_Spi_Packet_live(tx_buff, VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*frame_ptr1), datasize, STREAMING, STREAM_VEDIO_M);
         #else
-            if (datasize < V_SEND_SIZE)     frame_end = true;
-            else                            frame_end = false;
+            #ifdef __IOT_CORE__
+                if (datasize < V_SEND_SIZE)     frame_end = true;
+                else {
+                    ndatasize = (framesize1 > V_SEND_SIZE) ? V_SEND_SIZE : framesize1;
+                    if (ndatasize < V_SEND_SIZE)                           
+                        frame_end = true;
+                    else
+                        frame_end = false;
+                }
+            #else
+                if (datasize < V_SEND_SIZE)     frame_end = true;
+                else                            frame_end = false;
+            #endif
+
             Make_Spi_Packet_live_rtp(tx_buff, VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*frame_ptr1), 
-                                        datasize, STREAMING, STREAM_VEDIO_M, VM_Frame_Buff.ftime[VM_Frame_Buff.Rindex], frame_end);
+                                        datasize, STREAMING, STREAM_VEDIO_M, VM_Frame_Buff.ftime[VM_Frame_Buff.Rindex], frame_end, str_ex_1);
+            #ifdef __IOT_CORE__
+                dp("1:%d\n", tx_buff[V_SEND_RESERV+7]);
+                if (str_ex_1) str_ex_1 = false;
+                else str_ex_1 = true;
+            #endif
         #endif
             // dp("[%d]cnt:%d total:%d dsize:%d\n", VM_Frame_Buff.Rindex, frame_ptr1, framesize1, datasize);
             // memset(tx_buff, 0, 1024);
             // memcpy(&tx_buff[6], read_buff, ret);
             ///////////////// SPI Send //////////////////////////
+            // dp("%x %x %x %x %x %x %x %x %x %x %x %x\n", tx_buff[V_SEND_RESERV+10+0], tx_buff[V_SEND_RESERV+10+1], tx_buff[V_SEND_RESERV+10+2], tx_buff[V_SEND_RESERV+10+3], tx_buff[V_SEND_RESERV+10+4], tx_buff[V_SEND_RESERV+10+5]
+                                                        // , tx_buff[V_SEND_RESERV+10+6], tx_buff[V_SEND_RESERV+10+7], tx_buff[V_SEND_RESERV+10+8], tx_buff[V_SEND_RESERV+10+9], tx_buff[V_SEND_RESERV+10+10], tx_buff[V_SEND_RESERV+10+11]);
             if (data_sel == 1 || data_sel == 4) {
                 // ret = spi_write_bytes(fd,tx_buff, SPI_SEND_LENGTH);
                 if (stream_state == 1)
@@ -2778,15 +2882,15 @@ void *spi_send_stream (void *arg)
                 }
                 else {
                     frame_ptr1++;
-                    
-                    // dp("STX:0x%02x CMD:0x%02x%02x LEN:0x%02x%02x ETX:0x%02x\n", 
-                        // tx_buff[0+5], tx_buff[1+5], tx_buff[2+5], tx_buff[3+5], tx_buff[4+5], tx_buff[1023-5]);
-                    
-                    // v1c++;
-                    // if (v1c>10) {
-                    //     v1c = 0;
-                    //     dp("V1\n");    
+
+                    // if (cnt_v1 > 0) {
+                    //     interval_v1 = (sample_gettimeus() - savetime_v1);
+                    //     avr_v1 = (avr_v1 + interval_v1);
+                    //     dp("[v1] interval : %lld, avr : %lld\n", interval_v1, (avr_v1/cnt_v1));
                     // }
+                    // savetime_v1 = sample_gettimeus();
+                    // cnt_v1++;
+
                     if (main_first < 10) main_first++;
                     usleep(mv_delay*1000);
                 }
@@ -2795,6 +2899,10 @@ void *spi_send_stream (void *arg)
                 VM_Frame_Buff.Rindex = (VM_Frame_Buff.Rindex+1)%20;
                 VM_Frame_Buff.cnt--;
                 frame_ptr1 = 0;
+                #ifdef __IOT_CORE__
+                    str_ex_1 = false;
+                    dp("1C\n");
+                #endif
             }
         }
         //////////////////////////////////////////////////////////////////////////////
@@ -2815,10 +2923,30 @@ void *spi_send_stream (void *arg)
         #ifdef __H265__
             Make_Spi_Packet_live(tx_buff, VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*frame_ptr2), datasize, STREAMING, STREAM_VEDIO_B);
         #else
-            if (datasize < V_SEND_SIZE)     frame_end = true;
-            else                            frame_end = false;
+            // if (datasize < V_SEND_SIZE)     frame_end = true;
+            // else                            frame_end = false;
+            #ifdef __IOT_CORE__
+                if (datasize < V_SEND_SIZE)     frame_end = true;
+                else {
+                    ndatasize = (framesize2 > V_SEND_SIZE) ? V_SEND_SIZE : framesize2;
+                    if (ndatasize < V_SEND_SIZE)                           
+                        frame_end = true;
+                    else
+                        frame_end = false;
+                }
+            #else
+                if (datasize < V_SEND_SIZE)     frame_end = true;
+                else                            frame_end = false;
+            #endif
+
             Make_Spi_Packet_live_rtp(tx_buff, VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*frame_ptr2), 
-                                        datasize, STREAMING, STREAM_VEDIO_B, VB_Frame_Buff.ftime[VB_Frame_Buff.Rindex], frame_end);
+                                        datasize, STREAMING, STREAM_VEDIO_B, VB_Frame_Buff.ftime[VB_Frame_Buff.Rindex], frame_end, str_ex_2);
+            
+            #ifdef __IOT_CORE__
+                // dp("2:%d\n", tx_buff[V_SEND_RESERV+7]);
+                if (str_ex_2) str_ex_2 = false;
+                else str_ex_2 = true;
+            #endif
         #endif
             
             // memset(tx_buff, 0, 1024);
@@ -2851,6 +2979,10 @@ void *spi_send_stream (void *arg)
                 VB_Frame_Buff.Rindex = (VB_Frame_Buff.Rindex+1)%20;
                 VB_Frame_Buff.cnt--;
                 frame_ptr2 = 0;
+                #ifdef __IOT_CORE__
+                    str_ex_2 = false;
+                    // dp("2C\n");
+                #endif
             }
         }
         //////////////////////////////////////////////////////////////////////////////
@@ -2908,11 +3040,11 @@ void *spi_send_stream (void *arg)
                             // dp("AUDIO Send Data : 0x%02X%02X\n", tx_buff[3+5], tx_buff[4+5]);
                             // dp("AOUT\n");
                             // ret = write(save_fd, buf, datasize);
-                            aoc++;
-                            if (aoc>10) {
-                                aoc = 0;
-                                dp("AO\n");    
-                            }
+                            // aoc++;
+                            // if (aoc>10) {
+                            //     aoc = 0;
+                            //     dp("AO\n");    
+                            // }
                             datasize = 0;
                             usleep(mv_delay*1000);
                         }
@@ -3090,21 +3222,6 @@ void test_spi_rw(void) {
     }
 
     // usleep(1*1000*1000);
-}
-
-void test_spi_onekbytes(int dly){
-    int cnt=0;
-
-    do {
-        dp("Loop Test Cnt:%d\n", cnt++);
-        for(int i=0; i<1024; i++) {
-            tx_buff[i] = i%256;
-        }
-    
-        spi_rw_bytes(fd, tx_buff, rx_buff, 1024);
-
-        usleep(dly*1000);
-    }while(1);
 }
 
 int ota_fd = 0;
