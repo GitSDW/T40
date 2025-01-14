@@ -13,7 +13,7 @@ extern "C" {
 #ifndef __PHILL_REQ__
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"c"
-	#define CAHR_VER	"p"
+	#define CAHR_VER	"u"
 #else
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"z"
@@ -90,7 +90,9 @@ int move_det_xs, move_det_ys, move_det_xe, move_det_ye;
 	// #define V_SEND_SIZE 					868
 	// #define V_SEND_SIZE 					992
 	// #define V_SEND_SIZE 					978 // Ver 0.5.l
-	#define V_SEND_SIZE 					673 // Ver 0.c.o
+	// #define V_SEND_SIZE 					673 // Ver 0.c.o
+	#define V_SEND_SIZE 					649 // Ver 0.c.q
+	// #define V_SEND_SIZE 					489 // Ver 0.c.s
 	// #define V_SEND_SIZE 					974	// Test Pack Error!
 #endif
 
@@ -480,7 +482,7 @@ enum REC_TYPE {
 #define __FILE_SEND_CHANGE__
 #define __PRIVERCE_SIZE_UP__
 #define __FRAME_SYNC__
-// #define __IOT_CORE__
+#define __IOT_CORE__
 
 #ifdef __TEST_FAKE_VEDIO__
 	int led_cnt;

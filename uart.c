@@ -819,7 +819,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         case USTREAM_BITRATE:
             if (len == 1 && rbuff[index+9] > 0 && rbuff[index+9] < 6) {
                 br_buf = rbuff[index+9]*100;
-                Set_Target_Bit(br_buf);
+                // Set_Target_Bit(br_buf);
             }
             ack_len = 0;
             // ack_flag = true;
@@ -1198,7 +1198,10 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             setting_end_delay = 3000000;
         break;
         case SET_SET_TOTAL:
-            
+            if (cmd_end_flag) {
+                setting_end_time = sample_gettimeus();
+                setting_end_delay = 3000000;
+            }
             // SA = (Setting_All*)&rbuff[index+9];
             // rbuff[index+9+0];
             // rbuff[index+9+1];
@@ -1868,7 +1871,7 @@ void *uart_thread(void *argc)
         // dp("\n");
         if (res > 0) {
            
-            dp("\n");
+            // dp("\n");
             if (uart_rx[0] == 0x02 && (uart_rx[1] == 0x80 || uart_rx[1] == 0x81 || uart_rx[1] == 0x82 || uart_rx[1] == 0x83)) {
                 cmd_state = 1;
                 len = (uart_rx[3] * 0x100) + (uart_rx[4]);
@@ -1878,7 +1881,7 @@ void *uart_thread(void *argc)
                     cmd_state = 2;
                 }
                 else if (res > len+10) {
-                    // dp("1 PKT Error!! cmd_state : %d len : %d %x %x %x %x\n", cmd_state, len, uart_rx[3], uart_rx[4], uart_rx[1], uart_rx[2]);
+                    dp("1 PKT Error!! cmd_state : %d len : %d %x %x %x %x\n", cmd_state, len, uart_rx[3], uart_rx[4], uart_rx[1], uart_rx[2]);
                     setting_nack();
                     cmd_end_flag = true;
                     setting_end_time = sample_gettimeus();
@@ -1905,26 +1908,26 @@ void *uart_thread(void *argc)
                     // dp("2 res : %d\n", res);
                 }
                 else {
-                    // dp("2 PKT Error!! cmd_state : %d len : %d \n", cmd_state, len);
+                    dp("2 PKT Error!! cmd_state : %d len : %d \n", cmd_state, len);
                     setting_nack();
                     cmd_end_flag = true;
                     setting_end_time = sample_gettimeus();
                     setting_end_delay = 3000000;
                     cmd_state = 0;
                 }
-                // dp("1UART RX: ");
+                // dp("UART RX(%d): ", len);
                 // for (int i=0; i<len_p; i++) {
                 //     dp("0x%02x ", cmd_rx[i]);
                 // }
-                // dp("\n");
+                dp("\n");
                 // dp("2 len : %d res : %d len_p : %d\n", len, res, len_p);
             }
 
             if (cmd_state == 2) {
                 dp("\nUART RX[%d]: ", len);
-                // for (int i=0; i<len_p; i++) {
-                //     dp("0x%02x ", cmd_rx[i]);
-                // }
+                for (int i=0; i<len_p; i++) {
+                    dp("0x%02x ", cmd_rx[i]);
+                }
                 dp("\n");
                 Recv_Uart_Packet_live(cmd_rx);
                 cmd_state = 0;

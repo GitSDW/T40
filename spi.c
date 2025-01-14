@@ -446,10 +446,11 @@ int64_t bitrate_cnt = 0;
 
 extern int Set_Target_Bit2(uint32_t targetbit);
 
-int Make_Spi_Packet_live_rtp(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t major, uint8_t minor, int64_t time, bool fm_end, bool header_ex)
+int Make_Spi_Packet_live_rtp(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t major, uint8_t minor, int64_t time, bool fm_end, bool countinue_flag, bool header_ex)
 {
     int reserv_cnt = V_SEND_RESERV;
     // uint8_t endchar[4] = {0};
+    // int test_data = 0;
 
     if (len > FILE_READ_LENGTH_LIVE) {
         dp("File Length Over!! %d>1014\n", len);
@@ -468,7 +469,7 @@ int Make_Spi_Packet_live_rtp(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_
     // int64_t gap_time = 0;
 
     #ifdef __IOT_CORE__
-        if (!header_ex) {
+        if ((countinue_flag&&!header_ex) || !countinue_flag) {
             header.version_padding_extension_cc = 0x80;
             if (fm_end)
                 header.marker_payload_type = 0xE1;
@@ -567,34 +568,62 @@ int Make_Spi_Packet_live_rtp(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_
     tbuff[5+reserv_cnt] = 0x00;
     tbuff[6+reserv_cnt] = 0x00;
     #ifdef __IOT_CORE__
-        tbuff[7+reserv_cnt] = header_ex+1;
+        if (fm_end) {
+            // if (header_ex) tbuff[7+reserv_cnt] = 2;
+            // else tbuff[7+reserv_cnt] = 1;
+            // tbuff[7+reserv_cnt] = 1;
+            if (!header_ex) {
+                if (len < (V_SEND_SIZE+sizeof(RTPHeader)))  tbuff[7+reserv_cnt] = 1;
+                else                    tbuff[7+reserv_cnt] = 2;
+            }
+            else {
+                tbuff[7+reserv_cnt] = 1;
+                
+            }
+        }
+        else {
+            if (!header_ex) {
+                tbuff[7+reserv_cnt] = 2;
+            }
+            else {
+                tbuff[7+reserv_cnt] = 1;
+                
+            }
+        }
+
+        // test_data = seq_num0 & 0xFF;
+
+        // if (!countinue_flag) tbuff[7+reserv_cnt] = 3;
+
+        // if (header_ex) tbuff[7+reserv_cnt] = 2;
+        // else tbuff[7+reserv_cnt] = 1;
     #else
-        tbuff[7+reserv_cnt] = 0x00;
+        tbuff[7+reserv_cnt] = 0x01;
     #endif
     
     // tbuff[8+reserv_cnt] = 0x00;
     tbuff[8+reserv_cnt] = a_pkt_cnt;
 
 
-    if (minor == STREAM_VEDIO_M) {
-        #ifdef __IOT_CORE__
-            dp("L:%d S:%d\n", len, seq_num0);
-        #endif
-        // gap_time = sample_gettimeus()-real_time_gap;
-        cal_time = (time - test_time);
-        if ((cal_time > 80000) && fm_end){
-            // dp("Real Main RTP GAP:%lld cal_time:%lld\n", gap_time, cal_time);
-            if ((bitrate_change != 300) && fm_end) {
-                bitrate_change = 300;
-                dp("Real Main cal_time:%lld\n", cal_time);
-                // Set_Target_Bit2(bitrate_change);
-                // bitrate_cnt = sample_gettimeus();
-            }
-            bitrate_cnt = sample_gettimeus();
-        }
-        // real_time_gap = sample_gettimeus();
-        test_time = time;
-    }
+    // if (minor == STREAM_VEDIO_M) {
+    //     // #ifdef __IOT_CORE__
+    //         // dp("C:%d L:%d S:%d\n", tbuff[7+reserv_cnt], len, seq_num0);
+    //     // #endif
+    //     // gap_time = sample_gettimeus()-real_time_gap;
+    //     cal_time = (time - test_time);
+    //     if ((cal_time > 80000) && fm_end){
+    //         // dp("Real Main RTP GAP:%lld cal_time:%lld\n", gap_time, cal_time);
+    //         if ((bitrate_change != 300) && fm_end) {
+    //             bitrate_change = 300;
+    //             dp("Real Main cal_time:%lld\n", cal_time);
+    //             // Set_Target_Bit2(bitrate_change);
+    //             // bitrate_cnt = sample_gettimeus();
+    //         }
+    //         bitrate_cnt = sample_gettimeus();
+    //     }
+    //     // real_time_gap = sample_gettimeus();
+    //     test_time = time;
+    // }
 
     switch(major){
         case DTEST:
@@ -642,15 +671,17 @@ int Make_Spi_Packet_live_rtp(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_
                     break;
                 case STREAM_VEDIO_M:
                     #ifdef __IOT_CORE__
-                        if (!header_ex) {
+                        if ((countinue_flag&&!header_ex) || !countinue_flag) {
                             memcpy(&tbuff[9+reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
                             reserv_cnt += sizeof(RTPHeader);
                             memcpy(&tbuff[9+reserv_cnt], data, len);
+                            // memset(&tbuff[9+reserv_cnt], test_data, len);
                         }
                         else {
                             // memcpy(&tbuff[9+reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
                             // reserv_cnt += sizeof(RTPHeader);
                             memcpy(&tbuff[9+reserv_cnt], data, len);
+                            // memset(&tbuff[9+reserv_cnt], test_data, len);
                         }
                     #else
                         memcpy(&tbuff[9+reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
@@ -660,7 +691,7 @@ int Make_Spi_Packet_live_rtp(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_
                     break;
                 case STREAM_VEDIO_B:
                     #ifdef __IOT_CORE__
-                        if (!header_ex) {
+                        if ((countinue_flag&&!header_ex) || !countinue_flag) {
                             memcpy(&tbuff[9+reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
                             reserv_cnt += sizeof(RTPHeader);
                         	memcpy(&tbuff[9+reserv_cnt], data, len);
@@ -2776,10 +2807,12 @@ void *spi_send_stream (void *arg)
     bool frame_end = false;
     int main_first = 0;
     int mv_delay = 2;
+    int old_ck = 0;
     // bool stream_start1 = false;
 
     
-    bool str_ex_1 = false, str_ex_2 = false;
+    bool str_ex_1 = true, str_ex_2 = true;
+    bool continue_flag1 = false, continue_flag2 = false;
     #ifdef __IOT_CORE__
         int ndatasize = 0;
     #endif
@@ -2794,10 +2827,10 @@ void *spi_send_stream (void *arg)
     buf = (uint8_t*)malloc(2000);
 
     // int save_fd1 = 0;
-    // save_fd1 = open("/tmp/mnt/sdcard/main.h264", O_RDWR | O_CREAT | O_TRUNC, 0777);
+    // save_fd1 = open("/tmp/mnt/sdcard/main1.h264", O_RDWR | O_CREAT | O_TRUNC, 0777);
 
-    // int save_fd2 = 0;
-    // save_fd2 = open("/tmp/mnt/sdcard/bott.h264", O_RDWR | O_CREAT | O_TRUNC, 0777);
+    int save_fd2 = 0;
+    save_fd2 = open("/tmp/mnt/sdcard/main2.h264", O_RDWR | O_CREAT | O_TRUNC, 0777);
   
     do {
         /////////// Vedio Main IN -> UDP Out //////////////////////////////////////////
@@ -2820,7 +2853,7 @@ void *spi_send_stream (void *arg)
             
             else if (VM_Frame_Buff.cnt <= 4){
                 if (mv_delay != 2) {
-                    dp("Delay State 3!\n");
+                    dp("Delay State 2!\n");
                     mv_delay = 2;
                 }
             }
@@ -2830,39 +2863,61 @@ void *spi_send_stream (void *arg)
             //     Set_Target_Bit2(bitrate_change);
             // }
 
-            if (frame_ptr1 == 0)
+            if (frame_ptr1 == 0){
                 framesize1 = VM_Frame_Buff.len[VM_Frame_Buff.Rindex]-(V_SEND_SIZE*frame_ptr1);
+                if (framesize1 > V_SEND_SIZE)       continue_flag1 = true;
+                else                                continue_flag1 = false;
+            }
             pthread_mutex_lock(&buffMutex_vm);
             datasize = (framesize1 > V_SEND_SIZE) ? V_SEND_SIZE : framesize1;
             // udp_vm_send(VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*frame_ptr1), datasize);
             framesize1 -= datasize;
+
+            #ifdef __IOT_CORE__
+                ndatasize = (framesize1 > V_SEND_SIZE) ? V_SEND_SIZE : framesize1;
+            #endif
             // dp("cnt:%d, total:%d, dsize:%d\n", frame_ptr1, framesize1, datasize);
-            pthread_mutex_unlock(&buffMutex_vm);
+            
             // dp("[CIR_BUFF_VM]datasize:%d WIndex:%d RIndex%d\n", datasize, VM_Cir_Buff.WIndex, VM_Cir_Buff.RIndex);
             // ret = write(save_fd1, VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*frame_ptr1), datasize);
         #ifdef __H265__
             Make_Spi_Packet_live(tx_buff, VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*frame_ptr1), datasize, STREAMING, STREAM_VEDIO_M);
         #else
             #ifdef __IOT_CORE__
-                if (datasize < V_SEND_SIZE)     frame_end = true;
+                if (datasize < V_SEND_SIZE)         frame_end = true;
                 else {
-                    ndatasize = (framesize1 > V_SEND_SIZE) ? V_SEND_SIZE : framesize1;
-                    if (ndatasize < V_SEND_SIZE)                           
-                        frame_end = true;
-                    else
-                        frame_end = false;
+                    if (ndatasize < V_SEND_SIZE)    frame_end = true;
+                    else                            frame_end = false;
                 }
+
+                if (str_ex_1)                   str_ex_1 = false;
+                else                            str_ex_1 = true;
             #else
                 if (datasize < V_SEND_SIZE)     frame_end = true;
                 else                            frame_end = false;
             #endif
 
+            // if (datasize > 2)
+            //     ret = write(save_fd1, VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*frame_ptr1), datasize);
+
             Make_Spi_Packet_live_rtp(tx_buff, VM_Frame_Buff.tx[VM_Frame_Buff.Rindex]+(V_SEND_SIZE*frame_ptr1), 
-                                        datasize, STREAMING, STREAM_VEDIO_M, VM_Frame_Buff.ftime[VM_Frame_Buff.Rindex], frame_end, str_ex_1);
+                                        datasize, STREAMING, STREAM_VEDIO_M, VM_Frame_Buff.ftime[VM_Frame_Buff.Rindex], frame_end, continue_flag1, str_ex_1);
+
+            pthread_mutex_unlock(&buffMutex_vm);
+
             #ifdef __IOT_CORE__
-                dp("1:%d\n", tx_buff[V_SEND_RESERV+7]);
-                if (str_ex_1) str_ex_1 = false;
-                else str_ex_1 = true;
+                // if (tx_buff[5+9] == 0x80 && (tx_buff[5+9+1] == 0x61 || tx_buff[5+9+1] == 0xe1)) {
+                //     dp("C:%d L:%d S:%d %x %x D:%x %x\n", tx_buff[V_SEND_RESERV+7], (tx_buff[V_SEND_RESERV+3]*256+tx_buff[V_SEND_RESERV+4]), 
+                //                                         (tx_buff[V_SEND_RESERV+9+2]*256+tx_buff[V_SEND_RESERV+9+3]), tx_buff[V_SEND_RESERV+9+2], tx_buff[V_SEND_RESERV+9+3], 
+                //                                         frame_end, str_ex_1);
+                //     if (old_ck != (tx_buff[V_SEND_RESERV+9+2]*256+tx_buff[V_SEND_RESERV+9+3]-1)) {
+                //         dp("Old Seq : %d / New Seq : %d\n", old_ck, (tx_buff[V_SEND_RESERV+9+2]*256+tx_buff[V_SEND_RESERV+9+3]));
+                //     }
+                //     old_ck = (tx_buff[V_SEND_RESERV+9+2]*256+tx_buff[V_SEND_RESERV+9+3]);
+                // }
+                // else {
+                //     dp("C:%d L:%d D:%x %x\n", tx_buff[V_SEND_RESERV+7], (tx_buff[V_SEND_RESERV+3]*256+tx_buff[V_SEND_RESERV+4]), frame_end, str_ex_1);
+                // }
             #endif
         #endif
             // dp("[%d]cnt:%d total:%d dsize:%d\n", VM_Frame_Buff.Rindex, frame_ptr1, framesize1, datasize);
@@ -2891,6 +2946,14 @@ void *spi_send_stream (void *arg)
                     // savetime_v1 = sample_gettimeus();
                     // cnt_v1++;
 
+                    // // if (datasize > 2) {
+                    //     if (tx_buff[5+9] == 0x80 && (tx_buff[5+9+1] == 0x61 || tx_buff[5+9+1] == 0xe1))
+                    //         ret = write(save_fd2, &tx_buff[5+9+0], datasize+12);
+                    //     else
+                    //         ret = write(save_fd2, &tx_buff[5+9+0], datasize);
+                    // // }
+
+
                     if (main_first < 10) main_first++;
                     usleep(mv_delay*1000);
                 }
@@ -2900,8 +2963,8 @@ void *spi_send_stream (void *arg)
                 VM_Frame_Buff.cnt--;
                 frame_ptr1 = 0;
                 #ifdef __IOT_CORE__
-                    str_ex_1 = false;
-                    dp("1C\n");
+                    str_ex_1 = true;
+                    // dp("1C\n");
                 #endif
             }
         }
@@ -2910,14 +2973,20 @@ void *spi_send_stream (void *arg)
 
         /////////// Vedio Box IN -> UDP Out //////////////////////////////////////////
         if (VB_Frame_Buff.cnt > 0 && (main_first >= 10)) {
-            if (frame_ptr2 == 0)
+            if (frame_ptr2 == 0){
                 framesize2 = VB_Frame_Buff.len[VB_Frame_Buff.Rindex]-(V_SEND_SIZE*frame_ptr2);
+                if (framesize2 > V_SEND_SIZE)       continue_flag2 = true;
+                else                                continue_flag2 = false;
+            }
             pthread_mutex_lock(&buffMutex_vb);
             datasize = (framesize2 > V_SEND_SIZE) ? V_SEND_SIZE : framesize2;
             // udp_vm_send(VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*frame_ptr2), datasize);
             framesize2 -= datasize;
             // dp("cnt:%d, total:%d, dsize:%d\n", frame_ptr2, framesize2, datasize);
-            pthread_mutex_unlock(&buffMutex_vb);
+            #ifdef __IOT_CORE__
+                ndatasize = (framesize2 > V_SEND_SIZE) ? V_SEND_SIZE : framesize2;
+            #endif
+            
             // dp("[CIR_BUFF_VM]datasize:%d WIndex:%d RIndex%d\n", datasize, VM_Cir_Buff.WIndex, VM_Cir_Buff.RIndex);
             // ret = write(save_fd2, VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*frame_ptr2), datasize);
         #ifdef __H265__
@@ -2926,26 +2995,36 @@ void *spi_send_stream (void *arg)
             // if (datasize < V_SEND_SIZE)     frame_end = true;
             // else                            frame_end = false;
             #ifdef __IOT_CORE__
-                if (datasize < V_SEND_SIZE)     frame_end = true;
+                if (datasize < V_SEND_SIZE)         frame_end = true;
                 else {
-                    ndatasize = (framesize2 > V_SEND_SIZE) ? V_SEND_SIZE : framesize2;
-                    if (ndatasize < V_SEND_SIZE)                           
-                        frame_end = true;
-                    else
-                        frame_end = false;
+                    if (ndatasize < V_SEND_SIZE)    frame_end = true;
+                    else                            frame_end = false;
                 }
+
+                if (str_ex_2)                   str_ex_2 = false;
+                else                            str_ex_2 = true;
             #else
                 if (datasize < V_SEND_SIZE)     frame_end = true;
                 else                            frame_end = false;
             #endif
 
             Make_Spi_Packet_live_rtp(tx_buff, VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*frame_ptr2), 
-                                        datasize, STREAMING, STREAM_VEDIO_B, VB_Frame_Buff.ftime[VB_Frame_Buff.Rindex], frame_end, str_ex_2);
+                                        datasize, STREAMING, STREAM_VEDIO_B, VB_Frame_Buff.ftime[VB_Frame_Buff.Rindex], frame_end, continue_flag2, str_ex_2);
             
+            pthread_mutex_unlock(&buffMutex_vb);
             #ifdef __IOT_CORE__
-                // dp("2:%d\n", tx_buff[V_SEND_RESERV+7]);
-                if (str_ex_2) str_ex_2 = false;
-                else str_ex_2 = true;
+                // if (tx_buff[5+9] == 0x80 && (tx_buff[5+9+1] == 0x61 || tx_buff[5+9+1] == 0xe1)) {
+                //     dp("C:%d L:%d S:%d %x %x %x D:%x %x\n", tx_buff[V_SEND_RESERV+7], (tx_buff[V_SEND_RESERV+3]*256+tx_buff[V_SEND_RESERV+4]), 
+                //                                         (tx_buff[V_SEND_RESERV+9+2]*256+tx_buff[V_SEND_RESERV+9+3]), tx_buff[V_SEND_RESERV+9+1], tx_buff[V_SEND_RESERV+9+2], tx_buff[V_SEND_RESERV+9+3], 
+                //                                         frame_end, str_ex_2);
+                //     if (old_ck != (tx_buff[V_SEND_RESERV+9+2]*256+tx_buff[V_SEND_RESERV+9+3]-1)) {
+                //         dp("Old Seq : %d / New Seq : %d\n", old_ck, (tx_buff[V_SEND_RESERV+9+2]*256+tx_buff[V_SEND_RESERV+9+3]));
+                //     }
+                //     old_ck = (tx_buff[V_SEND_RESERV+9+2]*256+tx_buff[V_SEND_RESERV+9+3]);
+                // }
+                // else {
+                //     dp("C:%d L:%d D:%x %x\n", tx_buff[V_SEND_RESERV+7], (tx_buff[V_SEND_RESERV+3]*256+tx_buff[V_SEND_RESERV+4]), frame_end, str_ex_2);
+                // }
             #endif
         #endif
             
@@ -2964,14 +3043,14 @@ void *spi_send_stream (void *arg)
                 }
                 else {
                     frame_ptr2++;
-                    // dp("cnt:%d total:%d dsize%d\n", frame_ptr2, framesize2, datasize);
-                    // dp("V2\n");
-                    // v2c++;
-                    // if (v2c>10) {
-                    //     v2c = 0;
-                    //     dp("V2\n");    
+
+                    // if (datasize > 2) {
+                        if (tx_buff[5+9] == 0x80 && (tx_buff[5+9+1] == 0x61 || tx_buff[5+9+1] == 0xe1))
+                            ret = write(save_fd2, &tx_buff[5+9+0], datasize+12);
+                        else
+                            ret = write(save_fd2, &tx_buff[5+9+0], datasize);
                     // }
-                    
+
                     usleep(mv_delay*1000);
                 }
             }
@@ -2980,7 +3059,7 @@ void *spi_send_stream (void *arg)
                 VB_Frame_Buff.cnt--;
                 frame_ptr2 = 0;
                 #ifdef __IOT_CORE__
-                    str_ex_2 = false;
+                    str_ex_2 = true;
                     // dp("2C\n");
                 #endif
             }

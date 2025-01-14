@@ -4172,7 +4172,9 @@ int stream_total(int mode) {
 		// total_time = sample_gettimeus() - start_time;
 		int cmd = 255; 
 
-		dp("cmd 1  Audio IN/Out Vol, Gain Set!\n");
+		dp("cmd 1 Audio IN/Out Vol, Gain Set!\n");
+		dp("cmd 2 Camera Crop Test\n");
+		dp("cmd 3 Distortion Test\n");
 		dp("cmd 90 Reset Test\n");
 		dp("cmd 99 : exit\n");
 
@@ -4227,34 +4229,34 @@ int stream_total(int mode) {
 		}
 		else if (cmd == 2) {
 			int x, y, w, h, c;
-			printf("cmd 9 Box Camera Crop Test\n");
-			printf("Set X:");
+			dp("cmd 2 Camera Crop Test\n");
+			dp("Set X:");
 			x = scanf_index();
-			printf("Set Y:");
+			dp("Set Y:");
 			y = scanf_index();
-			printf("Set Width:");
+			dp("Set Width:");
 			w = scanf_index();
-			printf("Set Height:");
+			dp("Set Height:");
 			h = scanf_index();
-			printf("Cam select[0:main/1:box]:");
+			dp("Cam select[0:main/1:box]:");
 			c = scanf_index();
 
 			isd_crop(x, y, w, h, c);
 		}
 		else if (cmd == 3) {
 			int x, y, w, h, str, c;
-			printf("cmd 10 Distortion Test\n");
-			printf("Set Center X:");
+			dp("cmd 3 Distortion Test\n");
+			dp("Set Center X:");
 			x = scanf_index();
-			printf("Set Center Y:");
+			dp("Set Center Y:");
 			y = scanf_index();
-			printf("Set Width:");
+			dp("Set Width:");
 			w = scanf_index();
-			printf("Set Height:");
+			dp("Set Height:");
 			h = scanf_index();
-			printf("Set strength:");
+			dp("Set strength:");
 			str = scanf_index();
-			printf("Cam select[0:main/1:box]:");
+			dp("Cam select[0:main/1:box]:");
 			c = scanf_index();
 
 			isd_distortion(x, y, w, h, str, c);
@@ -4728,13 +4730,17 @@ int Setting_Total(void) {
 		}
 
 		if (cmd_end_flag) {
+
 			if (sample_gettimeus() - setting_end_time >= setting_end_delay) {
-				system("sync");
-				usleep(2000*1000);
+				// system("sync");
+				// usleep(2000*1000);
 				dp("[END] CMD Send!\n");
 				device_end(SETTING);
 				cmd_end_flag = false;
 				break;
+			}
+			else if (sample_gettimeus() - setting_end_time >= (setting_end_delay-500000)) {
+				system("sync");
 			}
 		}
 

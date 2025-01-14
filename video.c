@@ -437,6 +437,14 @@ int Set_Target_Bit(uint32_t targetbit) {
 	IMP_Encoder_GetChnAttrRcMode(CH0_INDEX, &encecmode);
 	dp("After uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
 
+	IMP_Encoder_GetChnAttrRcMode(CH3_INDEX, &encecmode);
+	dp("Before uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
+	encecmode.attrCbr.uTargetBitRate = targetbit;
+	IMP_Encoder_SetChnAttrRcMode(CH3_INDEX, &encecmode);
+
+	IMP_Encoder_GetChnAttrRcMode(CH3_INDEX, &encecmode);
+	dp("After uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
+
 	// dp("enc rc mode:%d\n", encecmode.rcMode);
 	// dp("enc rc CBR uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
 	// dp("enc rc CBR iInitialQP:%d\n", encecmode.attrCbr.iInitialQP);
