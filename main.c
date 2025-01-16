@@ -200,6 +200,8 @@ int global_value_init(void) {
 	BMicT = false;
 	TestReset = false;
 	bpflag = false;
+	bell_play_flag = false;
+	bell_play_wait_flag = false;
 
 	for(i=0;i<5;i++){
 		face_end_f[i] = false;
@@ -4490,6 +4492,8 @@ int Setting_Total(void) {
     bool dimming_up = true;
     bool ota_thread_flag = false;
 
+    char* effect_file = NULL;
+
 
 #ifdef STREAMING_SPI
     // pthread_t tid_spi;
@@ -4741,6 +4745,34 @@ int Setting_Total(void) {
 			}
 			else if (sample_gettimeus() - setting_end_time >= (setting_end_delay-500000)) {
 				system("sync");
+			}
+		}
+
+		if (bell_play_flag) {
+            spk_vol_buf = (10 * settings.spk_vol) + 55;
+            spk_gain_buf = 15;
+            bell_vol_buf = (5 * settings.spk_vol) + 55;
+            bell_gain_buf = 15;
+            if (settings.bell_type == 0) effect_file = "/dev/shm/effects/bell1.wav";
+            else if (settings.bell_type == 1) effect_file = "/dev/shm/effects/bell2.wav";
+            else if (settings.bell_type == 2) effect_file = "/dev/shm/effects/bell3.wav";
+            else if (settings.bell_type == 2) effect_file = "/dev/shm/effects/bell4.wav";
+            dp("play : %s\n", effect_file);
+             Set_Vol(90,30,bell_vol_buf,bell_gain_buf);
+            ao_file_play_thread(effect_file);
+            bell_play_flag = false;
+		}
+
+		if (bell_play_wait_flag) {
+			if (!bell_play_flag) {
+				setting_end_time = sample_gettimeus();
+                setting_end_delay = 9000000;
+				bell_play_flag = true;
+				bell_play_wait_flag = false;
+			}
+			else {
+				setting_end_time = sample_gettimeus();
+                setting_end_delay = 20000000;
 			}
 		}
 

@@ -13,14 +13,14 @@ extern "C" {
 #ifndef __PHILL_REQ__
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"c"
-	#define CAHR_VER	"u"
+	#define CAHR_VER	"v"
 #else
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"z"
 	#define CAHR_VER	"e"
 #endif
 
-#define DeBug 			1
+#define DeBug 			0
 
 #if DeBug
 	#define		dp(...)	printf(__VA_ARGS__)
@@ -357,6 +357,8 @@ bool DLedT, BLedT, BMicT;
 bool TestReset;
 bool netwaitstar, netwaitrecover;
 bool bpflag;
+bool bell_play_flag;
+bool bell_play_wait_flag;
 
 extern int bExit;
 
