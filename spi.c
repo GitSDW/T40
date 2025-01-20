@@ -2947,10 +2947,10 @@ void *spi_send_stream (void *arg)
                     // cnt_v1++;
 
                     // // if (datasize > 2) {
-                    //     if (tx_buff[5+9] == 0x80 && (tx_buff[5+9+1] == 0x61 || tx_buff[5+9+1] == 0xe1))
-                    //         ret = write(save_fd2, &tx_buff[5+9+0], datasize+12);
-                    //     else
-                    //         ret = write(save_fd2, &tx_buff[5+9+0], datasize);
+                        // if (tx_buff[5+9] == 0x80 && (tx_buff[5+9+1] == 0x61 || tx_buff[5+9+1] == 0xe1))
+                        //     ret = write(save_fd2, &tx_buff[5+9+0], datasize+12);
+                        // else
+                        //     ret = write(save_fd2, &tx_buff[5+9+0], datasize);
                     // // }
 
 
@@ -3045,10 +3045,10 @@ void *spi_send_stream (void *arg)
                     frame_ptr2++;
 
                     // if (datasize > 2) {
-                        if (tx_buff[5+9] == 0x80 && (tx_buff[5+9+1] == 0x61 || tx_buff[5+9+1] == 0xe1))
-                            ret = write(save_fd2, &tx_buff[5+9+0], datasize+12);
-                        else
-                            ret = write(save_fd2, &tx_buff[5+9+0], datasize);
+                        // if (tx_buff[5+9] == 0x80 && (tx_buff[5+9+1] == 0x61 || tx_buff[5+9+1] == 0xe1))
+                        //     ret = write(save_fd2, &tx_buff[5+9+0], datasize+12);
+                        // else
+                        //     ret = write(save_fd2, &tx_buff[5+9+0], datasize);
                     // }
 
                     usleep(mv_delay*1000);

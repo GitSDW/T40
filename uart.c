@@ -819,7 +819,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
         case USTREAM_BITRATE:
             if (len == 1 && rbuff[index+9] > 0 && rbuff[index+9] < 6) {
                 br_buf = rbuff[index+9]*100;
-                // Set_Target_Bit(br_buf);
+                Set_Target_Bit(br_buf);
             }
             ack_len = 0;
             // ack_flag = true;
@@ -1088,6 +1088,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             effect_file = "/dev/shm/effects/factory.wav";
             dp("play : %s\n", effect_file);
             ao_file_play_thread(effect_file);
+            system("sync");
             
             ack_len = 0;
             // ack_flag = true;

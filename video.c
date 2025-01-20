@@ -431,6 +431,10 @@ int Set_Target_Bit(uint32_t targetbit) {
 
 	IMP_Encoder_GetChnAttrRcMode(CH0_INDEX, &encecmode);
 	dp("Before uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
+	dp("Before iInitialQP:%d\n", encecmode.attrCbr.iInitialQP);
+	dp("Before iMinQP:%d\n", encecmode.attrCbr.iMinQP);
+	dp("Before iMaxQP:%d\n", encecmode.attrCbr.iMaxQP);
+
 	encecmode.attrCbr.uTargetBitRate = targetbit;
 	IMP_Encoder_SetChnAttrRcMode(CH0_INDEX, &encecmode);
 
@@ -439,6 +443,9 @@ int Set_Target_Bit(uint32_t targetbit) {
 
 	IMP_Encoder_GetChnAttrRcMode(CH3_INDEX, &encecmode);
 	dp("Before uTargetBitRate:%d\n", encecmode.attrCbr.uTargetBitRate);
+	dp("Before iInitialQP:%d\n", encecmode.attrCbr.iInitialQP);
+	dp("Before iMinQP:%d\n", encecmode.attrCbr.iMinQP);
+	dp("Before iMaxQP:%d\n", encecmode.attrCbr.iMaxQP);
 	encecmode.attrCbr.uTargetBitRate = targetbit;
 	IMP_Encoder_SetChnAttrRcMode(CH3_INDEX, &encecmode);
 
@@ -1283,20 +1290,20 @@ void *OSD_thread(void *args)
 	set_delay_time(200*1000);
 	
 	do {
-		if (main_motion_detect > 0) {
-			ret = IMP_OSD_ShowRgn(prHander[TEST_COVER_INDEX], mosdgrp, 1);
-			if (ret != 0) {
-				IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
-				return NULL;
-			}
-		}
-		else {
-			ret = IMP_OSD_ShowRgn(prHander[TEST_COVER_INDEX], mosdgrp, 0);
-			if (ret != 0) {
-				IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
-				return NULL;
-			}
-		}
+		// if (main_motion_detect > 0) {
+		// 	ret = IMP_OSD_ShowRgn(prHander[TEST_COVER_INDEX], mosdgrp, 1);
+		// 	if (ret != 0) {
+		// 		IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
+		// 		return NULL;
+		// 	}
+		// }
+		// else {
+		// 	ret = IMP_OSD_ShowRgn(prHander[TEST_COVER_INDEX], mosdgrp, 0);
+		// 	if (ret != 0) {
+		// 		IMP_LOG_ERR(TAG, "IMP_OSD_ShowRgn() Cover error\n");
+		// 		return NULL;
+		// 	}
+		// }
 
 		for (int i=0; i<10; i++) {
 			if (mosaic_time[i] != 0){
