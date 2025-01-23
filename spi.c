@@ -1007,7 +1007,7 @@ int Ready_Busy_Check(void) {
     for (int i=0; i<(READY_BUSY_TIME*2000); i++) {
         usleep(5*100);
         ret = gpio_get_val(PORTB+18);
-        if (stream_state == 1) {
+        if (stream_state == 1 && bl_state != BSS_SEND) {
             return -2;
         }
         if (bell_flag) {
@@ -2829,8 +2829,8 @@ void *spi_send_stream (void *arg)
     // int save_fd1 = 0;
     // save_fd1 = open("/tmp/mnt/sdcard/main1.h264", O_RDWR | O_CREAT | O_TRUNC, 0777);
 
-    int save_fd2 = 0;
-    save_fd2 = open("/tmp/mnt/sdcard/main2.h264", O_RDWR | O_CREAT | O_TRUNC, 0777);
+    // int save_fd2 = 0;
+    // save_fd2 = open("/tmp/mnt/sdcard/main2.h264", O_RDWR | O_CREAT | O_TRUNC, 0777);
   
     do {
         /////////// Vedio Main IN -> UDP Out //////////////////////////////////////////
@@ -2945,6 +2945,8 @@ void *spi_send_stream (void *arg)
                     // }
                     // savetime_v1 = sample_gettimeus();
                     // cnt_v1++;
+
+                    // dp("C:%x D:%x %x %x %x\n",tx_buff[5+7],tx_buff[5+9+0],tx_buff[5+9+1],tx_buff[5+9+2],tx_buff[5+9+3]);
 
                     // // if (datasize > 2) {
                         // if (tx_buff[5+9] == 0x80 && (tx_buff[5+9+1] == 0x61 || tx_buff[5+9+1] == 0xe1))

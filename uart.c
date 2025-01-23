@@ -1106,14 +1106,14 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
             
             if (rbuff[index+9] == 1) {
                 gpio_LED_dimming(cmdbuf);
-                ao_file_play_thread_mute("/dev/shm/effects/bellend.wav");
+                // ao_file_play_thread_mute("/dev/shm/effects/bellend.wav");
                 Set_Vol(90,30,(10 * 1) + 55,15);
                 effect_file = "/dev/shm/effects/dev_start.wav";
                 dp("play : %s\n", effect_file);
                 ao_file_play_thread(effect_file);
             }
             else if (rbuff[index+9] == 2) {
-                ao_file_play_thread_mute("/dev/shm/effects/bellend.wav");
+                // ao_file_play_thread_mute("/dev/shm/effects/bellend.wav");
                 Set_Vol(90,30,(10 * 1) + 55,15);
                 effect_file = "/dev/shm/effects/pairing.wav";
                 dp("play : %s\n", effect_file);

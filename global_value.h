@@ -12,8 +12,8 @@ extern "C" {
 
 #ifndef __PHILL_REQ__
 	#define MAJOR_VER	"0"
-	#define MINOR_VER	"c"
-	#define CAHR_VER	"y"
+	#define MINOR_VER	"d"
+	#define CAHR_VER	"1"
 #else
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"z"

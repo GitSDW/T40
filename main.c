@@ -876,6 +876,7 @@ void *make_mp4_clip1(void *argc) {
 		#else
 			system("/tmp/mnt/sdcard/./ffmpeg -y -loglevel quiet -i /dev/shm/stream-0.h264 -c copy /dev/shm/main.mp4");
 			pack1 = file_size_get("/dev/shm/main.mp4");
+			// system("cp /dev/shm/stream-0.h264 /tmp/mnt/sdcard/");
 			system("rm /dev/shm/stream-0.h264");
 		#endif
 
@@ -897,6 +898,8 @@ void *make_mp4_clip1(void *argc) {
 		}
 		cfile_flag1 = true;
 	}
+
+
 	return (void*) 0;
 }
 
@@ -1127,6 +1130,14 @@ int AV_Off_Thread(void)
 	return ret;			
 }
 
+void *fake_sound_thread(void *argc) {
+	dp("Fake Sound Play Start!\n");
+	Set_Vol(90,30,(10 * 1) + 55,15);
+	ao_file_play_thread_mute("/tmp/mnt/sdcard/effects/bellend.wav");
+
+	return ((void*)0);
+}
+
 
 int clip_total(void);
 int clip_total_fake(void);
@@ -1176,6 +1187,15 @@ int main(int argc, char **argv) {
 		dp("Fail GPIO Init\n");
 		return -1;
 	}
+	pthread_t tid_fake_sound;
+	ret = pthread_create(&tid_fake_sound, NULL, fake_sound_thread, NULL);
+	if(ret != 0) {
+		IMP_LOG_ERR("[Camera]", "[ERROR] %s: pthread_create fake_sound_thread failed\n", __func__);
+		// return -1;
+		dp("Fake Sound Play Error!\n");
+	}
+
+
     // pthread_t tid_ao, tid_ai;//, tid_aio_aec;
     // pthread_t tid_udp_in, tid_udp_out, tid_spi;
     // pthread_t tid_stream, tid_snap, tid_move, tim_osd, tid_fdpd, adc_thread_id;
@@ -1870,6 +1890,8 @@ int main(int argc, char **argv) {
 	return 0;
 }
 
+
+
 extern int set_parm_end(void);
 
 
@@ -2475,6 +2497,8 @@ int clip_total(void) {
 					// }
 					bLiveFile = false;
 
+					stream_state = 1;
+
 					gpio_LED_dimming(2);
 					dimming_val = 20;
 
@@ -2483,7 +2507,7 @@ int clip_total(void) {
 						face_end(REC);
 					}
 
-					stream_state = 1;
+					
 					// data_sel = 4;
 					box_send_flag = true;
 
@@ -2562,6 +2586,7 @@ int clip_total(void) {
 						bell_rec_state = REC_STOP;
 						bell_rerecode_flag = true;
 						dp("BELL END:Stream REC! %lld\n", total_time);
+						total_time2 = sample_gettimeus() - start_time2;
 						Rec_type = STRM_REC;
 					}
 
@@ -2571,6 +2596,7 @@ int clip_total(void) {
 						dp("BELL END:Steaming End! %lld\n", total_time);
 						bell_rec_state = REC_STOP;
 						if (bell_stream_flag == false){
+							total_time2 = sample_gettimeus() - start_time2;
 							Rec_type = MAKE_FILE;
 							// box_snap = true;
 						}
@@ -2595,6 +2621,7 @@ int clip_total(void) {
 							if (start_time3 != 0) {
 								if (total_time3 > BELL_TIME_MIN) {
 									// dp("1 t3:%lld s3:%lld\n", total_time3, start_time3);
+									total_time2 = sample_gettimeus() - start_time2;
 									Rec_type = MAKE_FILE;
 								}
 								else {
@@ -2622,6 +2649,7 @@ int clip_total(void) {
 						dp("BELL END:Temp End! %lld\n", total_time2);
 						bell_rec_state = REC_STOP;
 						if (bell_stream_flag == false) {
+							total_time2 = sample_gettimeus() - start_time2;
 							Rec_type = MAKE_FILE;
 							// box_snap = true;
 						}
@@ -2634,6 +2662,7 @@ int clip_total(void) {
 							bell_rec_state = REC_STOP;
 
 							if (bell_stream_flag == false) {
+								total_time2 = sample_gettimeus() - start_time2;
 								Rec_type = MAKE_FILE;
 								// box_snap = true;
 							}
@@ -2659,6 +2688,7 @@ int clip_total(void) {
 								if (rec_streaming_state == 0)
 									stream_state = 0;
 								bell_rerecode_flag = true;
+								total_time2 = sample_gettimeus() - start_time2;
 								Rec_type = MAKE_FILE;
 								if (bellend_sound == 1)  {
 					                ao_file_play_thread("/dev/shm/effects/bellend.wav");
@@ -2671,6 +2701,7 @@ int clip_total(void) {
 							dp("6 t3:%lld s3:%lld\n", total_time3, start_time3);
 							stream_state = 0;
 							bell_rerecode_flag = true;
+							total_time2 = sample_gettimeus() - start_time2;
 							Rec_type = MAKE_FILE;
 							if (bellend_sound == 2)  {
 				                ao_file_play_thread("/dev/shm/effects/bellend.wav");
@@ -4882,3 +4913,5 @@ void bottom_led_test2(int onoff) {
 	}
 	usleep(5*100*1000);
 }
+
+

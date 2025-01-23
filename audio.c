@@ -423,6 +423,8 @@ int Init_Audio_In(void)
 		return ret;
 	}
 
+	
+
 	return 0;
 }
 
@@ -552,8 +554,6 @@ int Init_Audio_Out(void)
 		IMP_LOG_INFO(TAG, "enable audio hpf error.\n");
 		return ret;
 	}
-
-
 	return 0;
 }
 
@@ -1228,9 +1228,9 @@ void *IMP_Audio_Play_Thread_pcm(void *argv)
 			if (!amp_f) {
 				if (amp_c == 20) {
 					Get_Vol();
-					Set_Vol(-30,0,-30,0);
-					Set_Mute(0);
-					amp_off();
+					// Set_Vol(-30,0,-30,0);
+					// Set_Mute(0);
+					// amp_off();
 				}
 				else if (amp_c == 22) {
 					amp_f = true;
@@ -1450,9 +1450,7 @@ void *IMP_Audio_Play_Thread_g726(void *argv)
 bool file_play_flag = false;
 
 pthread_mutex_t PlayMutex = PTHREAD_MUTEX_INITIALIZER;
-int wait_cnt = 10;
-
-void ao_file_play_thread_mute(void *argv);
+int wait_cnt = 20;
 
 void ao_file_play_thread(void *argv)
 {
@@ -1481,15 +1479,13 @@ void ao_file_play_thread(void *argv)
 		return;
 	}
 
-	size = fread(buf, 1, 80, play_file);
-	if (size < 80)
+	size = fread(buf, 1, 44+320, play_file);
+	if (size < 44+320)
 		return;
 	else dp("wav header read!!\n");
 
 	bPlayMusic = true;
 
-	// if (!amp_f)
-	// 	ao_file_play_thread_mute("/dev/shm/effects/bellend.wav");
 
 	do {
 		if (bExit) break;
@@ -1539,9 +1535,9 @@ void ao_file_play_thread(void *argv)
 		if (!amp_f) {
 			if (amp_c == wait_cnt) {
 				Get_Vol();
-				Set_Vol(-30,0,-30,0);
-				Set_Mute(0);
-				amp_off();
+				// Set_Vol(-30,0,-30,0);
+				// Set_Mute(0);
+				// amp_off();
 			}
 			else if (amp_c == wait_cnt+2) {
 				amp_f = true;
@@ -1594,6 +1590,8 @@ void ao_file_play_thread_mute(void *argv)
 	bool stop_flag = false;
 	// int total = 0;
 
+	pthread_mutex_lock(&PlayMutex);
+
 	buf = (unsigned char *)malloc(AUDIO_SAMPLE_BUF_SIZE);
 	if (buf == NULL) {
 		IMP_LOG_ERR(TAG, "[ERROR] %s: malloc audio buf error\n", __func__);
@@ -1611,10 +1609,9 @@ void ao_file_play_thread_mute(void *argv)
 		return;
 	else dp("wav header read!!\n");
 
-	amp_off();
 
-	if (wait_cnt < 20)
-		wait_cnt += 10;
+	dp("MUTE THREAD START!!\n");
+	amp_off();
 
 	do {
 		if (bExit) break;
@@ -1660,6 +1657,7 @@ void ao_file_play_thread_mute(void *argv)
 		}
 
 		usleep(18*1000);
+		// dp("mute_thread!!\n");
 
 
 		IMP_LOG_INFO(TAG, "Play: TotalNum %d, FreeNum %d, BusyNum %d\n",
@@ -1678,6 +1676,8 @@ void ao_file_play_thread_mute(void *argv)
 	// 	}
 	// 	usleep(18*1000);
 	// }
+
+	pthread_mutex_unlock(&PlayMutex);
 
 	dp("[Audio File] Thread End!\n");
 	fclose(play_file);
