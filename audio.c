@@ -1120,6 +1120,26 @@ void *IMP_Audio_Play_Thread_pcm(void *argv)
 
 		while(bPlayMusic);
 
+		if (last_recv_flag || (tts_start_falg&&((sample_gettimeus()-last_recv_time)>1000000))) {
+			// dp("flag:%d time:%lld seq:%d\n", last_recv_flag, last_recv_time, last_recv_seq);
+			for (int i = 0; i < last_recv_seq; i++) {
+				if (AO_Seq_Buff.DE[(i)%256]) {
+					pthread_mutex_lock(&buffMutex_ao);
+					memset(&AO_Cir_Buff.tx[AO_Cir_Buff.WIndex], 0x00, 1024);
+	                memcpy(&AO_Cir_Buff.tx[AO_Cir_Buff.WIndex], AO_Seq_Buff.tx[(i)%256], AO_Seq_Buff.LEN[(i)%256]);
+	                AO_Cir_Buff.WIndex = (AO_Cir_Buff.WIndex+AO_Seq_Buff.LEN[(i)%256]) % (500*1024);
+	                AO_Seq_Buff.DE[(i)%256] = false;
+	                AO_Seq_Buff.LEN[(i)%256] = 0;
+	                pthread_mutex_unlock(&buffMutex_ao);
+	            }
+			}
+			last_recv_flag = false;
+			tts_start_falg = false;
+			last_recv_time = 0;
+			last_recv_seq = 0;
+			// dp("TTS Buffer Load END!!\n");
+		}
+
 		if (ao_clear_flag) {
 			dp("Clear Flag!!\n");
 			ao_clear_flag = false;
@@ -1190,11 +1210,17 @@ void *IMP_Audio_Play_Thread_pcm(void *argv)
 		}
 
 		if (play_status.chnBusyNum != 0 && asflg)  {
-			if ((sample_gettimeus() - as_time) > 200000){
+			if ((sample_gettimeus() - as_time) > 600000){
 				// dp("Audio Dummy Data Set!!\n");
-				memset (buf, 0, definesize);
-				datasize = definesize;
-				as_time = sample_gettimeus();
+
+
+				// memset (buf, 0, definesize);
+				// datasize = definesize;
+				// as_time = sample_gettimeus();
+
+				AO_Cir_Buff.WIndex = AO_Cir_Buff.RIndex = 0;
+				datasize = 0;
+				asflg = false;
 			}
 		}
 

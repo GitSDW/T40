@@ -734,6 +734,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                     ao_clear_flag = true;
                     ack_len = 0;
                     audio_spi_flag = false;
+                    ao_clear_flag = true;
 
                     if (bellend_sound == 1) bellend_sound++;
                     
@@ -755,6 +756,8 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 break;
             }
             dp("Streaming Bell Call Start!\n");
+
+            audio_spi_flag = true;
             if (rec_on) {
                 ack_len = 1;
                 ack_data[0] = 2;
@@ -764,6 +767,7 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                 ack_len = 1;
                 ack_data[0] = 3;
                 // ack_flag = true;
+
                 usleep(500*1000);
                 streaming_rec_end(CAUSE_MEM);
             }
@@ -772,10 +776,10 @@ static int Recv_Uart_Packet_live(uint8_t *rbuff) {
                     Set_Vol(90,30,spk_vol_buf,spk_gain_buf);
                 #endif
                 rec_time_s = sample_gettimeus();
+                ao_clear_flag = true;
                 // if (boot_mode == 0x01) {
                 //     Rec_type = STRM_REC;
                 // }
-                audio_spi_flag = true;
                 if (Rec_type == BELL_REC || Rec_type == BELL_REREC) {
                      bell_call_flag = true;
                 }

@@ -13,7 +13,7 @@ extern "C" {
 #ifndef __PHILL_REQ__
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"d"
-	#define CAHR_VER	"1"
+	#define CAHR_VER	"8"
 #else
 	#define MAJOR_VER	"0"
 	#define MINOR_VER	"z"
@@ -36,6 +36,7 @@ typedef struct CIRCULAR_BUFF
 	int GIndex;
 } Buff_t;
 
+
 // udp.h
 #define RECV_INDEX	0 	// Audio Out
 #define SEND_INDEX	1 	// Audio In
@@ -54,6 +55,15 @@ typedef struct CIRCULAR_BUFF2
 
 Buff2_t VM_Frame_Buff;
 Buff2_t VB_Frame_Buff;
+
+
+typedef struct CIRCULAR_BUFF3
+{
+	unsigned char *tx[256];
+	int DE[256];
+	int LEN[256];
+	int TTSEN[256];
+} Buff_t3;
 
 typedef struct FILE_TIMESTAMP
 {
@@ -129,6 +139,8 @@ char ip[30];
 
 Buff_t AO_Cir_Buff;
 Buff_t AI_Cir_Buff;
+
+Buff_t3 AO_Seq_Buff;
 
 #define A_SEND_SIZE 640
 #define A_BUFF_SIZE 500*1024
@@ -360,6 +372,13 @@ bool bpflag;
 bool bell_play_flag;
 bool bell_play_wait_flag;
 
+///////// tts ////////////////
+int last_recv_seq;
+int64_t last_recv_time;
+bool last_recv_flag;
+bool tts_start_falg;
+/////////////////////////////
+
 extern int bExit;
 
 enum FR_STATE {
@@ -485,6 +504,7 @@ enum REC_TYPE {
 #define __PRIVERCE_SIZE_UP__
 #define __FRAME_SYNC__
 #define __IOT_CORE__
+#define __AUDIOE_SEQ__
 
 #ifdef __TEST_FAKE_VEDIO__
 	int led_cnt;

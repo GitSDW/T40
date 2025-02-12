@@ -2000,7 +2000,7 @@ static int save_stream(int fd, IMPEncoderStream *stream)
 }
 
 int32_t main1_frame_cnt = 0;
-int32_t bott2_frame_cnt = 0;
+int32_t bott2_frame_cnt = 0; 
 
 static int save_stream1(int fd, IMPEncoderStream *stream, int ch)
 {

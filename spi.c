@@ -462,8 +462,9 @@ int Make_Spi_Packet_live_rtp(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_
     static uint16_t seq_num0 = 0;
     static uint16_t seq_num3 = 0;
 
-    static int64_t test_time = 0;
-    int64_t cal_time = 0;
+    // static int64_t test_time = 0;
+    // static int64_t time_check = 0;
+    // int64_t cal_time = 0;
 
     // static int64_t real_time_gap = 0;
     // int64_t gap_time = 0;
@@ -489,6 +490,14 @@ int Make_Spi_Packet_live_rtp(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_
             header.timestamp[1] = (time&0x00FF0000) >> 16;
             header.timestamp[2] = (time&0x0000FF00) >> 8;
             header.timestamp[3] = (time&0x000000FF);
+
+            // if (minor == STREAM_VEDIO_M) {
+            //     if (time_check > time) {
+            //         dp("t: %lld -> %lld\n", time_check, time);
+            //     }
+            //     time_check = time;
+            // }
+
             // if (minor == STREAM_VEDIO_M) {
             //     header.timestamp[0] = 0x51;
             //     header.timestamp[1] = 0x79;
@@ -731,6 +740,301 @@ int Make_Spi_Packet_live_rtp(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_
     return 0;
 }
 
+
+int Make_Spi_Packet_live_rtp_b(uint8_t *tbuff, uint8_t *data, uint16_t len, uint8_t major, uint8_t minor, int64_t time, bool fm_end, bool countinue_flag, bool header_ex)
+{
+    int reserv_cnt = V_SEND_RESERV;
+    // uint8_t endchar[4] = {0};
+    // int test_data = 0;
+
+    if (len > FILE_READ_LENGTH_LIVE) {
+        dp("File Length Over!! %d>1014\n", len);
+        return -1;
+    }
+    memset(tbuff, 0xFF, SPI_SEND_LENGTH);
+
+    RTPHeader header;
+    static uint16_t seq_num0 = 0;
+    static uint16_t seq_num3 = 0;
+
+    // static int64_t test_time = 0;
+    // static int64_t time_check = 0;
+    // int64_t cal_time = 0;
+
+    // static int64_t real_time_gap = 0;
+    // int64_t gap_time = 0;
+
+    #ifdef __IOT_CORE__
+        if ((countinue_flag&&!header_ex) || !countinue_flag) {
+            header.version_padding_extension_cc = 0x80;
+            if (fm_end)
+                header.marker_payload_type = 0xE1;
+            else
+                header.marker_payload_type = 0x61;
+
+            if (minor == STREAM_VEDIO_M) {
+                header.sequence_number[0] = (seq_num0&0xFF00) >> 8;;
+                header.sequence_number[1] = seq_num0&0xFF;
+            }
+            else if (minor == STREAM_VEDIO_B) {
+                header.sequence_number[0] = (seq_num3&0xFF00) >> 8;;
+                header.sequence_number[1] = seq_num3&0xFF;
+            }
+            // header.timestamp = sample_gettimeus();
+            header.timestamp[0] = (time&0xFF000000) >> 24;
+            header.timestamp[1] = (time&0x00FF0000) >> 16;
+            header.timestamp[2] = (time&0x0000FF00) >> 8;
+            header.timestamp[3] = (time&0x000000FF);
+
+            // if (minor == STREAM_VEDIO_M) {
+            //     if (time_check > time) {
+            //         dp("t: %lld -> %lld\n", time_check, time);
+            //     }
+            //     time_check = time;
+            // }
+
+            // if (minor == STREAM_VEDIO_M) {
+            //     header.timestamp[0] = 0x51;
+            //     header.timestamp[1] = 0x79;
+            //     header.timestamp[2] = 0x42;
+            //     header.timestamp[3] = 0x00;
+            // }
+            // else if (minor == STREAM_VEDIO_B) {
+            //     header.timestamp[0] = 0x51;
+            //     header.timestamp[1] = 0x79;
+            //     header.timestamp[2] = 0x42;
+            //     header.timestamp[3] = 0x01;
+            // }
+            // header.ssrc = 123465879;
+            header.ssrc[0] = 0x20;
+            header.ssrc[1] = 0x24;
+            header.ssrc[2] = major;
+            header.ssrc[3] = minor;
+
+            // memcpy(&tbuff[reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
+            if (minor == STREAM_VEDIO_M) seq_num0++;
+            else if (minor == STREAM_VEDIO_B) seq_num3++;
+
+            len += sizeof(RTPHeader); 
+            // if (STREAM_VEDIO_M) dp("R\n");
+        }
+    #else
+        header.version_padding_extension_cc = 0x80;
+        if (fm_end)
+            header.marker_payload_type = 0xE1;
+        else
+            header.marker_payload_type = 0x61;
+
+        if (minor == STREAM_VEDIO_M) {
+            header.sequence_number[0] = (seq_num0&0xFF00) >> 8;;
+            header.sequence_number[1] = seq_num0&0xFF;
+        }
+        else if (minor == STREAM_VEDIO_B) {
+            header.sequence_number[0] = (seq_num3&0xFF00) >> 8;;
+            header.sequence_number[1] = seq_num3&0xFF;
+        }
+        // header.timestamp = sample_gettimeus();
+        header.timestamp[0] = (time&0xFF000000) >> 24;
+        header.timestamp[1] = (time&0x00FF0000) >> 16;
+        header.timestamp[2] = (time&0x0000FF00) >> 8;
+        header.timestamp[3] = (time&0x000000FF);
+        // if (minor == STREAM_VEDIO_M) {
+        //     header.timestamp[0] = 0x51;
+        //     header.timestamp[1] = 0x79;
+        //     header.timestamp[2] = 0x42;
+        //     header.timestamp[3] = 0x00;
+        // }
+        // else if (minor == STREAM_VEDIO_B) {
+        //     header.timestamp[0] = 0x51;
+        //     header.timestamp[1] = 0x79;
+        //     header.timestamp[2] = 0x42;
+        //     header.timestamp[3] = 0x01;
+        // }
+        // header.ssrc = 123465879;
+        header.ssrc[0] = 0x20;
+        header.ssrc[1] = 0x24;
+        header.ssrc[2] = major;
+        header.ssrc[3] = minor;
+
+        // memcpy(&tbuff[reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
+        if (minor == STREAM_VEDIO_M) seq_num0++;
+        else if (minor == STREAM_VEDIO_B) seq_num3++;
+
+        len += sizeof(RTPHeader); 
+        // if (STREAM_VEDIO_M) dp("R\n");
+    #endif
+
+    tbuff[0+reserv_cnt] = 0x02;
+    tbuff[1+reserv_cnt] = major & 0xFF;
+    tbuff[2+reserv_cnt] = minor & 0xFF;
+    tbuff[3+reserv_cnt] = (len>>8) & 0xFF;
+    tbuff[4+reserv_cnt] = len & 0xFF;
+    tbuff[5+reserv_cnt] = 0x00;
+    tbuff[6+reserv_cnt] = 0x00;
+    #ifdef __IOT_CORE__
+        if (fm_end) {
+            // if (header_ex) tbuff[7+reserv_cnt] = 2;
+            // else tbuff[7+reserv_cnt] = 1;
+            // tbuff[7+reserv_cnt] = 1;
+            if (!header_ex) {
+                if (len < (V_SEND_SIZE+sizeof(RTPHeader)))  tbuff[7+reserv_cnt] = 1;
+                else                    tbuff[7+reserv_cnt] = 2;
+            }
+            else {
+                tbuff[7+reserv_cnt] = 1;
+                
+            }
+        }
+        else {
+            if (!header_ex) {
+                tbuff[7+reserv_cnt] = 2;
+            }
+            else {
+                tbuff[7+reserv_cnt] = 1;
+                
+            }
+        }
+
+        // test_data = seq_num0 & 0xFF;
+
+        // if (!countinue_flag) tbuff[7+reserv_cnt] = 3;
+
+        // if (header_ex) tbuff[7+reserv_cnt] = 2;
+        // else tbuff[7+reserv_cnt] = 1;
+    #else
+        tbuff[7+reserv_cnt] = 0x01;
+    #endif
+    
+    // tbuff[8+reserv_cnt] = 0x00;
+    tbuff[8+reserv_cnt] = a_pkt_cnt;
+
+
+    // if (minor == STREAM_VEDIO_M) {
+    //     // #ifdef __IOT_CORE__
+    //         // dp("C:%d L:%d S:%d\n", tbuff[7+reserv_cnt], len, seq_num0);
+    //     // #endif
+    //     // gap_time = sample_gettimeus()-real_time_gap;
+    //     cal_time = (time - test_time);
+    //     if ((cal_time > 80000) && fm_end){
+    //         // dp("Real Main RTP GAP:%lld cal_time:%lld\n", gap_time, cal_time);
+    //         if ((bitrate_change != 300) && fm_end) {
+    //             bitrate_change = 300;
+    //             dp("Real Main cal_time:%lld\n", cal_time);
+    //             // Set_Target_Bit2(bitrate_change);
+    //             // bitrate_cnt = sample_gettimeus();
+    //         }
+    //         bitrate_cnt = sample_gettimeus();
+    //     }
+    //     // real_time_gap = sample_gettimeus();
+    //     test_time = time;
+    // }
+
+    switch(major){
+        case DTEST:
+            switch(minor){
+                case TEST_START:
+                    break;
+                case TEST_STOP:
+                    break;
+                default:
+                    return -1;
+                    break;
+            }
+            break;
+        case REC:
+            switch(minor){
+                case REC_DEV_START:
+                    break;
+                case REC_STREAM_STR:
+                    memcpy(&tbuff[9+reserv_cnt], data, len);
+                    break;
+                case REC_CLIP_F:
+                case REC_CLIP_B:
+                    memcpy(&tbuff[9+reserv_cnt], data, len);
+                    break;
+                case REC_FACE:
+                    break;
+                case REC_BOX_ALM:
+                    break;
+                case REC_STREAM_END:
+                    break;
+                case REC_ACK:
+                    break;
+                case REC_DEV_STOP:
+                    break;
+                default:
+                    return -1;
+                    break;
+            }
+            break;
+    case STREAMING:
+            switch(minor){
+                case STREAM_START:
+                    break;
+                case STREAM_REV:
+                    break;
+                case STREAM_VEDIO_M:
+                    #ifdef __IOT_CORE__
+                        if ((countinue_flag&&!header_ex) || !countinue_flag) {
+                            memcpy(&tbuff[9+reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
+                            reserv_cnt += sizeof(RTPHeader);
+                            memcpy(&tbuff[9+reserv_cnt], data, len);
+                            // memset(&tbuff[9+reserv_cnt], test_data, len);
+                        }
+                        else {
+                            // memcpy(&tbuff[9+reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
+                            // reserv_cnt += sizeof(RTPHeader);
+                            memcpy(&tbuff[9+reserv_cnt], data, len);
+                            // memset(&tbuff[9+reserv_cnt], test_data, len);
+                        }
+                    #else
+                        memcpy(&tbuff[9+reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
+                        reserv_cnt += sizeof(RTPHeader);
+                        memcpy(&tbuff[9+reserv_cnt], data, len);
+                    #endif
+                    break;
+                case STREAM_VEDIO_B:
+                    #ifdef __IOT_CORE__
+                        if ((countinue_flag&&!header_ex) || !countinue_flag) {
+                            memcpy(&tbuff[9+reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
+                            reserv_cnt += sizeof(RTPHeader);
+                            memcpy(&tbuff[9+reserv_cnt], data, len);
+                        }
+                        else {
+                            // memcpy(&tbuff[9+reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
+                            // reserv_cnt += sizeof(RTPHeader);
+                            memcpy(&tbuff[9+reserv_cnt], data, len);
+                        }
+                    #else
+                        memcpy(&tbuff[9+reserv_cnt], (uint8_t*)&header, sizeof(RTPHeader));
+                        reserv_cnt += sizeof(RTPHeader);
+                        memcpy(&tbuff[9+reserv_cnt], data, len);
+                    #endif
+                    break;
+                case STREAM_FACE:
+                    break;
+                case STREAM_AUDIO_F:
+                    memcpy(&tbuff[9+reserv_cnt], data, len);
+                    break;
+                case STREAM_STOP:
+                    break;
+                default:
+                    return -1;
+                    break;
+            }
+            break;
+        break;
+    case SETTING:
+        break;
+    default:
+        return -1;
+        break;
+    }
+    // tbuff[len + 8] = 0x03;
+    tbuff[1023-V_SEND_RESERV] = 0x03;
+    return 0;
+}
+
 extern pthread_mutex_t buffMutex_ao;
 
 // static int Recv_Spi_Packet_test(uint8_t *rbuff) {
@@ -750,6 +1054,10 @@ extern pthread_mutex_t buffMutex_ao;
 
 int AIN_CNT = 0;
 
+int64_t voice_timeout = 0;
+// int last_send_seq = 0;
+
+
 static int Recv_Spi_Packet_live(uint8_t *rbuff) {
     int index, len;
     uint8_t major, minor;
@@ -757,6 +1065,12 @@ static int Recv_Spi_Packet_live(uint8_t *rbuff) {
     // static uint8_t data[10]= {0};
     int bad_cnt = 0;
     static int spicnt = 0;
+    static int seqcnt = 0;
+    static int seqbuffsend = 0; 
+    static int sendseq = 256-16;
+    int send_seq_cnt = 0;
+
+    static int err_test_Cnt = 0;
     // static bool amp = false;
     
 
@@ -804,10 +1118,10 @@ static int Recv_Spi_Packet_live(uint8_t *rbuff) {
     // dp("\n");
     
 #else
-    static int filefd = 0;
-    if (filefd == 0) {
-        filefd = open("/tmp/mnt/sdcard/test.pcm", O_RDWR | O_CREAT | O_TRUNC, 0777);
-    }
+    // static int filefd = 0;
+    // if (filefd == 0) {
+    //     filefd = open("/tmp/mnt/sdcard/test.pcm", O_RDWR | O_CREAT | O_TRUNC, 0777);
+    // }
 
     index = 0;
     // for (int i=0; i<10; i++) {
@@ -887,31 +1201,143 @@ static int Recv_Spi_Packet_live(uint8_t *rbuff) {
     case STREAMING_BACK:
         switch(minor) {
         case STREAM_AUDIO_B:
-            if(len > 0){
-                pthread_mutex_lock(&buffMutex_ao);
-                if (AO_Cir_Buff.RIndex != AO_Cir_Buff.WIndex) {
-                    buff_space = (AO_Cir_Buff.RIndex - AO_Cir_Buff.WIndex - 1 + A_BUFF_SIZE) % (A_BUFF_SIZE);
+            #ifndef __AUDIOE_SEQ__
+                if(len > 0){
+                    pthread_mutex_lock(&buffMutex_ao);
+                    if (AO_Cir_Buff.RIndex != AO_Cir_Buff.WIndex) {
+                        buff_space = (AO_Cir_Buff.RIndex - AO_Cir_Buff.WIndex - 1 + A_BUFF_SIZE) % (A_BUFF_SIZE);
+                    }
+                    else buff_space = A_BUFF_SIZE;
+                    if (buff_space >= len) {
+                        memset(&AO_Cir_Buff.tx[AO_Cir_Buff.WIndex], 0x00, len);
+                        memcpy(&AO_Cir_Buff.tx[AO_Cir_Buff.WIndex], &rbuff[index+9], len);
+                        // write(filefd, &rbuff[index+9], len);
+                        AO_Cir_Buff.WIndex = (AO_Cir_Buff.WIndex+len) % (500*1024);
+                        // dp("[SPIAO]buff_space:%d WIndex:%d RIndex%d\n", buff_space, AO_Cir_Buff.WIndex, AO_Cir_Buff.RIndex);
+                        // dp("M : 0x%02x m : 0x%02x len : %d seq : %d\n", major, minor, len, rbuff[index+8]);
+                        // dp("Rindex : %d Windex : %d space : %d\n", AO_Cir_Buff.RIndex, AO_Cir_Buff.WIndex, buff_space);
+                        // AIN_CNT++;
+                        // if (AIN_CNT>10) {
+                        //     AIN_CNT = 0;
+                        //     dp("AIN\n");    
+                        // }
+                    }
+                    else {
+                        dp("AO Cir Buff Overflow!1\n");
+                    }
+                    pthread_mutex_unlock(&buffMutex_ao);
                 }
-                else buff_space = A_BUFF_SIZE;
-                if (buff_space >= len) {
-                    memset(&AO_Cir_Buff.tx[AO_Cir_Buff.WIndex], 0x00, len);
-                    memcpy(&AO_Cir_Buff.tx[AO_Cir_Buff.WIndex], &rbuff[index+9], len);
-                    write(filefd, &rbuff[index+9], len);
-                    AO_Cir_Buff.WIndex = (AO_Cir_Buff.WIndex+len) % (500*1024);
-                    // dp("[SPIAO]buff_space:%d WIndex:%d RIndex%d\n", buff_space, AO_Cir_Buff.WIndex, AO_Cir_Buff.RIndex);
-                    // dp("M : 0x%02x m : 0x%02x len : %d seq : %d\n", major, minor, len, rbuff[index+8]);
-                    // dp("Rindex : %d Windex : %d space : %d\n", AO_Cir_Buff.RIndex, AO_Cir_Buff.WIndex, buff_space);
-                    // AIN_CNT++;
-                    // if (AIN_CNT>10) {
-                    //     AIN_CNT = 0;
-                    //     dp("AIN\n");    
+            #else
+                if(len > 0){
+                    
+                    seqcnt = rbuff[index+9+1]*256 + rbuff[index+9+2];
+                    memset(AO_Seq_Buff.tx[seqcnt%256], 0x00, 1024);
+                    memcpy(AO_Seq_Buff.tx[seqcnt%256], &rbuff[index+9+3], len-3);
+                    AO_Seq_Buff.DE[seqcnt%256] = true;
+                    AO_Seq_Buff.LEN[seqcnt%256] = len-3;
+                    AO_Seq_Buff.TTSEN[seqcnt%256] = rbuff[index+9];
+                    dp("ALST:%d ASEQ:%d ADE:%d ALEN:%d len:%d\n", AO_Seq_Buff.TTSEN[seqcnt%256], seqcnt, AO_Seq_Buff.DE[seqcnt%256], AO_Seq_Buff.LEN[seqcnt%256], len);
+
+                    // if (seqcnt == 0) ao_clear_flag = true;
+
+                    if (AO_Seq_Buff.TTSEN[seqcnt%256] == 1) {
+                        tts_start_falg = true;
+                        last_recv_time = sample_gettimeus();
+                        last_recv_seq = seqcnt%256;
+                    }
+                    else if (AO_Seq_Buff.TTSEN[seqcnt%256] == 2 && last_recv_flag == false && last_recv_seq != 0) {
+                        // dp("TTS Buffer Load Start!!\n");
+                        last_recv_flag = true;
+                        last_recv_time = sample_gettimeus();
+                        last_recv_seq += 1;
+                    }
+                    else if (AO_Seq_Buff.TTSEN[seqcnt%256] == 0) {
+                        if (((seqcnt+256-16)%256) > sendseq)
+                            send_seq_cnt = ((seqcnt+256-16)%256)-sendseq;
+                        else 
+                            send_seq_cnt = 256-sendseq+((seqcnt+256-16)%256);
+
+                        if (send_seq_cnt > 16) send_seq_cnt = 0;
+                        // if(send_seq_cnt > 1) dp("Err:%d cnt:%d\n", err_test_Cnt++, seqcnt);
+                        // dp("C:%d B:%d A:%d\n", send_seq_cnt, ((seqcnt+256-16)%256), sendseq);
+                        for (int i = 0; i < send_seq_cnt; i++) {
+
+                            
+                            if (AO_Seq_Buff.DE[(sendseq+i)%256]) {
+                                dp("SEND BSEQ:%d\n", (sendseq+i)%256);
+                                if (AO_Cir_Buff.RIndex != AO_Cir_Buff.WIndex) {
+                                    buff_space = (AO_Cir_Buff.RIndex - AO_Cir_Buff.WIndex - 1 + A_BUFF_SIZE) % (A_BUFF_SIZE);
+                                }
+                                else buff_space = A_BUFF_SIZE;
+                                if (buff_space >= len) {
+                                    pthread_mutex_lock(&buffMutex_ao);
+                                    if (AO_Seq_Buff.TTSEN[sendseq+i] == 0) {
+                                        memset(&AO_Cir_Buff.tx[AO_Cir_Buff.WIndex], 0x00, len);
+                                        memcpy(&AO_Cir_Buff.tx[AO_Cir_Buff.WIndex], AO_Seq_Buff.tx[(sendseq+i)%256], AO_Seq_Buff.LEN[(sendseq+i)%256]);
+                                    }
+                                    AO_Cir_Buff.WIndex = (AO_Cir_Buff.WIndex+AO_Seq_Buff.LEN[(sendseq+i)%256]) % (500*1024);
+                                    AO_Seq_Buff.DE[(sendseq+i)%256] = false;
+                                    AO_Seq_Buff.LEN[(sendseq+i)%256] = 0;
+                                    pthread_mutex_unlock(&buffMutex_ao);
+                                }
+                                else {
+                                    dp("AO Cir Buff Overflow!1\n");
+                                }
+                            }
+                            else {
+                                // dp("ERROR BSEQ:%d\n", (sendseq+i)%256);
+                                // dp("E%d\n", (sendseq+i)%256);
+                            }
+                            
+                        }
+                        sendseq = ((seqcnt+256-16)%256);
+                    }
+
+                    // if (seqbuffsend != ((seqcnt%256)/16)) {
+                    //     seqbuffsend = (seqcnt%256)/16;
+                    //     // dp("BSEQ:%d, BDE:%d BLEN:%d WINDED:%d\n", (seqcnt+256-16)%256, AO_Seq_Buff.DE[(seqcnt+256-16)%256], AO_Seq_Buff.LEN[(seqcnt+256-16)%256], AO_Cir_Buff.WIndex);
+                    //     for (int i =0; i<16; i++) {
+                            
+                    //         if (AO_Seq_Buff.DE[i%256]) {
+
+                    //             pthread_mutex_lock(&buffMutex_ao);
+                    //             if (AO_Cir_Buff.RIndex != AO_Cir_Buff.WIndex) {
+                    //                 buff_space = (AO_Cir_Buff.RIndex - AO_Cir_Buff.WIndex - 1 + A_BUFF_SIZE) % (A_BUFF_SIZE);
+                    //             }
+                    //             else buff_space = A_BUFF_SIZE;
+                    //             if (buff_space >= len) {
+                    //                 memset(&AO_Cir_Buff.tx[AO_Cir_Buff.WIndex], 0x00, len);
+                    //                 // memcpy(&AO_Cir_Buff.tx[AO_Cir_Buff.WIndex], &rbuff[index+9], len);
+                    //                 memcpy(&AO_Cir_Buff.tx[AO_Cir_Buff.WIndex], AO_Seq_Buff.tx[(seqcnt+256-16+i)%256], AO_Seq_Buff.LEN[(seqcnt+256-16+i)%256]);
+                    //                 AO_Cir_Buff.WIndex = (AO_Cir_Buff.WIndex+AO_Seq_Buff.LEN[(seqcnt+256-16+i)%256]) % (500*1024);
+                    //                 AO_Seq_Buff.DE[(seqcnt+256-16+i)%256] = false;
+                    //                 AO_Seq_Buff.LEN[(seqcnt+256-16+i)%256] = 0;
+                    //                 // dp("[SPIAO]buff_space:%d WIndex:%d RIndex%d\n", buff_space, AO_Cir_Buff.WIndex, AO_Cir_Buff.RIndex);
+                    //                 // dp("M : 0x%02x m : 0x%02x len : %d seq : %d\n", major, minor, len, rbuff[index+8]);
+                    //                 // dp("Rindex : %d Windex : %d space : %d\n", AO_Cir_Buff.RIndex, AO_Cir_Buff.WIndex, buff_space);
+                    //                 // AIN_CNT++;
+                    //                 // if (AIN_CNT>10) {
+                    //                 //     AIN_CNT = 0;
+                    //                 //     dp("AIN\n");    
+                    //                 // }
+                    //             }
+                    //             else {
+                    //                 dp("AO Cir Buff Overflow!1\n");
+                    //             }
+                    //             pthread_mutex_unlock(&buffMutex_ao);
+                    //         }
+                    //         else {
+                    //             dp("ERROR BSEQ:%d\n", (seqcnt+256-16+i)%256);
+                    //         }
+                    //     }
                     // }
+
+
+
+                    
                 }
-                else {
-                    dp("AO Cir Buff Overflow!1\n");
-                }
-                pthread_mutex_unlock(&buffMutex_ao);
-            }
+            #endif
+
         break;
         }
     break;
@@ -2807,8 +3233,9 @@ void *spi_send_stream (void *arg)
     bool frame_end = false;
     int main_first = 0;
     int mv_delay = 2;
-    int old_ck = 0;
+    // int old_ck = 0;
     // bool stream_start1 = false;
+    int64_t time_check_2 = 0, old_tc2 = 0;
 
     
     bool str_ex_1 = true, str_ex_2 = true;
@@ -2938,6 +3365,33 @@ void *spi_send_stream (void *arg)
                 else {
                     frame_ptr1++;
 
+                    if (tx_buff[5+9] == 0x80 && (tx_buff[5+9+1] == 0x61 || tx_buff[5+9+1] == 0xe1)) 
+                    {
+                        time_check_2 = 0x00000000;
+                        time_check_2 = tx_buff[5+9+4]&0x000000FF;
+                        time_check_2 <<= 8;
+                        time_check_2 |= tx_buff[5+9+5]&0x000000FF;
+                        time_check_2 <<= 8;
+                        time_check_2 |= tx_buff[5+9+6]&0x000000FF;
+                        time_check_2 <<= 8;
+                        time_check_2 |= tx_buff[5+9+7]&0x000000FF;
+                        // time_check_2 = (0xFF000000&(tx_buff[5+9+4]<<24)) || (0x00FF0000&(tx_buff[5+9+5]<<16)) || (0x0000FF00&(tx_buff[5+9+6]<<8)) || (0x000000FF&tx_buff[5+9+7]);
+
+                        if (old_tc2 > time_check_2) {
+                            dp("RTP_TIME ERROR : %lld -> %lld\n", old_tc2, time_check_2);
+                        }
+                        else if ((time_check_2-old_tc2)>1000000) {
+                            dp("%x %x %x %x %x %x %x %x %x %x %x %x\n",tx_buff[5+9+0],tx_buff[5+9+1],tx_buff[5+9+2],tx_buff[5+9+3]
+                                                                        ,tx_buff[5+9+4],tx_buff[5+9+5],tx_buff[5+9+6],tx_buff[5+9+7]
+                                                                        ,tx_buff[5+9+8],tx_buff[5+9+9],tx_buff[5+9+10],tx_buff[5+9+11]);
+                        }
+                        // else {
+                            // dp("TIME CK : %lld\n", time_check_2);
+                        // }
+
+                        old_tc2 = time_check_2;
+                    }
+
                     // if (cnt_v1 > 0) {
                     //     interval_v1 = (sample_gettimeus() - savetime_v1);
                     //     avr_v1 = (avr_v1 + interval_v1);
@@ -3010,7 +3464,7 @@ void *spi_send_stream (void *arg)
                 else                            frame_end = false;
             #endif
 
-            Make_Spi_Packet_live_rtp(tx_buff, VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*frame_ptr2), 
+            Make_Spi_Packet_live_rtp_b(tx_buff, VB_Frame_Buff.tx[VB_Frame_Buff.Rindex]+(V_SEND_SIZE*frame_ptr2), 
                                         datasize, STREAMING, STREAM_VEDIO_B, VB_Frame_Buff.ftime[VB_Frame_Buff.Rindex], frame_end, continue_flag2, str_ex_2);
             
             pthread_mutex_unlock(&buffMutex_vb);

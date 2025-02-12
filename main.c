@@ -36,9 +36,16 @@ int64_t dimming_s = 0;
 
 int memory_init(void) {
 	int i=0;
+
 	AO_Cir_Buff.tx = (unsigned char *)malloc((size_t)512*1024);
 	AO_Cir_Buff.WIndex = 0;
 	AO_Cir_Buff.RIndex = 0;
+
+	for(i=0; i<256; i++) {
+		AO_Seq_Buff.tx[i] = (unsigned char *)malloc((size_t)1024);
+		AO_Seq_Buff.DE[i] = false;
+		AO_Seq_Buff.LEN[i] = 0;
+	}
 
 	AI_Cir_Buff.tx = (unsigned char *)malloc((size_t)10*1024);
 	AI_Cir_Buff.WIndex = 0;
@@ -202,6 +209,10 @@ int global_value_init(void) {
 	bpflag = false;
 	bell_play_flag = false;
 	bell_play_wait_flag = false;
+	last_recv_seq = 0;
+	last_recv_time = 0;
+	last_recv_flag = false;
+	tts_start_falg = false;
 
 	for(i=0;i<5;i++){
 		face_end_f[i] = false;
